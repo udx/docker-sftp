@@ -39,11 +39,12 @@ if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
   kubectl config use-context ${KUBERNETES_CLUSTER_NAMESPACE}
 
   cp /root/.kube/config /home/node/.kube/config
-  chown node:node /home/node/.kube/config
+
+  chown node:node /home/node/.kube
 
 fi;
 
-pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js
+pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js --silent
 
 ## Command pass-through.
 exec "$@"

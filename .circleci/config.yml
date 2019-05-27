@@ -90,7 +90,7 @@ jobs:
       - run: 
           name: Install kubectl
           command: |
-            gcloud --quiet container clusters get-credentials ${GOOGLE_CLUSTER_NAME} --region us-central1 --project rabbit-cdmsqarskcacnbpe
+            gcloud --quiet container clusters get-credentials ${GOOGLE_CLUSTER_NAME} --region us-central1 --project ${GOOGLE_PROJECT_ID}
             gcloud --quiet components install kubectl
       - run: 
           name: Deploy to K8s

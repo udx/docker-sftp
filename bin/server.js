@@ -52,10 +52,7 @@ function getPods( req, res ) {
       'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN
     }
   }, function haveResponse( error, resp, body ) {
-    debug('haveResponse', require('util').inspect(error || body, {depth:5,colors:true}));
-
     res.send(body);
-
   });
 
 }

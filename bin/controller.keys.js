@@ -8,17 +8,8 @@
  * 4. Generate /etc/passwd and /etc/ssh/authorized_keys.d/{APP} for each application/user.
  *
  *
- * For local development/testing:
- *    PASSWORDS_PATH=/Users/andy/Documents/GitHub/rabbit-ssh/static/templates/ DIRECTORY_KEYS_BASE=/tmp/authorized_keys.d DEBUG=* node opt/controller.keys.js
- *    
- * For Production on Controller VM:
- *    sudo API_HOSTNAME=api.rabbit.ci DIRECTORY_KEYS_BASE=/etc/ssh/authorized_keys.d PASSWORD_FILE=/etc/passwd PASSWORDS_TEMPLATE=ubuntu.passwords controller.keys
- *
- * To trigger [rabbit-keys-updater.service] to update keys as root.
- *    CONTROLLER_KEYS_PATH=/media/state/ssh/controlller-state.json controller.keys
- *
  * For Production on Kubernetes rabbit-ssh VM:
- *    DIRECTORY_KEYS_BASE=/etc/ssh/authorized_keys.d PASSWORD_FILE=/etc/passwd PASSWORDS_TEMPLATE=alpine.passwords opt/controller.keys.js
+ *    DIRECTORY_KEYS_BASE=/etc/ssh/authorized_keys.d PASSWORD_FILE=/etc/passwd PASSWORDS_TEMPLATE=alpine.passwords controller.keys
  *
  * For Production on Kubernetes rabbit-ssh VM (write to state.json):
  *    CONTROLLER_KEYS_PATH=/var/lib/rabbit-ssh/state.json DIRECTORY_KEYS_BASE=/etc/ssh/authorized_keys.d PASSWORD_FILE=/etc/passwd PASSWORDS_TEMPLATE=alpine.passwords opt/controller.keys.js
@@ -110,7 +101,7 @@ module.exports.updateKeys = function updateKeys( options, taskCallback ) {
     if( err || _.size( _.get( body, 'items', [] ) ) === 0 ) {
       console.error( "No response from container lookup at [%s].", _container_url );
       console.error( " -err ", err);
-      console.error( " -headers ", resp.headers);
+      console.error( " -headers ", _.get( resp, 'headers' ) );
       //body = require('../static/fixtures/pods');
       return false;
     }
@@ -155,10 +146,13 @@ module.exports.updateKeys = function updateKeys( options, taskCallback ) {
     _.each( _applications, function addConainers( application ) {
 
       application.containers = _.map( _.filter( body, { Labels: { 'ci.rabbit.ssh.user':  application.sshUser } }), function( foundContainer ) {
-        return {containerName: _.get(foundContainer, 'metadata.name' ) || foundContainer.Labels['ci.rabbit.name']}
+        return {
+          podName: _.get(foundContainer, 'metadata.name' ) || foundContainer.Labels['ci.rabbit.name'],
+          containerName: _.get(foundContainer, 'spec.containers[0].name' ),
+        }
       })
 
-    })
+    });
 
     async.eachLimit( _.values( _applications ), 3,  function fetchCollaborators( data, callback ) {
       // console.log( 'fetchCollaborators', data );
@@ -289,19 +283,18 @@ module.exports.updateKeys = function updateKeys( options, taskCallback ) {
           application: appID,
           namespace: _applications[appID].namespace,
           containerName: _.get( _applications[appID] , 'containers[0].containerName' ),
+          podName: _.get( _applications[appID] , 'containers[0].podName' ),
           user_data:userData._id,
-          CONNECTION_STRING: [ '-n', _applications[appID].namespace, ' ', _.get( _applications[appID] , 'containers[0].containerName' ) ].join(' ')
-        }
+          CONNECTION_STRING: [ '-n', _applications[appID].namespace, ' ', _.get( _applications[appID] , 'containers[0].podName' ), ' -c ', _.get( _applications[appID] , 'containers[0].containerName' ) ].join(' ')
+        };
 
         _.get( _allKeys, userData._id, [] ).forEach(function( thisUsersKey ) {
           writableKeys.push( 'environment="CONNECTION_STRING='+_envs.CONNECTION_STRING + '"   ' + thisUsersKey);
-          //writableKeys.push( 'environment="CONNECTION_STRING=-n '+_envs.namespace+' ' + _envs.containerName + ' ');
         })
 
       });
 
       if(writableKeys.length > 0){
-        // console.log('appID', require('util').inspect(_applications[ appID ], {showHidden: false, depth: 10, colors: true}));
 
         fs.writeFile(_path, writableKeys.join("\n"), function(err) {
 
@@ -320,7 +313,7 @@ module.exports.updateKeys = function updateKeys( options, taskCallback ) {
 
       _.each(_applications[appID].containers, function( singleContainer ) {
 
-        var _container_path = ( options.keysPath  ) + '/' + _.get( singleContainer, 'containerName' );
+        var _container_path = ( options.keysPath  ) + '/' + _.get( singleContainer, 'podName' );
 
         if(writableKeys.length > 0){
           fs.writeFile(_container_path, writableKeys.join("\n"), function(err) {
@@ -329,7 +322,7 @@ module.exports.updateKeys = function updateKeys( options, taskCallback ) {
               return console.log(err);
             }
 
-            console.log( "Wrote SSH Key file for [%s] applications contianer [%s].",  appID, _.get( singleContainer, 'containerName' ) );
+            console.log( "Wrote SSH Key file for [%s] applications contianer [%s].",  appID, _.get( singleContainer, 'podName' ) );
             // console.log("The file was saved!");
 
           });

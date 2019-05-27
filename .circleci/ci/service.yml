@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${CIRCLE_PROJECT_REPONAME}-${IMAGE_BRANCH}
+  labels:
+    name: ${CIRCLE_PROJECT_REPONAME}-${IMAGE_BRANCH}
+    git.name: ${CIRCLE_PROJECT_REPONAME}
+    git.owner: ${CIRCLE_PROJECT_USERNAME}
+    git.branch: ${IMAGE_BRANCH}
+spec:
+  type: LoadBalancer
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+  selector:
+    name: ${CIRCLE_PROJECT_REPONAME}-${IMAGE_BRANCH}
+    git.name: ${CIRCLE_PROJECT_REPONAME}
+    git.branch: ${IMAGE_BRANCH}
+

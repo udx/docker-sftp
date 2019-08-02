@@ -18,7 +18,7 @@ fi;
 
 if [[ "${KUBERNETES_CLUSTER_CERTIFICATE}" != "" ]]; then
   echo "Writing Kubernetes certificate to [/home/node/.kube/kuberentes-ca.crt]";
-  echo -e ${KUBERNETES_CLUSTER_CERTIFICATE} > /home/node/.kube/kuberentes-ca.crt
+  cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > /home/node/.kube/kuberentes-ca.crt
 fi;
 
 if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
@@ -27,7 +27,7 @@ if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
   kubectl config set-cluster ${KUBERNETES_CLUSTER_NAME} \
     --embed-certs=true \
     --server=${KUBERNETES_CLUSTER_ENDPOINT} \
-    --certificate-authority=/home/node/.kube/kuberentes-ca.crt
+    --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
 
   kubectl config set-context ${KUBERNETES_CLUSTER_NAMESPACE} \
     --namespace=${KUBERNETES_CLUSTER_NAMESPACE} \

@@ -38,9 +38,6 @@ RUN \
     chown node:node /var/log/sshd.log && \
     chown -R node:node /home/node
 
-RUN \
-    npm install && npm link
-
 VOLUME [ "/etc/ssh/authorized_keys.d" ]
 
 ENTRYPOINT ["/opt/sources/rabbitci/rabbit-ssh/bin/entrypoint.sh"]

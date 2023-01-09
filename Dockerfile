@@ -1,5 +1,5 @@
-FROM node:9-alpine
-ENV VERSION=v1.22.1
+FROM node:14-alpine
+ENV VERSION=v1.23.0
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true
 ENV SERVICE_ENABLE_API=true
@@ -7,7 +7,7 @@ ENV SERVICE_ENABLE_FIREBASE=false
 
 RUN apk update && apk upgrade && apk add bash
 
-RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates tzdata ncurses \
+RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
   && chmod +x /usr/local/bin/kubectl \
   && kubectl version --client \
@@ -37,9 +37,6 @@ RUN \
     touch /var/log/sshd.log && \
     chown node:node /var/log/sshd.log && \
     chown -R node:node /home/node
-
-RUN \
-    npm install && npm link
 
 VOLUME [ "/etc/ssh/authorized_keys.d" ]
 

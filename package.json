@@ -1,6 +1,6 @@
 {
-    "name": "rabbit-ssh",
-    "version": "0.1.4",
+    "name": "docker-sftp",
+    "version": "1.1.0",
     "description": "SSH tunnels to containers",
     "main": "bin/server.js",
     "scripts": {
@@ -14,14 +14,14 @@
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/udx/rabbit-ssh.git"
+        "url": "git+https://github.com/udx/docker-sftp.git"
     },
     "author": "",
     "license": "ISC",
     "bugs": {
-        "url": "https://github.com/udx/rabbit-ssh/issues"
+        "url": "https://github.com/udx/docker-sftp/issues"
     },
-    "homepage": "https://github.com/udx/rabbit-ssh#readme",
+    "homepage": "https://github.com/udx/docker-sftp#readme",
     "dependencies": {
         "async": "^3.2.4",
         "axios": "^1.2.2",

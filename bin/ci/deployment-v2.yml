@@ -28,8 +28,8 @@ spec:
       serviceAccountName: "CLUSTER_SERVICEACCOUNT_VALUE"
       containers:
         - name: sftp
-          #image: "gcr.io/ica-miami/docker-sftp:cf7ae7253694d7f95dd2cff0757d95b5ea0b489f"
-          image: "gcr.io/ica-miami/docker-sftp:IMAGE_VERSION"
+          #image: gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+          image: "gcr.io/PROJECT_ID/docker-sftp:IMAGE_VERSION"
           imagePullPolicy: Always
           ports:
             - name: ssh
@@ -40,13 +40,13 @@ spec:
               value: https://CLUSTER_ENDPOINT_VALUE
             - name: NODE_PORT
               value: "8080"
-            - name: "KUBERNETES_CLUSTER_NAMESPACE"
+            - name: KUBERNETES_CLUSTER_NAMESPACE
               value: CLUSTER_NAMESPACE_VALUE
-            - name: "KUBERNETES_CLUSTER_USER_TOKEN"
+            - name: KUBERNETES_CLUSTER_USER_TOKEN
               value: CLUSTER_USER_TOKEN_VALUE
-            - name: "SLACK_NOTIFICACTION_URL"
+            - name: SLACK_NOTIFICACTION_URL
               value: SLACK_NOTIFICACTION_URL_VALUE
-            - name: "SLACK_NOTIFICACTION_CHANNEL"
+            - name: SLACK_NOTIFICACTION_CHANNEL
               value: SLACK_NOTIFICACTION_CHANNEL_VALUE
             - name: KUBERNETES_CLUSTER_NAME
               value: CLUSTER_NAME_VALUE

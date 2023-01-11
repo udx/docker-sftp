@@ -99,8 +99,10 @@ jobs:
         sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" bin/ci/service.yml
     - run: |
         sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" bin/ci/deployment-v2.yml
+    - run: |
+        sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" bin/ci/deployment-v2.yml
 
     # Deploy the Docker image to the GKE cluster
     - run: |
-        kubectl apply -n icamiami-org -f bin/ci/service.yml && \
-        kubectl apply -n icamiami-org -f bin/ci/deployment-v2.yml
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f bin/ci/service.yml && \
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f bin/ci/deployment-v2.yml

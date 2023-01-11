@@ -273,7 +273,7 @@ function serverOnline() {
             url: process.env.SLACK_NOTIFICACTION_URL,
             data: {
                 channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
-                username: 'Icam/SSH',
+                username: 'SSH/Server',
                 text: "Container " + (process.env.HOSTNAME || process.env.HOST) + " is up. ```kubectl -n rabbit-system logs -f " + (process.env.HOSTNAME || process.env.HOST) + "```"
             }
         });

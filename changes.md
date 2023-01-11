@@ -1,4 +1,4 @@
-### 1.0.0
+### 0.2.0
 * Updated Node to 14
 * Request module replaced by axios
 * Added deploy action for deploying k8s service and deployment to the cluster from GitHub

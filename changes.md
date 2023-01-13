@@ -1,3 +1,6 @@
+### 0.2.1
+* Fixed getPods endpoint for getting pods from all namespaces
+
 ### 0.2.0
 * Updated Node to 14
 * Request module replaced by axios

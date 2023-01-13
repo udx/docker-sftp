@@ -1,0 +1,78 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: GITHUB_ORG-sftp-GITHUB_BRANCH
+  labels:
+    name: GITHUB_ORG-sftp-GITHUB_BRANCH
+    git.name: docker-sftp
+    git.owner: GITHUB_ORG
+    git.branch: GITHUB_BRANCH
+spec:
+  selector:
+    matchLabels:
+      name: GITHUB_ORG-sftp-GITHUB_BRANCH
+  # how many pods and indicate which strategy we want for rolling update
+  replicas: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        name: GITHUB_ORG-sftp-GITHUB_BRANCH
+        git.name: docker-sftp
+        git.owner: GITHUB_ORG
+        git.branch: GITHUB_BRANCH
+      annotations:
+        container.apparmor.security.beta.kubernetes.io/sftp: runtime/default
+    spec:
+      serviceAccountName: "CLUSTER_SERVICEACCOUNT_VALUE"
+      containers:
+        - name: sftp
+          #image: gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
+          image: "gcr.io/PROJECT_ID/docker-sftp:IMAGE_VERSION"
+          imagePullPolicy: Always
+          ports:
+            - name: ssh
+              containerPort: 22
+          resources: {}
+          env:
+            - name: KUBERNETES_CLUSTER_ENDPOINT
+              value: https://CLUSTER_ENDPOINT_VALUE
+            - name: NODE_PORT
+              value: "8080"
+            - name: KUBERNETES_CLUSTER_NAMESPACE
+              value: CLUSTER_NAMESPACE_VALUE
+            - name: KUBERNETES_CLUSTER_USER_TOKEN
+              value: CLUSTER_USER_TOKEN_VALUE
+            - name: SLACK_NOTIFICACTION_URL
+              value: SLACK_NOTIFICACTION_URL_VALUE
+            - name: SLACK_NOTIFICACTION_CHANNEL
+              value: SLACK_NOTIFICACTION_CHANNEL_VALUE
+            - name: KUBERNETES_CLUSTER_NAME
+              value: CLUSTER_NAME_VALUE
+            - name: KUBERNETES_CLUSTER_SERVICEACCOUNT
+              value: CLUSTER_SERVICEACCOUNT_VALUE
+            - name: KUBERNETES_CLUSTER_CERTIFICATE
+              value: CLUSTER_CERTIFICATE_VALUE
+            - name: KUBERNETES_CLUSTER_USER_SECRET
+              value: CLUSTER_USER_SECRET_VALUE
+            - name: KUBERNETES_CLUSTER_CONTEXT
+              value: CLUSTER_CONTEXT_VALUE
+            - name: ACCESS_TOKEN
+              value: ACCESS_TOKEN_VALUE
+          livenessProbe:
+            tcpSocket:
+              port: ssh
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1
+          readinessProbe:
+            tcpSocket:
+              port: ssh
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1

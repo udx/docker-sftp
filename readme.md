@@ -10,13 +10,27 @@ Run for debug:
 docker-compose up --build --renew-anon-volumes
 ```
 
-### Environment Variables
+### Secrets
+* GKE_PROJECT - GCP project ID
+* GKE_SA_KEY - GCP SA key(json)
+* GKE_CLUSTER - GKE cluster name
+* GKE_ZONE - GKE cluster zone
+* ACCESS_TOKEN - GitHub access token
+* KUBERNETES_CLUSTER_ENDPOINT - domain or IP, without http/s
+* KUBERNETES_CLUSTER_SERVICEACCOUNT - k8s SA name
+* KUBERNETES_CLUSTER_CERTIFICATE - stringified PEM certificate
+* KUBERNETES_CLUSTER_NAMESPACE
+* KUBERNETES_CLUSTER_USER_SECRET - k8s secret name
+* KUBERNETES_CLUSTER_USER_TOKEN
+* KUBERNETES_CLUSTER_CONTEXT
+* SLACK_NOTIFICACTION_URL - optional
+* SLACK_NOTIFICACTION_CHANNEL - optional
 
-* GITHUB_ACCESS_TOKENS - comma separated list of GitHub personal access tokens to use to discover repository ACL
+### Environment Variables
 * KUBERNETES_CLUSTER_ENDPOINT
 * KUBERNETES_CLUSTER_NAME
 * KUBERNETES_CLUSTER_SERVICEACCOUNT
-* KUBERNETES_CLUSTER_CERTIFICATE - stringified PEM certificate
+* KUBERNETES_CLUSTER_CERTIFICATE
 * KUBERNETES_CLUSTER_NAMESPACE
 * KUBERNETES_CLUSTER_USER_SECRET
 * KUBERNETES_CLUSTER_USER_TOKEN

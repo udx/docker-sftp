@@ -1,0 +1,21 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: GITHUB_ORG-sftp-GITHUB_BRANCH
+  labels:
+    name: GITHUB_ORG-sftp-GITHUB_BRANCH
+    git.name: docker-sftp
+    git.owner: GITHUB_ORG
+    git.branch: GITHUB_BRANCH
+spec:
+  type: LoadBalancer
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+  selector:
+    name: GITHUB_ORG-sftp-GITHUB_BRANCH
+    git.name: docker-sftp
+    git.branch: GITHUB_BRANCH
+

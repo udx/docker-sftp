@@ -41,6 +41,7 @@ PermitRootLogin yes
 StrictModes yes
 
 PubkeyAuthentication yes
+PubkeyAcceptedKeyTypes=+ssh-rsa
 IgnoreRhosts yes
 HostbasedAuthentication no
 IgnoreUserKnownHosts yes

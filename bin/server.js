@@ -113,7 +113,7 @@ function getPods(req, res) {
 
     axios({
             method: "get",
-            url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/namespaces/' + process.env.KUBERNETES_CLUSTER_NAMESPACE + '/pods',
+            url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
             headers: {
                 'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN
             }

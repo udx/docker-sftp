@@ -35,7 +35,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                 url: process.env.SLACK_NOTIFICACTION_URL,
                 data: {
                     channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
-                    username: 'Icam/SSH',
+                    username: 'SSH/Server',
                     text: "SSH Keys refreshed on " + (process.env.HOSTNAME || process.env.HOST) + " has finished. ```kubectl -n rabbit-system exec -it " + (process.env.HOSTNAME || process.env.HOST) + " sh```"
                 }
             });

@@ -1,3 +1,6 @@
+### 0.2.2
+* Prevent access to users with roles: `Read`, `Triage` and `Write`. Provide access only for roles: `Maintain` and `Admin`.
+
 ### 0.2.1
 * Fixed getPods endpoint for getting pods from all namespaces
 

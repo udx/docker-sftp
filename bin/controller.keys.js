@@ -177,13 +177,15 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
                         // get just the permissions, add users to application
                         ('object' === typeof body && body.length > 0 ? body : []).forEach(function(thisUser) {
-
-                            _applications[data.sshUser].users[thisUser.login] = {
-                                _id: thisUser.login,
-                                permissions: thisUser.permissions
-                            };
-                            _users[thisUser.login] = _users[thisUser.login] || [];
-                            _users[thisUser.login].push(data._id);
+                            // provide access only for users with roles: `maintain` and `admin`
+                            if (thisUser.role_name == 'maintain' || thisUser.role_name == 'admin') {
+                                _applications[data.sshUser].users[thisUser.login] = {
+                                    _id: thisUser.login,
+                                    permissions: thisUser.permissions
+                                };
+                                _users[thisUser.login] = _users[thisUser.login] || [];
+                                _users[thisUser.login].push(data._id);
+                            }
                         });
 
                         callback();

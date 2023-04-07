@@ -1,3 +1,6 @@
+### 0.2.3
+* Prevent access to `production` containers.
+
 ### 0.2.2
 * Prevent access to users with roles: `Read`, `Triage` and `Write`. Provide access only for roles: `Maintain` and `Admin`.
 

@@ -10,6 +10,8 @@ Run for debug:
 docker-compose up --build --renew-anon-volumes
 ```
 
+You can control an access to containers by adding `ALLOW_SSH_ACCESS_ROLES` env(str). Set roles through coma you want to grant an access. `admin`, `maintain`, `write` by default.
+
 ### Secrets
 * GKE_PROJECT - GCP project ID
 * GKE_SA_KEY - GCP SA key(json)

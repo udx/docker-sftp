@@ -27,6 +27,8 @@ var _ = require('lodash');
 
 module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
+    let roles = process.env.ALLOW_SSH_ACCESS_ROLES || "admin,maintain,write";
+
     taskCallback = 'function' === typeof taskCallback ? taskCallback : function taskCallback() {
 
         if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf("https") === 0) {
@@ -178,7 +180,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                         // get just the permissions, add users to application
                         ('object' === typeof body && body.length > 0 ? body : []).forEach(function(thisUser) {
                             // provide access only for users with roles: `maintain` and `admin`
-                            if (thisUser.role_name == 'maintain' || thisUser.role_name == 'admin') {
+                            if (_.includes(_.split(roles, ","), thisUser.role_name)) {
                                 _applications[data.sshUser].users[thisUser.login] = {
                                     _id: thisUser.login,
                                     permissions: thisUser.permissions

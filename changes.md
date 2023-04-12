@@ -1,3 +1,7 @@
+
+### 0.2.4
+* Added an option to set roles by `ALLOW_SSH_ACCESS_ROLES` env. Set `admin`, `maintain`, `write` by default.
+
 ### 0.2.3
 * Prevent access to `production` containers.
 

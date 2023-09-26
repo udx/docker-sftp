@@ -1,3 +1,7 @@
+### 0.2.5
+* upgraded node to 18
+* added gcloud
+* added gke-gcloud-auth-plugin
 
 ### 0.2.4
 * Added an option to set roles by `ALLOW_SSH_ACCESS_ROLES` env. Set `admin`, `maintain`, `write` by default.

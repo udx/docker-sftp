@@ -29,7 +29,7 @@ spec:
       containers:
         - name: sftp
           #image: gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
-          image: "gcr.io/PROJECT_ID/docker-sftp:IMAGE_VERSION"
+          image: "AR_LOCATION-docker.pkg.dev/PROJECT_ID/docker-sftp:IMAGE_VERSION"
           imagePullPolicy: Always
           ports:
             - name: ssh

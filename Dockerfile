@@ -1,4 +1,4 @@
-FROM node:14-alpine
+FROM node:18-alpine
 ENV VERSION=v1.23.0
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true
@@ -6,6 +6,14 @@ ENV SERVICE_ENABLE_API=true
 ENV SERVICE_ENABLE_FIREBASE=false
 
 RUN apk update && apk upgrade && apk add bash
+
+RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=/root --disable-prompts
+
+RUN export PATH=$PATH:/root/google-cloud-sdk/bin
+
+RUN gcloud components update kubectl
+
+RUN gcloud components install gke-gcloud-auth-plugin
 
 RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \

@@ -7,14 +7,6 @@ ENV SERVICE_ENABLE_FIREBASE=false
 
 RUN apk update && apk upgrade && apk add bash
 
-RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=/root --disable-prompts
-
-RUN export PATH=$PATH:/root/google-cloud-sdk/bin
-
-RUN gcloud components update kubectl
-
-RUN gcloud components install gke-gcloud-auth-plugin
-
 RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
   && chmod +x /usr/local/bin/kubectl \
@@ -24,6 +16,14 @@ RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano t
   && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
   && echo "America/New_York" >  /etc/timezone \
   && apk del tzdata
+
+RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=/root --disable-prompts
+
+RUN export PATH=$PATH:/root/google-cloud-sdk/bin
+
+RUN gcloud components update kubectl
+
+RUN gcloud components install gke-gcloud-auth-plugin
 
 RUN \
   npm -g install pm2

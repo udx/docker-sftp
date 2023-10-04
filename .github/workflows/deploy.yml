@@ -20,6 +20,7 @@ env:
   GKE_ZONE: ${{ secrets.GKE_ZONE }}   # Add your cluster zone here.
   DEPLOYMENT_NAME: ${{ secrets.DEPLOYMENT_NAME }} # Add your deployment name here.
   IMAGE: ${{ secrets.IMAGE }}
+  REPO: ${{ secrets.REPO }}
   SLACK_NOTIFICACTION_URL: ${{ secrets.SLACK_NOTIFICACTION_URL }}
   SLACK_NOTIFICACTION_CHANNEL: ${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}
   AR_LOCATION: ${{ secrets.AR_LOCATION }}
@@ -54,14 +55,14 @@ jobs:
     - name: Build
       run: |-
         docker build \
-          --tag "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$IMAGE:$GITHUB_SHA" \
+          --tag "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$GITHUB_SHA" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
           .
     # Push the Docker image to Google Container Registry
     - name: Publish
       run: |-
-        docker push "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$IMAGE:$GITHUB_SHA"
+        docker push "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$GITHUB_SHA"
     # Set up kustomize
     - name: Set up Kustomize
       run: |-

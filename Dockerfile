@@ -1,17 +1,11 @@
-FROM gcr.io/google.com/cloudsdktool/google-cloud-cli:alpine
-ENV VERSION=v1.23.0
+FROM node:18-alpine
+ENV VERSION=v1.25.1
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true
 ENV SERVICE_ENABLE_API=true
 ENV SERVICE_ENABLE_FIREBASE=false
 
 RUN apk update && apk upgrade && apk add bash
-
-RUN apk --update add openjdk7-jre
-
-RUN gcloud components install app-engine-java kubectl
-
-RUN apk add --update nodejs npm
 
 RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
@@ -23,9 +17,15 @@ RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano t
   && echo "America/New_York" >  /etc/timezone \
   && apk del tzdata
 
-RUN gcloud components update kubectl
+RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=/root --disable-prompts
+
+ENV PATH $PATH:/root/google-cloud-sdk/bin
+
+#RUN gcloud components update kubectl
 
 RUN gcloud components install gke-gcloud-auth-plugin
+
+ENV USE_GKE_GCLOUD_AUTH_PLUGIN True
 
 RUN \
   npm -g install pm2

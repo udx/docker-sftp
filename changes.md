@@ -1,3 +1,7 @@
+### 0.2.6
+* updated kubectl version
+* changed gcloud installation logic
+
 ### 0.2.5
 * upgraded node to 18
 * added gcloud

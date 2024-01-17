@@ -127,7 +127,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
                 var _ssh_user = _labels['ci.rabbit.ssh.user'];
 
-                if (!_ssh_user || _ssh_user.includes('.production')) {
+                if (!_ssh_user || (_ssh_user.includes('.production') && !_.includes(_.split(roles, ","), "admin"))) {
                     return;
                 }
 

@@ -178,8 +178,8 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                         // get just the permissions, add users to application
                         ('object' === typeof body && body.length > 0 ? body : []).forEach(function(thisUser) {
                             // provide access only for users with roles: `maintain` and `admin`
-                            if ((_.includes(_.split(roles, ","), thisUser.role_name) && !data.sshUser.includes('.' + productionBranch)) || 
-                            (thisUser.role_name === adminRole && data.sshUser.includes('.' + productionBranch))) {
+                            if ((_.includes(_.split(roles, ","), thisUser.role_name) && (!data.sshUser.includes('.' + productionBranch)) || 
+                            thisUser.role_name === adminRole)) {
                                 _applications[data.sshUser].users[thisUser.login] = {
                                     _id: thisUser.login,
                                     permissions: thisUser.permissions

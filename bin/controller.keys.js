@@ -27,7 +27,9 @@ var _ = require('lodash');
 
 module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
-    let roles = process.env.ALLOW_SSH_ACCESS_ROLES || "admin,maintain,write";
+    let allowedRoles = process.env.ALLOW_SSH_ACCESS_ROLES || "admin,maintain,write";
+    let productionBranch = process.env.PRODUCTION_BRANCH || "production";
+    let allowedRolesForProd = process.env.ALLOW_SSH_ACCES_PROD_ROLES || "admin";
 
     taskCallback = 'function' === typeof taskCallback ? taskCallback : function taskCallback() {
 
@@ -127,10 +129,6 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
                 var _ssh_user = _labels['ci.rabbit.ssh.user'];
 
-                if (!_ssh_user || _ssh_user.includes('.production')) {
-                    return;
-                }
-
                 // @todo May need to identify non-primary-branch apps here, or use a special label
                 _applications[_ssh_user] = {
                     _id: (_labels['git.owner'] || _labels['git_owner']) + '/' + (_labels['git.name'] || _labels['git_name']),
@@ -180,7 +178,8 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                         // get just the permissions, add users to application
                         ('object' === typeof body && body.length > 0 ? body : []).forEach(function(thisUser) {
                             // provide access only for users with roles: `maintain` and `admin`
-                            if (_.includes(_.split(roles, ","), thisUser.role_name)) {
+                            if ((_.includes(_.split(allowedRoles, ","), thisUser.role_name) && (!data.sshUser.includes('.' + productionBranch)) || 
+                            _.includes(_.split(allowedRolesForProd, ","), thisUser.role_name))) {
                                 _applications[data.sshUser].users[thisUser.login] = {
                                     _id: thisUser.login,
                                     permissions: thisUser.permissions

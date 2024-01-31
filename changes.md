@@ -1,3 +1,7 @@
+### 0.2.7
+* updated curl to 8.5.0 because of vulnerability
+* access is allowed for the admin role in production
+
 ### 0.2.6
 * updated kubectl version
 * changed gcloud installation logic

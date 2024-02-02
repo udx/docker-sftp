@@ -5,6 +5,7 @@
 * prevented access for the `root` user
 * added processing `SLACK_NOTIFICACTION_CHANNEL` and `SLACK_NOTIFICACTION_URL` environment variables in `GitHub Action`
 * updated `GitHub Action` `Build and Deploy to GKE`
+* added additional logging
 
 ### 0.2.7
 * updated curl to 8.5.0 because of vulnerability

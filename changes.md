@@ -1,3 +1,11 @@
+### 0.2.8
+* updated `NodeJS` version to `20`
+* updated `NodeJS Modules` to the latest versions
+* fixed issue with `SFTP` connection
+* prevented access for the `root` user
+* added processing `SLACK_NOTIFICACTION_CHANNEL` and `SLACK_NOTIFICACTION_URL` environment variables in `GitHub Action`
+* updated `GitHub Action` `Build and Deploy to GKE`
+
 ### 0.2.7
 * updated curl to 8.5.0 because of vulnerability
 * access is allowed for the admin role in production

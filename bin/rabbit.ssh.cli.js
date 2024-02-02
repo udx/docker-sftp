@@ -8,7 +8,6 @@
 var utility = require( '../lib/utility' );
 var dot = require( 'dot-object' );
 var _ = require( 'lodash' );
-var admin = utility.getFirebase();
 
 utility.getCollection( 'container', 'meta/sshUser', function( error, data ) {
 

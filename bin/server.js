@@ -1,6 +1,6 @@
 /**
  *
- *
+ * This is the SSH server that is used to connect to the Kubernetes cluster.
  * node ./server
  *
  */
@@ -12,7 +12,6 @@ const debug = require('debug')('ssh');
 const app = express();
 let utility = require('../lib/utility');
 const md5 = require('md5');
-const { get } = require('lodash');
 
 var accessToken = process.env.ACCESS_TOKEN;
 
@@ -249,10 +248,6 @@ function serverOnline() {
 
     // detect non-kubernetes
     if (process.env.KUBERNETES_CLUSTER_ENDPOINT) {
-        //async function firestoreDoc() {
-        // var snap = await db.collection('github').doc("access").get();
-        // accessToken = snap.data().token;
-        //console.log("token", accessToken);
         utility.updateKeys({
             keysPath: '/etc/ssh/authorized_keys.d',
             passwordFile: '/etc/passwd',
@@ -262,12 +257,9 @@ function serverOnline() {
             console.log('Updated state with [%s] SSH keys.', error || _.size(data.users));
             app.set('sshUser', data.users);
         });
-        //}
-        //firestoreDoc();
     }
 
     if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf("https") === 0) {
-
         axios({
             method: 'post', //you can set what request you want to be
             url: process.env.SLACK_NOTIFICACTION_URL,
@@ -277,7 +269,6 @@ function serverOnline() {
                 text: "Container " + (process.env.HOSTNAME || process.env.HOST) + " is up. ```kubectl -n rabbit-system logs -f " + (process.env.HOSTNAME || process.env.HOST) + "```"
             }
         });
-
     } else {
         console.log("process.env.SLACK_NOTIFICACTION_URL isn't set");
     }

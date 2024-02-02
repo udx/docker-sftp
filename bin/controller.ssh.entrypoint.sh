@@ -4,8 +4,10 @@
 ##
 
 export _SERVICE=${USER};
+export CONNECTION_STRING=$(echo ${ENV_VARS} | cut -d ';' -f 1)
+export USER_LOGIN=$(echo ${ENV_VARS} | cut -d ';' -f 2)
 
-echo "[$(date)] Have a session for [${USER}] : ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER_LOGIN}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
 
 ## SFTP.
 if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]]; then

@@ -308,7 +308,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                 };
 
                 _.get(_allKeys, userData._id, []).forEach(function(thisUsersKey) {
-                    writableKeys.push('environment="CONNECTION_STRING=' + _envs.CONNECTION_STRING + '"   ' + thisUsersKey);
+                    writableKeys.push('environment="ENV_VARS=' + _envs.CONNECTION_STRING + ';'+userData._id+'"   ' + thisUsersKey);
                 })
 
             });

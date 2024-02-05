@@ -44,17 +44,6 @@ if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
 
 fi;
 
-# npm install google-gax
-# npm install axios
-# npm install async
-# npm install debug
-# npm install express
-# npm install lodash
-# npm install mustache
-# npm install md5
-# npm install firebase-admin
-# npm install dot-object
-
 npm install google-gax
 
 pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js --silent
@@ -63,4 +52,3 @@ npm install
 
 ## Command pass-through.
 exec "$@"
-

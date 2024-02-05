@@ -304,11 +304,11 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                     containerName: _.get(_applications[appID], 'containers[0].containerName'),
                     podName: _.get(_applications[appID], 'containers[0].podName'),
                     user_data: userData._id,
-                    CONNECTION_STRING: ['-n', _applications[appID].namespace, ' ', _.get(_applications[appID], 'containers[0].podName'), ' -c ', _.get(_applications[appID], 'containers[0].containerName')].join(' ')
+                    CONNECTION_STRING: [_applications[appID].namespace, ' ', _.get(_applications[appID], 'containers[0].podName'), ' -c ', _.get(_applications[appID], 'containers[0].containerName')].join(' ')
                 };
 
                 _.get(_allKeys, userData._id, []).forEach(function(thisUsersKey) {
-                    writableKeys.push('environment="CONNECTION_STRING=' + _envs.CONNECTION_STRING + '"   ' + thisUsersKey);
+                    writableKeys.push('environment="ENV_VARS=' + _envs.CONNECTION_STRING + ';'+userData._id+'"   ' + thisUsersKey);
                 })
 
             });

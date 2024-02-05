@@ -5,12 +5,7 @@
  */
 //var newrelic = require('newrelic')
 var admin = require("firebase-admin/lib/index");
-var request = require( 'request' );
-var execFile = require( 'child_process' ).execFile;
-var request = require( 'request' );
-var async = require( 'async' );
 var _ = require( 'lodash' );
-var controllerKeys = require( './controller.keys' );
 
 exports.changeQueue = [];
 

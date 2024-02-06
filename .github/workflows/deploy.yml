@@ -29,7 +29,9 @@ jobs:
   setup-build-publish-deploy:
     name: Setup, Build, Publish, and Deploy
     runs-on: ubuntu-latest
-    #environment: production
+    if: github.event_name == 'push'
+    environment:
+      name: ${{ github.ref_name }}
 
     steps:
     - uses: actions/checkout@v4

@@ -14,6 +14,7 @@ on:
     branches:
       - master
       - latest
+      - develop-*
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}

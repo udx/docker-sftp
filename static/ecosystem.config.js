@@ -3,6 +3,7 @@ module.exports.apps = []
 if( process.env.SERVICE_ENABLE_SSHD === 'true' ) {
 
   module.exports.apps.push({
+    "user": "node",
     "script": "/usr/sbin/sshd",
     "args": "-D -f /etc/ssh/sshd_config -e",
     "name": "sshd",
@@ -19,6 +20,7 @@ if( process.env.SERVICE_ENABLE_SSHD === 'true' ) {
 if( process.env.SERVICE_ENABLE_API === 'true' ) {
 
   module.exports.apps.push({
+    "user": "node",
     "script": "/opt/sources/rabbitci/rabbit-ssh/bin/server.js",
     "name": "rabbit-ssh-server",
     "merge_logs": true,

@@ -102,7 +102,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
             let body = _.get(response, "data", {});
             if (_.size(_.get(body, 'items', [])) === 0) {
                 console.error("No response from container lookup at [%s].", _container_url);
-                console.error(" -err ", err);
+                console.error("Error fetching Kuberneter Pods", err.message);
                 console.error(" -headers ", _.get(resp, 'headers'));
                 //body = require('../static/fixtures/pods');
                 return false;
@@ -192,7 +192,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                         callback();
                     })
                     .catch(err => {
-                        console.error(" -err ", err);
+                        console.error(" Error fetching collaborators ", err.message);
                         callback();
                     });
 
@@ -202,7 +202,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
         .catch(err => {
             console.log('getPods error: ', err.message);
             console.error("No response from container lookup at [%s].", _container_url);
-            console.error(" -err ", err);
+            console.error("Error processing: ", err.message);
             //console.error(" -headers ", _.get(resp, 'headers'));
             //body = require('../static/fixtures/pods');
             return false;
@@ -318,7 +318,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                 fs.writeFile(_path, writableKeys.join("\n"), function(err) {
 
                     if (err) {
-                        return console.log(err);
+                        return console.error(err.message);
                     }
 
                     debug("Wrote SSH Key file for [%s] identified as [%s] user.", appID, _applications[appID].sshUser);
@@ -338,7 +338,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                     fs.writeFile(_container_path, writableKeys.join("\n"), function(err) {
 
                         if (err) {
-                            return console.log(err);
+                            return console.error(err.message);
                         }
 
                         console.log("Wrote SSH Key file for [%s] applications contianer [%s].", appID, _.get(singleContainer, 'podName'));
@@ -360,7 +360,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
         fs.readFile(_full_path, 'utf8', function(err, source) {
 
             if (err) {
-                return console.log(err);
+                return console.error(err.message);
             }
 
             var userFile = Mustache.render(source, {

@@ -1,3 +1,6 @@
+### 0.2.9
+* Forwarded `sshd` logs to `container` logs
+
 ### 0.2.8
 * updated `NodeJS` version to `20`
 * updated `NodeJS Modules` to the latest versions

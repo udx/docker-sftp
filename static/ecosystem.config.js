@@ -4,9 +4,7 @@ if( process.env.SERVICE_ENABLE_SSHD === 'true' ) {
 
   module.exports.apps.push({
     "script": "/usr/sbin/sshd",
-    "args": "-D -f /etc/ssh/sshd_config -E /var/log/sshd.log",
-    "out_file": "/var/log/sshd.log",
-    "error_file": "/var/log/sshd.log",
+    "args": "-D -f /etc/ssh/sshd_config -e",
     "name": "sshd",
     "merge_logs": true,
     "vizion": false,

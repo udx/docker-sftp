@@ -10,14 +10,14 @@ Run for debug:
 docker-compose up --build --renew-anon-volumes
 ```
 
-You can control an access to containers by adding `ALLOW_SSH_ACCESS_ROLES` env(str). Set roles through coma you want to grant an access. `admin`, `maintain`, `write` by default.
+You can control an access to containers by adding `ALLOW_SSH_ACCESS_ROLES` env(str). 
+Set roles through coma you want to grant an access. 
+Roles `admin`, `maintain`, `write` are set by default.
 
 ### Secrets
-* GKE_PROJECT - GCP project ID
-* GKE_SA_KEY - GCP SA key(json)
-* GKE_CLUSTER - GKE cluster name
-* GKE_ZONE - GKE cluster zone
-* ACCESS_TOKEN - GitHub access token
+* GKE_PROJECT - GCP Project ID
+* GKE_SA_KEY - GCP Service Account key(in json format)
+* ACCESS_TOKEN - GitHub Access Token
 * KUBERNETES_CLUSTER_ENDPOINT - domain or IP, without http/s
 * KUBERNETES_CLUSTER_SERVICEACCOUNT - k8s SA name
 * KUBERNETES_CLUSTER_CERTIFICATE - stringified PEM certificate
@@ -27,6 +27,12 @@ You can control an access to containers by adding `ALLOW_SSH_ACCESS_ROLES` env(s
 * KUBERNETES_CLUSTER_CONTEXT
 * SLACK_NOTIFICACTION_URL - optional
 * SLACK_NOTIFICACTION_CHANNEL - optional
+
+### Variables
+* GKE_CLUSTER - GKE Cluster name
+* GKE_REGION - GKE Cluster region
+* AR_LOCATION - Artifact Registry location
+* AR_REPOSITORY - Artifact Registry repository
 
 ### Environment Variables
 * KUBERNETES_CLUSTER_ENDPOINT

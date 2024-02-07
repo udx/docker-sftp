@@ -42,6 +42,7 @@ COPY static/etc/ssh/ /etc/ssh/
 WORKDIR /opt/sources/rabbitci/rabbit-ssh
 
 RUN \
+    chown node:node /opt/sources/rabbitci/rabbit-ssh/bin/controller.ssh.entrypoint.sh && \
     chmod +x /opt/sources/rabbitci/rabbit-ssh/bin/controller.ssh.entrypoint.sh && \
     touch /var/log/sshd.log && \
     chown node:node /var/log/sshd.log && \

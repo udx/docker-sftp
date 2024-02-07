@@ -78,7 +78,7 @@ jobs:
         chmod u+x ./kustomize
     # Deploy secret variables
     - run: |
-        sed -i.bak "s|CLUSTER_NAME_VALUE|${{ secrets.GKE_CLUSTER }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_NAME_VALUE|${{ vars.GKE_CLUSTER }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" ci/deployment-v2.yml

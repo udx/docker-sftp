@@ -192,7 +192,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                         callback();
                     })
                     .catch(err => {
-                        console.error(" Error fetching collaborators ", err.message);
+                        console.error(" Error fetching collaborators for " + data._id, err.message);
                         callback();
                     });
 

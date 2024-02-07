@@ -68,4 +68,3 @@ if [[ "x${SSH_ORIGINAL_COMMAND}" == "x" ]]; then
 fi;
 
 exit;
-

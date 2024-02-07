@@ -14,7 +14,7 @@ if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]]; then
 
   echo "[$(date)] Have SFTP connection [${CONNECTION_STRING}] for [${USER}]." >> /var/log/sshd.log
 
-  /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- /usr/lib/ssh/sftp-server
+  /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- /usr/lib/sftp-server
 
   exit;
 
@@ -24,7 +24,7 @@ if [[ ${SSH_ORIGINAL_COMMAND} == "/usr/lib/ssh/sftp-server" ]]; then
 
   echo "[$(date)] Have SFTP connection [${CONNECTION_STRING}] for [${USER}]." >> /var/log/sshd.log
 
-  /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- /usr/lib/ssh/sftp-server
+  /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- /usr/lib/sftp-server
 
   exit;
 

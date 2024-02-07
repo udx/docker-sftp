@@ -10,7 +10,7 @@ export USER_LOGIN=$(echo ${ENV_VARS} | cut -d ';' -f 2)
 echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
 
 ## SFTP.
-if [[ "${SSH_ORIGINAL_COMMAND}" == "internal-sftp" ]]; then
+if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]]; then
 
   echo "[$(date)] Have SFTP connection [${CONNECTION_STRING}] for [${USER}]." >> /var/log/sshd.log
 
@@ -20,7 +20,7 @@ if [[ "${SSH_ORIGINAL_COMMAND}" == "internal-sftp" ]]; then
 
 fi
 
-if [[ "${SSH_ORIGINAL_COMMAND}" == "/usr/lib/ssh/sftp-server" ]]; then
+if [[ ${SSH_ORIGINAL_COMMAND} == "/usr/lib/ssh/sftp-server" ]]; then
 
   echo "[$(date)] Have SFTP connection [${CONNECTION_STRING}] for [${USER}]." >> /var/log/sshd.log
 

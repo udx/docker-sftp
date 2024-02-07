@@ -14,17 +14,17 @@ on:
     branches:
       - master
       - latest
+      - develop-*
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}    # Add your cluster name here.
-  GKE_ZONE: ${{ secrets.GKE_ZONE }}   # Add your cluster zone here.
+  GKE_CLUSTER: ${{ vars.GKE_CLUSTER }}    # Add your cluster name here.
+  GKE_REGION: ${{ vars.GKE_REGION }}   # Add your cluster zone here.
   DEPLOYMENT_NAME: ${{ secrets.DEPLOYMENT_NAME }} # Add your deployment name here.
-  IMAGE: ${{ secrets.IMAGE }}
-  REPO: ${{ secrets.REPO }}
   SLACK_NOTIFICACTION_URL: ${{ secrets.SLACK_NOTIFICACTION_URL }}
   SLACK_NOTIFICACTION_CHANNEL: ${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}
-  AR_LOCATION: ${{ secrets.AR_LOCATION }}
+  AR_LOCATION: ${{ vars.AR_LOCATION }}
+  AR_REPOSITORY: ${{ vars.AR_REPOSITORY }}
 
 jobs:
   setup-build-publish-deploy:
@@ -56,21 +56,21 @@ jobs:
     - uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_ZONE }}
+        location: ${{ env.GKE_REGION }}
         project_id: ${{ secrets.GKE_PROJECT }}
 
     # Build the Docker image
     - name: Build
       run: |-
         docker build \
-          --tag "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$GITHUB_SHA" \
+          --tag "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$AR_REPOSITORY/$GITHUB_REF_NAME:$GITHUB_SHA" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
           .
     # Push the Docker image to Google Container Registry
     - name: Publish
       run: |-
-        docker push "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$REPO/$IMAGE:$GITHUB_SHA"
+        docker push "$AR_LOCATION-docker.pkg.dev/$PROJECT_ID/$AR_REPOSITORY/$GITHUB_REF_NAME:$GITHUB_SHA"
     # Set up kustomize
     - name: Set up Kustomize
       run: |-
@@ -78,25 +78,25 @@ jobs:
         chmod u+x ./kustomize
     # Deploy secret variables
     - run: |
-        sed -i.bak "s|CLUSTER_NAME_VALUE|${{ secrets.GKE_CLUSTER }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_SERVICEACCOUNT_VALUE|${{ secrets.KUBERNETES_CLUSTER_SERVICEACCOUNT }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_CERTIFICATE_VALUE|${{ secrets.KUBERNETES_CLUSTER_CERTIFICATE }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_USER_SECRET_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_SECRET }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_CONTEXT_VALUE|${{ secrets.KUBERNETES_CLUSTER_CONTEXT }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|IMAGE_VERSION|$GITHUB_SHA|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" bin/ci/service.yml
-        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" bin/ci/service.yml
-        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" bin/ci/deployment-v2.yml
-        sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" bin/ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_NAME_VALUE|${{ secrets.GKE_CLUSTER }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_SERVICEACCOUNT_VALUE|${{ secrets.KUBERNETES_CLUSTER_SERVICEACCOUNT }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_CERTIFICATE_VALUE|${{ secrets.KUBERNETES_CLUSTER_CERTIFICATE }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_USER_SECRET_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_SECRET }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_CONTEXT_VALUE|${{ secrets.KUBERNETES_CLUSTER_CONTEXT }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|IMAGE_VERSION|$GITHUB_SHA|g" ci/deployment-v2.yml
+        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/service.yml
+        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/deployment-v2.yml
+        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/service.yml
+        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/deployment-v2.yml
+        sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" ci/deployment-v2.yml
+        sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" ci/deployment-v2.yml
     # Deploy the Docker image to the GKE cluster
     - run: |
-        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f bin/ci/service.yml && \
-        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f bin/ci/deployment-v2.yml
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/service.yml && \
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/deployment-v2.yml

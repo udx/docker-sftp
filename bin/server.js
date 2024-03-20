@@ -51,8 +51,8 @@ setInterval(function() {
 
             var _containers = body = _.map(body.items, function(singleItem) {
                 singleItem.Labels = _.get(singleItem, 'metadata.labels');
-                singleItem.Labels['ci.rabbit.name'] = singleItem.Labels['name'];
-                singleItem.Labels['ci.rabbit.ssh.user'] = singleItem.Labels['ci.rabbit.ssh.user'] || null;
+                singleItem.Labels['ci.rabbit.name'] = _.get(singleItem.Labels,'name', null);
+                singleItem.Labels['ci.rabbit.ssh.user'] = _.get(singleItem.Labels,'ci.rabbit.ssh.user', null);
                 return singleItem;
             });
 

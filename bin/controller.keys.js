@@ -112,10 +112,12 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
                 singleItem.Labels = _.get(singleItem, 'metadata.labels');
 
-                singleItem.Labels['ci.rabbit.name'] = singleItem.Labels['name'];
-
-                singleItem.Labels['ci.rabbit.ssh.user'] = singleItem.Labels['ci.rabbit.ssh.user'] || null;
-                return singleItem;
+                // Prevents the application from being added to the list if it does not have the required labels
+                if ( _.get(singleItem.Labels, 'name', false) && _.get(singleItem.Labels, 'ci.rabbit.ssh.user', false) ) {
+                    singleItem.Labels['ci.rabbit.name'] = singleItem.Labels['name'];
+                    singleItem.Labels['ci.rabbit.ssh.user'] = singleItem.Labels['ci.rabbit.ssh.user'] || null;
+                    return singleItem;
+                }
 
             });
 

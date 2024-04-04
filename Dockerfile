@@ -5,7 +5,7 @@ ENV SERVICE_ENABLE_SSHD=true
 ENV SERVICE_ENABLE_API=true
 ENV SERVICE_ENABLE_FIREBASE=false
 
-RUN apk update && apk upgrade && apk add bash
+RUN apk update --no-cache && apk upgrade --no-cache && apk add bash
 
 RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \

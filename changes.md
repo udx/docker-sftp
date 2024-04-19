@@ -1,3 +1,6 @@
+### 0.3.0
+* Fixed `JavaScript` errors 
+
 ### 0.2.9
 * Forwarded `sshd` logs to `container` logs
 

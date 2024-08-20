@@ -16,18 +16,10 @@ RUN apk add --no-cache \
     file \
     wget
 
-# Download the latest OpenSSH (9.8) source
-RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz
-
-# print folders
-RUN ls -la
-
-RUN tar -xzf openssh-9.8p1.tar.gz
-
-# print folders
-RUN ls -la
-
-RUN cd openssh-9.8p1 \
+# Download the latest OpenSSH (9.8p1) source
+RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz \
+    && tar -xzf openssh-9.8p1.tar.gz \
+    && cd openssh-9.8p1 \
     # Configure and compile the source
     && ./configure \
     && make \

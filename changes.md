@@ -1,3 +1,9 @@
+### 0.4.0
+* Upgraded parent Docker image to `node:22`
+* Upgraded `kubectl` to `1.31.0`
+* Upgaded `OpenSSH` to `9.8`
+* Sorted vulnerabilities in `npm` packages and OS
+
 ### 0.3.0
 * Fixed `JavaScript` errors 
 

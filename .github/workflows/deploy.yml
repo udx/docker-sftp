@@ -176,7 +176,7 @@ jobs:
         sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" ci/deployment-v2.yml
         sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" ci/deployment-v2.yml
         sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|IMAGE_VERSION|$GITHUB_SHA|g" ci/deployment-v2.yml
+        sed -i.bak "s|IMAGE_VERSION|${{ steps.version.outputs.TAG }}|g" ci/deployment-v2.yml
         sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/service.yml
         sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/deployment-v2.yml
         sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/service.yml

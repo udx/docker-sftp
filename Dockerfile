@@ -29,15 +29,15 @@ RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.
 RUN apk del build-base linux-headers openssl-dev zlib-dev file wget \
     && rm -rf /openssh-9.8p1.tar.gz /openssh-9.8p1
 
-RUN apk add --no-cache nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump
-RUN curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl
-RUN chmod +x /usr/local/bin/kubectl
-RUN kubectl version --client
-RUN rm -rf /etc/ssh/*
-RUN mkdir -p /etc/ssh/authorized_keys.d
-RUN cp /usr/share/zoneinfo/America/New_York /etc/localtime
-RUN echo "America/New_York" >  /etc/timezone
-RUN apk del tzdata
+RUN apk add --no-cache nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
+  && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+  && chmod +x /usr/local/bin/kubectl \
+  && kubectl version --client \
+  && rm -rf /etc/ssh/* \
+  && mkdir -p /etc/ssh/authorized_keys.d \
+  && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
+  && echo "America/New_York" >  /etc/timezone \
+  && apk del tzdata
 
 RUN curl -sSL https://sdk.cloud.google.com > /tmp/gcl && bash /tmp/gcl --install-dir=/root --disable-prompts
 

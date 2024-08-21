@@ -1,18 +1,40 @@
-FROM node:20.12.0-alpine
-ENV VERSION=v1.29.0
+FROM node:22.6.0-alpine
+ENV VERSION=v1.31.0
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true
 ENV SERVICE_ENABLE_API=true
 ENV SERVICE_ENABLE_FIREBASE=false
 
-RUN apk update --no-cache && apk upgrade --no-cache && apk add bash
+RUN apk update --no-cache && apk upgrade --no-cache && apk add bash tar
 
-RUN apk add --no-cache git openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
+# Install build dependencies
+RUN apk add --no-cache \
+    build-base \
+    linux-headers \
+    openssl-dev \
+    zlib-dev \
+    file \
+    wget
+
+# Download the latest OpenSSH (9.8p1) source
+RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz \
+    && tar -xzf openssh-9.8p1.tar.gz \
+    && cd openssh-9.8p1 \
+    # Configure and compile the source
+    && ./configure \
+    && make \
+    && make install
+
+# Cleanup build dependencies and unnecessary files
+RUN apk del build-base linux-headers openssl-dev zlib-dev file wget \
+    && rm -rf /openssh-9.8p1.tar.gz /openssh-9.8p1
+
+RUN apk add --no-cache nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
   && chmod +x /usr/local/bin/kubectl \
   && kubectl version --client \
   && rm -rf /etc/ssh/* \
-  && mkdir /etc/ssh/authorized_keys.d \
+  && mkdir -p /etc/ssh/authorized_keys.d \
   && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
   && echo "America/New_York" >  /etc/timezone \
   && apk del tzdata

@@ -34,7 +34,7 @@ RUN curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/b
 RUN chmod +x /usr/local/bin/kubectl
 RUN kubectl version --client
 RUN rm -rf /etc/ssh/*
-RUN mkdir /etc/ssh/authorized_keys.d
+RUN mkdir -p /etc/ssh/authorized_keys.d
 RUN cp /usr/share/zoneinfo/America/New_York /etc/localtime
 RUN echo "America/New_York" >  /etc/timezone
 RUN apk del tzdata

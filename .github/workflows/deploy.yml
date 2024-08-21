@@ -25,7 +25,7 @@ env:
   SLACK_NOTIFICACTION_CHANNEL: ${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}
   AR_LOCATION: ${{ vars.AR_LOCATION }}
   AR_REPOSITORY: ${{ vars.AR_REPOSITORY }}
-  IMAGE_NAME: ${{vars.AR_LOCATION}}-docker.pkg.dev/${{vars.GKE_PROJECT}}/${{vars.AR_REPOSITORY}}/${{vars.GITHUB_REF_NAME}}
+  IMAGE_NAME: ${{vars.AR_LOCATION}}-docker.pkg.dev/${{secrets.GKE_PROJECT}}/${{vars.AR_REPOSITORY}}/${{github.ref_name}}
 
 jobs:
   setup-build-publish-deploy:

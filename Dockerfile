@@ -29,7 +29,7 @@ RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.
 RUN apk del build-base linux-headers openssl-dev zlib-dev file wget \
     && rm -rf /openssh-9.8p1.tar.gz /openssh-9.8p1
 
-RUN apk add --no-cache openssh nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump
+RUN apk add --no-cache nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump
 RUN curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl
 RUN chmod +x /usr/local/bin/kubectl
 RUN kubectl version --client

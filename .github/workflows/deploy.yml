@@ -34,6 +34,11 @@ jobs:
     if: github.event_name == 'push'
     environment:
       name: ${{ github.ref_name }}
+    permissions:
+      contents: write
+      checks: write
+      # required for all workflows
+      security-events: write
 
     steps:
     - uses: actions/checkout@v4

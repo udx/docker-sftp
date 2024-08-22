@@ -34,6 +34,11 @@ jobs:
     if: github.event_name == 'push'
     environment:
       name: ${{ github.ref_name }}
+    permissions:
+      contents: write
+      checks: write
+      # required for all workflows
+      security-events: write
 
     steps:
     - uses: actions/checkout@v4
@@ -149,7 +154,7 @@ jobs:
     - name: Create GitHub Release
       if: github.ref_name == 'master'
       id: create_github_release
-      uses: softprops/action-gh-release@v1
+      uses: softprops/action-gh-release@v2
       with:
         name: "Release ${{ steps.version.outputs.TAG }}"
         body: "${{ steps.changelog.outputs.description }}"

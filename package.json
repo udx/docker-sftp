@@ -1,6 +1,6 @@
 {
     "name": "docker-sftp",
-    "version": "0.4.0",
+    "version": "0.5.0",
     "description": "SSH tunnels to Kubernetes containers",
     "main": "bin/server.js",
     "scripts": {
@@ -24,7 +24,7 @@
     "homepage": "https://github.com/udx/docker-sftp#readme",
     "dependencies": {
         "async": "^3.2.5",
-        "axios": "^1.6.8",
+        "axios": "^1.7.5",
         "google-gax": "^4.3.2",
         "debug": "^4.3.4",
         "dot-object": "^2.1.4",

@@ -17,3 +17,8 @@ Temporary Items
 .idea
 static/kuberentes-ca.crt
 docker-compose.yml
+
+# Ignore generated credentials from google-github-actions/auth
+gha-creds-*.json
+
+node_modules

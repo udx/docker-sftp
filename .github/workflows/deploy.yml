@@ -101,12 +101,6 @@ jobs:
     # helper for authentication
     - run: |-
         gcloud --quiet auth configure-docker $AR_LOCATION-docker.pkg.dev
-    # Get the GKE credentials so we can deploy to the cluster
-    - uses: google-github-actions/get-gke-credentials@v2
-      with:
-        cluster_name: ${{ env.GKE_CLUSTER }}
-        location: ${{ env.GKE_REGION }}
-        project_id: ${{ secrets.GKE_PROJECT }}
 
     # Build the Docker image
     - name: Build
@@ -162,6 +156,13 @@ jobs:
         prerelease: false
         files: |
           ./sbom.spdx.json
+
+    # Get the GKE credentials so we can deploy to the cluster
+    - uses: google-github-actions/get-gke-credentials@v2
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_REGION }}
+        project_id: ${{ secrets.GKE_PROJECT }}
     
     # Set up kustomize
     - name: Set up Kustomize

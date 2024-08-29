@@ -1,3 +1,8 @@
+### 0.5.0
+* Upgraded parent Docker Image to `node:22.7.0-alpine`
+* Improved `GitHub Action workflow` and removed sensitive data from Docker Image
+* Updated `axios` to `1.7.5`
+
 ### 0.4.0
 * Upgraded parent Docker image to `node:22`
 * Upgraded `kubectl` to `1.31.0`

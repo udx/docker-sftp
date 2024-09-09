@@ -25,7 +25,7 @@
     "dependencies": {
         "async": "^3.2.5",
         "axios": "^1.7.5",
-        "google-gax": "^4.3.2",
+        "google-gax": "^4.4.1",
         "debug": "^4.3.4",
         "dot-object": "^2.1.4",
         "express": "^4.19.2",

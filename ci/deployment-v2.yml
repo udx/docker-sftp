@@ -34,7 +34,13 @@ spec:
           ports:
             - name: ssh
               containerPort: 22
-          resources: {}
+          resources: 
+            limits:
+              cpu: '2'
+              memory: 2Gi
+            requests:
+              cpu: 200m
+              memory: 212Mi
           env:
             - name: KUBERNETES_CLUSTER_ENDPOINT
               value: https://CLUSTER_ENDPOINT_VALUE

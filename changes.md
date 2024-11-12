@@ -1,3 +1,7 @@
+### 0.3.0
+* set limits for k8s deploymets
+* added config for a cronjob to scheduled container restart
+
 ### 0.2.9
 * Forwarded `sshd` logs to `container` logs
 

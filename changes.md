@@ -1,3 +1,8 @@
+### 0.5.1
+* OS updates
+* added config for a cronjob to scheduled container restart
+* set limits for k8s deploymets
+
 ### 0.5.0
 * Upgraded parent Docker Image to `node:22.7.0-alpine`
 * Improved `GitHub Action workflow` and removed sensitive data from Docker Image

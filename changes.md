@@ -1,3 +1,6 @@
+### 0.5.2
+* Update node modules. Update Alpine
+
 ### 0.5.1
 * OS updates
 * added config for a cronjob to scheduled container restart

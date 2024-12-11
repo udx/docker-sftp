@@ -1,3 +1,6 @@
+### 0.5.4
+* Updated openssh to 9.9p1
+
 ### 0.5.3
 * Updated node modules. Updated Alpine to node:23.4-alpine
 

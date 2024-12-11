@@ -1,3 +1,6 @@
+### 0.5.3
+* Updated node modules. Updated Alpine to node:23.4-alpine
+
 ### 0.5.2
 * Update node modules. Update Alpine
 

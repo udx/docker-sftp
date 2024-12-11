@@ -17,9 +17,9 @@ RUN apk add --no-cache \
     wget
 
 # Download the latest OpenSSH (9.8p1) source
-RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.gz \
-    && tar -xzf openssh-9.8p1.tar.gz \
-    && cd openssh-9.8p1 \
+RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.9p1.tar.gz \
+    && tar -xzf openssh-9.9p1.tar.gz \
+    && cd openssh-9.9p1 \
     # Configure and compile the source
     && ./configure \
     && make \
@@ -27,7 +27,7 @@ RUN wget https://ftp.openbsd.org/pub/OpenBSD/OpenSSH/portable/openssh-9.8p1.tar.
 
 # Cleanup build dependencies and unnecessary files
 RUN apk del build-base linux-headers openssl-dev zlib-dev file wget \
-    && rm -rf /openssh-9.8p1.tar.gz /openssh-9.8p1
+    && rm -rf /openssh-9.9p1.tar.gz /openssh-9.9p1
 
 RUN apk add --no-cache nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
   && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \

@@ -1,4 +1,4 @@
-FROM node:23.4-alpine
+FROM node:23.5-alpine
 ENV VERSION=v1.31.0
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true

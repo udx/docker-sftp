@@ -9,25 +9,21 @@ export USER_LOGIN=$(echo ${ENV_VARS} | cut -d ';' -f 2)
 
 echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
 
-## SFTP.
-if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]]; then
-
+## SFTP handling with Alpine-specific paths
+if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]] || [[ ${SSH_ORIGINAL_COMMAND} == "/usr/lib/ssh/sftp-server" ]]; then
   echo "[$(date)] Have SFTP connection [${CONNECTION_STRING}] for [${USER}]." >> /var/log/sshd.log
 
-  /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- /usr/lib/sftp-server
+  # Try Alpine-specific path first, then fallback to others
+  for SFTP_PATH in "/usr/lib/ssh/sftp-server" "/usr/lib/sftp-server" "/usr/libexec/sftp-server"; do
+    if /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -- test -f ${SFTP_PATH} 2>/dev/null; then
+      exec /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- ${SFTP_PATH}
+      exit 0
+    fi
+  done
 
-  exit;
-
-fi
-
-if [[ ${SSH_ORIGINAL_COMMAND} == "/usr/lib/ssh/sftp-server" ]]; then
-
-  echo "[$(date)] Have SFTP connection [${CONNECTION_STRING}] for [${USER}]." >> /var/log/sshd.log
-
-  /usr/local/bin/kubectl exec -n ${CONNECTION_STRING} -i -- /usr/lib/sftp-server
-
-  exit;
-
+  # If we get here, we couldn't find the SFTP server
+  echo "[$(date)] Error: Could not find SFTP server in container. Tried Alpine and common paths." >> /var/log/sshd.log
+  exit 1
 fi
 
 ## Specific Command, pipe into container.

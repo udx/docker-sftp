@@ -1,3 +1,9 @@
+### 0.5.5
+* OS updates
+* Updated node modules. Updated Alpine to node:23.5-alpine
+* Improved SSH/SFTP handling and documentation
+* Improved SSH config and add logging documentation
+
 ### 0.5.4
 * Updated openssh to 9.9p1
 

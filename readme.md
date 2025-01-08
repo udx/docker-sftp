@@ -90,6 +90,35 @@ sftp [pod-name]@ssh.rabbit.ci
 scp local-file [pod-name]@ssh.rabbit.ci:/path/
 ```
 
+## Logging and Debugging
+
+Key log locations:
+- SSH/SFTP sessions: `/var/log/sshd.log`
+  - Contains connection attempts
+  - SFTP path resolutions
+  - User session details
+- Process logs: `pm2 logs`
+  - API server activity
+  - Key synchronization events
+  - General process health
+- Container logs: `kubectl logs <pod-name>`
+  - Container-level events
+  - System messages
+  - Authentication details
+
+Quick debug commands:
+```bash
+# View SSH session logs
+tail -f /var/log/sshd.log
+
+# View API and process logs
+pm2 logs
+
+# View specific service logs
+pm2 logs sshd        # SSH daemon
+pm2 logs api         # API server
+```
+
 ## Documentation
 
 - [Architecture Details](docs/architecture.md)

@@ -1,3 +1,31 @@
+### 0.5.4
+* Updated openssh to 9.9p1
+
+### 0.5.3
+* Updated node modules. Updated Alpine to node:23.4-alpine
+
+### 0.5.2
+* Update node modules. Update Alpine
+
+### 0.5.1
+* OS updates
+* added config for a cronjob to scheduled container restart
+* set limits for k8s deploymets
+
+### 0.5.0
+* Upgraded parent Docker Image to `node:22.7.0-alpine`
+* Improved `GitHub Action workflow` and removed sensitive data from Docker Image
+* Updated `axios` to `1.7.5`
+
+### 0.4.0
+* Upgraded parent Docker image to `node:22`
+* Upgraded `kubectl` to `1.31.0`
+* Upgaded `OpenSSH` to `9.8`
+* Solved vulnerabilities in `npm` packages and OS
+
+### 0.3.0
+* Fixed `JavaScript` errors 
+
 ### 0.2.9
 * Forwarded `sshd` logs to `container` logs
 

@@ -3,7 +3,7 @@ module.exports.apps = []
 if( process.env.SERVICE_ENABLE_SSHD === 'true' ) {
 
   module.exports.apps.push({
-    "script": "/usr/sbin/sshd",
+    "script": "/usr/local/sbin/sshd",
     "args": "-D -f /etc/ssh/sshd_config -e",
     "name": "sshd",
     "merge_logs": true,

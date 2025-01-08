@@ -8,18 +8,12 @@ A secure SSH/SFTP gateway that provides direct access to Kubernetes pods using G
 - 🚀 Direct SSH/SFTP access to Kubernetes pods
 - 👥 Role-based access control tied to GitHub permissions
 - 🔄 Real-time key synchronization
-- 📊 Container state management via Firebase
-- 🔔 Slack notifications for system events
+- 📊 Container state management
+- 🔍 Detailed access logging
 
 ## Quick Start
 
 ```bash
-# Build the image
-docker build --tag=rabbit-ssh:dev .
-
-# Run for development
-docker-compose up --build --renew-anon-volumes
-
 # Connect to a pod
 ssh [pod-name]@ssh.rabbit.ci
 ```
@@ -52,21 +46,15 @@ ssh [pod-name]@ssh.rabbit.ci
 
 ## Configuration
 
-### Required Secrets
+### Required Environment Variables
 
-| Secret | Description |
-|--------|-------------|
-| `GKE_SA_KEY` | GCP Service Account key (JSON) |
-| `ACCESS_TOKEN` | GitHub Access Token |
+| Variable | Description |
+|----------|-------------|
+| `KUBERNETES_CLUSTER_ENDPOINT` | Kubernetes API endpoint |
+| `KUBERNETES_CLUSTER_NAME` | Cluster name |
+| `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name |
 | `KUBERNETES_CLUSTER_USER_TOKEN` | Kubernetes auth token |
-
-### Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ALLOW_SSH_ACCESS_ROLES` | "admin,maintain,write" | GitHub roles allowed to access |
-| `PRODUCTION_BRANCH` | "production" | Branch for production environment |
-| `ALLOW_SSH_ACCES_PROD_ROLES` | "admin" | Roles allowed in production |
+| `ALLOW_SSH_ACCESS_ROLES` | GitHub roles allowed to access |
 
 See [Environment Variables](docs/environment.md) for full list.
 
@@ -75,19 +63,19 @@ See [Environment Variables](docs/environment.md) for full list.
 ### SSH Access
 ```bash
 # Direct shell access
-ssh [pod-name]@ssh.rabbit.ci
+ssh www-myapp-com
 
 # Run specific command
-ssh [pod-name]@ssh.rabbit.ci [command]
+ssh www-myapp-com "ls -la"
 ```
 
 ### SFTP Access
 ```bash
 # Interactive SFTP session
-sftp [pod-name]@ssh.rabbit.ci
+sftp www-myapp-com
 
 # File transfer
-scp local-file [pod-name]@ssh.rabbit.ci:/path/
+scp local-file www-myapp-com:/remote/path/
 ```
 
 ## Logging and Debugging

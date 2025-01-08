@@ -4,9 +4,9 @@ Add this to your `~/.ssh/config`:
 
 ```ssh-config
 # Production environment
-Host dp-prod
+Host www-myapp-com
     HostName ssh.rabbit.ci
-    User www-destinationpickleball-com-www-destinationpickleball-co98t79
+    User www-myapp-com-production-pod-a1b2c3
     IdentityFile ~/.ssh/github_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -15,10 +15,10 @@ Host dp-prod
     ServerAliveInterval 15
     ServerAliveCountMax 3
 
-# Development/Feature environment
-Host dp-feature-api
+# Development environment
+Host www-myapp-com-dev
     HostName ssh.rabbit.ci
-    User www-destinationpickleball-com-feature-api-gpt-779575d557-k5vb2
+    User www-myapp-com-development-pod-x1y2z3
     IdentityFile ~/.ssh/github_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -32,16 +32,16 @@ Host dp-feature-api
 
 ```bash
 # Connect to production
-ssh dp-prod
+ssh www-myapp-com
 
-# Connect to feature environment
-ssh dp-feature-api
+# Connect to development
+ssh www-myapp-com-dev
 
 # Use SFTP
-sftp dp-feature-api
+sftp www-myapp-com-dev
 
 # Copy files
-scp local.txt dp-feature-api:/remote/path/
+scp local.txt www-myapp-com-dev:/remote/path/
 ```
 
 ## Configuration Explained

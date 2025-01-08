@@ -15,84 +15,46 @@ sh: internal-sftp: unknown operand
 sh: /usr/lib/ssh/sftp-server: unknown operand
 ```
 **Solution**:
-- Check SFTP server path in container
-- Verify OpenSSH installation
-- Check container has required binaries
+- Container needs openssh-sftp-server package
+- Check container OS type in logs
+- Contact administrator to add SFTP support
 
 #### 3. Pod Not Found
 ```
-Error from server (NotFound): pods "pod-name" not found
+Error from server (NotFound): pods "www-myapp-com" not found
 ```
 **Solution**:
 - Verify pod exists in correct namespace
 - Check connection string format
 - Ensure proper Kubernetes permissions
 
-### TTY Issues
-
-#### 1. "Unable to use a TTY"
-```
-tput: No value for $TERM and no -T specified
-stty: invalid number 'cols'
-```
-**Solution**:
-- Set TERM environment variable
-- Use proper SSH client flags
-- Check terminal capabilities
-
-## Debugging Steps
-
-### 1. Check SSH Daemon
-```bash
-# View SSHD logs
-pm2 logs sshd
-
-# Check configuration
-sshd -T
-```
-
-### 2. Verify Key Sync
-```bash
-# Check authorized keys
-ls -la /etc/ssh/authorized_keys.d/
-
-# Force key refresh
-curl -X POST http://localhost:8080/refresh-keys
-```
-
-### 3. Container Health
-```bash
-# Check container status
-kubectl get pods
-
-# View container logs
-kubectl logs pod-name
-```
-
-### 4. API Server Issues
-```bash
-# Check API server logs
-pm2 logs rabbit-ssh-server
-
-# Test connection endpoint
-curl http://localhost:8080/_cat/connection-string/user
-```
-
 ## Logging
 
-### Enable Debug Logging
-```bash
-# SSH debugging
-export DEBUG=ssh:*
-
-# Key management debugging
-export DEBUG=update-ssh:*
-```
-
 ### Log Locations
-- SSHD Logs: `/var/log/sshd.log`
-- API Logs: PM2 logs
-- Key Sync Logs: PM2 logs
+- SSH/SFTP sessions: `/var/log/sshd.log`
+  ```bash
+  # View connection attempts
+  tail -f /var/log/sshd.log
+  
+  # Example log entry:
+  # [2025-01-07 19:42:27] SFTP connection attempt from [192.168.1.100] for user [www-myapp-com] to pod [production/www-myapp-com-a1b2c3]
+  ```
+- Process logs:
+  ```bash
+  # View all logs
+  pm2 logs
+  
+  # View specific service
+  pm2 logs sshd
+  ```
+
+### What's in the Logs
+- Connection attempts (successful/failed)
+- SFTP server availability
+- Container OS detection
+- Error messages and reasons
+- Client IP addresses
+- User and pod information
 
 ## Security Verification
 
@@ -109,51 +71,11 @@ ls -la /etc/ssh/authorized_keys.d/
 ```bash
 # Check SSHD config
 sshd -T | grep -E 'passwordauthentication|permitrootlogin|subsystem'
-
-# Verify Kubernetes auth
-kubectl auth can-i create pods
 ```
 
-## Recovery Procedures
-
-### 1. Key Recovery
-```bash
-# Regenerate host keys
-ssh-keygen -A
-
-# Force key sync
-curl -X POST http://localhost:8080/refresh-keys
-```
-
-### 2. Service Recovery
-```bash
-# Restart services
-pm2 restart all
-
-# Clear Firebase cache
-curl -X DELETE http://localhost:8080/flushFirebaseContainers
-```
-
-## Support Information
-
-### Required Information for Support
+## Required Information for Support
 1. Pod name and namespace
 2. SSH client version
-3. Debug logs
-4. Recent changes to configuration
-5. GitHub username and repository
-
-### Gathering Debug Information
-```bash
-# Collect system information
-uname -a
-sshd -V
-pm2 list
-
-# Get container status
-docker ps
-kubectl get pods
-
-# Check logs
-pm2 logs --lines 100
-```
+3. Contents of /var/log/sshd.log
+4. Client IP address
+5. GitHub username

@@ -1,0 +1,46 @@
+kind: workerService
+version: udx.io/worker-v1/service
+services:
+  - name: "sshd"
+    ignore: "false"
+    command: "/usr/local/sbin/sshd -D -f /etc/ssh/sshd_config -e"
+    autostart: "true"
+    autorestart: "true"
+    envs:
+      - "NODE_ENV=production"
+      - "LOG_DATE_FORMAT=YYYY-MM-DD HH:mm Z"
+      - "MAX_RESTARTS=50"
+      - "RESTART_DELAY=10000"
+      - "MERGE_LOGS=true"
+      - "VIZION=false"
+      - "EXEC_MODE=fork"
+
+  - name: "rabbit-ssh-server"
+    ignore: "false"
+    command: "node /opt/sources/rabbitci/rabbit-ssh/bin/server.js"
+    autostart: "true"
+    autorestart: "true"
+    envs:
+      - "NODE_ENV=production"
+      - "LOG_DATE_FORMAT=YYYY-MM-DD HH:mm Z"
+      - "MAX_MEMORY_RESTART=512M"
+      - "MAX_RESTARTS=50"
+      - "RESTART_DELAY=10000"
+      - "MERGE_LOGS=true"
+      - "VIZION=false"
+      - "EXEC_MODE=fork"
+
+  - name: "firebase-consume"
+    ignore: "true"
+    command: "node /opt/sources/rabbitci/rabbit-ssh/bin/firebase.consume.js"
+    autostart: "true"
+    autorestart: "true"
+    envs:
+      - "NODE_ENV=production"
+      - "LOG_DATE_FORMAT=YYYY-MM-DD HH:mm Z"
+      - "MAX_MEMORY_RESTART=512M"
+      - "MAX_RESTARTS=50"
+      - "RESTART_DELAY=10000"
+      - "MERGE_LOGS=true"
+      - "VIZION=false"
+      - "EXEC_MODE=fork"

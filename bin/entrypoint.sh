@@ -46,7 +46,8 @@ fi;
 
 npm install google-gax
 
-pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js --silent
+# pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js --silent
+# worker service 
 
 npm install
 

@@ -4,8 +4,8 @@
     "description": "SSH tunnels to Kubernetes containers",
     "main": "bin/server.js",
     "scripts": {
-        "dev-start": "NODE_ENV=development pm2 start --watch --name server-ssh-dev bin/server.js",
-        "start": "pm2 startOrReload static/ecosystem.config.js",
+        "dev-start": "worker service restart rabbit-ssh-server",
+        "start": "worker service restart sshd && worker service restart rabbit-ssh-server",
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "bin": {

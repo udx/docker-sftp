@@ -1,3 +1,7 @@
+### 0.6.0
+* updated kubectl to 1.32.0
+* changed kubectl package source
+
 ### 0.5.5
 * OS updates
 * Updated node modules. Updated Alpine to node:23.5-alpine

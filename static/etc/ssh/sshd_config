@@ -10,10 +10,11 @@
 AcceptEnv APP
 AcceptEnv BRANCH
 AcceptEnv KUBERNETES*
+AcceptEnv LANG LC_* TERM
 
 # Allow client to pass locale environment variables
-AcceptEnv LANG LC_*
 
+# Enable SFTP with proper subsystem
 Subsystem sftp internal-sftp
 
 ForceCommand="/opt/sources/rabbitci/rabbit-ssh/bin/controller.ssh.entrypoint.sh"
@@ -46,13 +47,15 @@ IgnoreRhosts yes
 HostbasedAuthentication no
 IgnoreUserKnownHosts yes
 
-X11DisplayOffset 10
+# Better TTY handling
+PermitTTY yes
 PrintMotd no
+PrintLastLog no
+
+X11DisplayOffset 10
 TCPKeepAlive yes
 ClientAliveInterval 120
 UseDNS no
 
 # UsePrivilegeSeparation sandbox
-# Subsystem sftp internal-sftp
-# PermitUserEnvironment yes
 # LoginGraceTime 120

@@ -1,5 +1,5 @@
 FROM node:23.5-alpine
-ENV VERSION=v1.31.0
+ENV KUBECTL_VERSION=1.32.0
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true
 ENV SERVICE_ENABLE_API=true
@@ -30,7 +30,7 @@ RUN apk del build-base linux-headers openssl-dev zlib-dev file wget \
     && rm -rf /openssh-9.9p1.tar.gz /openssh-9.9p1
 
 RUN apk add --no-cache nfs-utils rpcbind curl ca-certificates nano tzdata ncurses make tcpdump \
-  && curl -L https://storage.googleapis.com/kubernetes-release/release/$VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+  && curl -L https://dl.k8s.io/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
   && chmod +x /usr/local/bin/kubectl \
   && kubectl version --client \
   && rm -rf /etc/ssh/* \

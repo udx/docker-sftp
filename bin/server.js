@@ -13,7 +13,13 @@ const app = express();
 let utility = require('../lib/utility');
 const md5 = require('md5');
 
+// Access token from worker.yml secrets
 var accessToken = process.env.ACCESS_TOKEN;
+
+// Health check endpoint for Kubernetes
+app.get('/health', (req, res) => {
+    res.send({ status: 'ok' });
+});
 
 // for SSH Entrypoint to get Kubernetes connection string that includes namespace and pod name
 app.get('/_cat/connection-string/:user', singleUserEndpoint);
@@ -25,6 +31,7 @@ app.get('/v1/pods', getPods);
 app.delete('/flushFirebaseContainers', flushFirebaseContainers);
 app.use(singleEndpoint);
 
+// Listen on configured port with health check support
 app.listen(process.env.NODE_PORT || 8080, '0.0.0.0', serverOnline);
 
 var _containersStateHash = "";
@@ -110,12 +117,19 @@ function userEndpoint(req, res) {
 function getPods(req, res) {
     debug('getPods', req.url);
 
+    // Use Kubernetes endpoint and token from worker.yml secrets
     axios({
             method: "get",
             url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
             headers: {
                 'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN
-            }
+            },
+            // Support for custom CA certificates
+            ...(process.env.KUBERNETES_CLUSTER_CERTIFICATE && {
+                httpsAgent: new https.Agent({
+                    ca: process.env.KUBERNETES_CLUSTER_CERTIFICATE
+                })
+            })
         })
         .then(response => {
             res.send(response.data);

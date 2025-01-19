@@ -50,16 +50,31 @@ jobs:
         # Create test namespace
         kubectl create namespace test-k8gate
         
-        # Create SSH key secret from GitHub Actions secrets
-        mkdir -p /tmp/ssh-keys
-        echo "${{ secrets.TEST_SSH_PRIVATE_KEY }}" > /tmp/ssh-keys/id_rsa
-        echo "${{ secrets.TEST_SSH_PUBLIC_KEY }}" > /tmp/ssh-keys/id_rsa.pub
-        chmod 600 /tmp/ssh-keys/id_rsa
+        # Set up SSH directories and keys
+        mkdir -p /home/runner/.ssh
+        mkdir -p /home/runner/authorized_keys.d
+        chmod 700 /home/runner/.ssh
+        chmod 755 /home/runner/authorized_keys.d
+        
+        # Generate SSH key pair
+        ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""
+        chmod 600 /home/runner/.ssh/id_rsa
         
         # Set up authorized keys
-        mkdir -p authorized_keys.d
-        echo "${{ secrets.TEST_SSH_PUBLIC_KEY }}" > authorized_keys.d/test-user
-        chmod 644 authorized_keys.d/test-user
+        cp /home/runner/.ssh/id_rsa.pub /home/runner/authorized_keys.d/test-user
+        chmod 644 /home/runner/authorized_keys.d/test-user
+        
+        # Create Kubernetes secret for SSH keys
+        kubectl create namespace test-k8gate
+        kubectl -n test-k8gate create secret generic ssh-keys \
+          --from-file=ssh_host_rsa_key=/home/runner/.ssh/id_rsa \
+          --from-file=authorized_keys=/home/runner/authorized_keys.d/test-user
+        
+        # Debug SSH setup
+        echo "=== SSH Setup ==="
+        ls -la /home/runner/.ssh/
+        ls -la /home/runner/authorized_keys.d/
+        echo "================="
         
         # Create Kubernetes secret
         kubectl -n test-k8gate create secret generic ssh-keys \

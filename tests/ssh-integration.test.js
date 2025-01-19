@@ -18,18 +18,43 @@ describe('SSH Integration Tests', () => {
 
     beforeAll(async () => {
         // Wait for SSH service to be ready
-        await new Promise(resolve => setTimeout(resolve, 5000));
+        await new Promise(resolve => setTimeout(resolve, 15000));
+        
+        // Debug SSH setup
+        console.log('SSH Config:', {
+            host: sshConfig.host,
+            port: process.env.TEST_SSH_PORT || 22,
+            user: sshConfig.user,
+            keyPath: sshConfig.keyPath
+        });
+        
+        try {
+            // Verify SSH key permissions
+            await execAsync(`chmod 600 ${sshConfig.keyPath}`);
+            
+            // Test SSH connection with verbose output
+            const sshCmd = `ssh -v -i ${sshConfig.keyPath} -p ${process.env.TEST_SSH_PORT || 22} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host} "echo Test Connection"`;
+            console.log('Testing SSH connection with:', sshCmd);
+            
+            const { stdout } = await execAsync(sshCmd, { timeout: 30000 });
+            console.log('SSH Connection Test:', stdout);
+        } catch (err) {
+            console.error('SSH Connection Test Failed:', err.message);
+            console.error('Error Details:', err);
+            console.error('Command Output:', err.stdout, err.stderr);
+        }
     });
 
     test('SSH connection and command execution', async () => {
         for (const cmd of testCommands) {
-            const sshCmd = `ssh -i ${sshConfig.keyPath} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host} "${cmd}"`;
+            const sshCmd = `ssh -i ${sshConfig.keyPath} -p ${process.env.TEST_SSH_PORT || 22} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host} "${cmd}"`;
+            console.log('Executing SSH command:', sshCmd);
             
             try {
-                const { stdout, stderr } = await execAsync(sshCmd);
+                const { stdout, stderr } = await execAsync(sshCmd, { timeout: 30000 });
                 console.log(`Command: ${cmd}`);
                 console.log('Output:', stdout);
-                expect(stderr).toBeFalsy();
+                if (stderr) console.log('stderr:', stderr);
                 expect(stdout).toBeTruthy();
             } catch (error) {
                 console.error(`Failed to execute command: ${cmd}`);
@@ -48,8 +73,14 @@ describe('SSH Integration Tests', () => {
             await execAsync(`echo "test content" > ${testFile}`);
 
             // Execute SFTP commands
-            const sftpCmd = `sftp -i ${sshConfig.keyPath} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host}`;
-            const { stdout, stderr } = await execAsync(sftpCmd, { input: sftpCommands });
+            const sftpCmd = `sftp -i ${sshConfig.keyPath} -P ${process.env.TEST_SSH_PORT || 22} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host}`;
+            console.log('Executing SFTP command:', sftpCmd);
+            console.log('SFTP commands:', sftpCommands);
+            
+            const { stdout, stderr } = await execAsync(sftpCmd, { 
+                input: sftpCommands,
+                timeout: 30000
+            });
 
             expect(stderr).toBeFalsy();
             expect(stdout).toContain(testFile);

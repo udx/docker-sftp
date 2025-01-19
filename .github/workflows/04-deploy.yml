@@ -49,38 +49,63 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     
-    - name: Get GKE credentials
-      uses: google-github-actions/get-gke-credentials@v1
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
       with:
-        cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
-        location: ${{ secrets.GKE_CLUSTER_LOCATION }}
-        credentials: ${{ secrets.GKE_SA_KEY }}
-    
-    - name: Set up Kustomize
-      run: |
-        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-        sudo mv kustomize /usr/local/bin/
-    
-    - name: Configure deployment files
-      run: |
-        cd ci
-        kustomize edit set image k8-container-gate=usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
     
     - name: Push to Docker Hub
       run: |
+        # Set environment variables
+        REGISTRY="${{ secrets.DOCKER_REGISTRY }}"
+        IMAGE_NAME="${{ secrets.IMAGE_NAME }}"
+        
         # Tag and push with version from package.json
-        docker push usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
-        docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:latest
-        docker push usabilitydynamics/k8-container-gate:latest
+        docker push ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
+        docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:latest
+        docker push ${REGISTRY}/${IMAGE_NAME}:latest
         
         # If this is a tag, also push the git tag version
         if [[ $GITHUB_REF == refs/tags/* ]]; then
           VERSION=${GITHUB_REF#refs/tags/}
-          docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:${VERSION}
-          docker push usabilitydynamics/k8-container-gate:${VERSION}
+          docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+          docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
         fi
 
-    - name: Deploy to Kubernetes
+    - name: Deploy to Cloud Run
       run: |
-        kubectl apply -k ci/
-        kubectl rollout status deployment/k8-container-gate -n default
+        # Use same registry and image name variables
+        REGISTRY="${{ secrets.DOCKER_REGISTRY }}"
+        IMAGE_NAME="${{ secrets.IMAGE_NAME }}"
+        
+        gcloud run deploy ${IMAGE_NAME} \
+          --image=${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} \
+          --platform=managed \
+          --region=us-central1 \
+          --port=8080 \
+          --memory=512Mi \
+          --cpu=1 \
+          --timeout=300 \
+          --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }} \
+          --set-env-vars="NODE_ENV=production,SERVICE_ENABLE_SSHD=true,SERVICE_ENABLE_API=true" \
+          --set-env-vars="KUBERNETES_CLUSTER_ENDPOINT=${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }},KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}" \
+          --set-secrets="KUBERNETES_CLUSTER_USER_TOKEN=${{ secrets.K8S_TOKEN_SECRET_NAME }},ACCESS_TOKEN=${{ secrets.GITHUB_TOKEN_SECRET_NAME }}" \
+          --allow-unauthenticated \
+          --use-http2
+
+    - name: Set up TCP load balancer for SSH
+      run: |
+        # Use same variables for load balancer
+        LB_NAME="${{ secrets.LOAD_BALANCER_NAME }}"
+        REGION="${{ secrets.GCP_REGION }}"
+        
+        gcloud compute forwarding-rules create ${LB_NAME} \
+          --load-balancing-scheme=EXTERNAL \
+          --ports=22 \
+          --target-service=${IMAGE_NAME} \
+          --region=${REGION} || true  # Don't fail if already exists
+        
+        # Get the load balancer IP
+        echo "SSH_ENDPOINT=$(gcloud compute forwarding-rules describe ${LB_NAME} --region=${REGION} --format='get(IPAddress)')" >> $GITHUB_OUTPUT

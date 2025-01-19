@@ -6,7 +6,8 @@
     "scripts": {
         "dev-start": "NODE_ENV=development pm2 start --watch --name server-ssh-dev bin/server.js",
         "start": "pm2 startOrReload static/ecosystem.config.js",
-        "test": "echo \"Error: no test specified\" && exit 1",
+        "test": "jest",
+        "test:integration": "jest tests/ssh-integration.test.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"
     },

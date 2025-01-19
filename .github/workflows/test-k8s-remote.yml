@@ -10,7 +10,7 @@ env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
   GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
   GKE_REGION: ${{ secrets.GKE_REGION }}
-  IMAGE_NAME: ${{ secrets.GKE_REGISTRY }}/k8gate-test
+  IMAGE_NAME: usabilitydynamics/k8-container-gate
 
 jobs:
   test-k8s-remote:

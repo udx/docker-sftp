@@ -109,9 +109,24 @@ jobs:
           -f Dockerfile.udx \
           .
         
-        # Push Docker image
-        echo "Publishing Docker image..."
+        # Push Docker image to GCR
+        echo "Publishing Docker image to Google Container Registry..."
         docker push "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
+
+        # Login to Docker Hub
+        echo "Logging in to Docker Hub..."
+        echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u usabilitydynamics --password-stdin
+
+        # Tag and push to Docker Hub (private repo)
+        echo "Publishing Docker image to Docker Hub..."
+        docker tag "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}" "usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}"
+        docker tag "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}" "usabilitydynamics/k8-container-gate:latest"
+        
+        # Only push to Docker Hub on master branch
+        if [ "${{ github.ref }}" = "refs/heads/master" ]; then
+          docker push "usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}"
+          docker push "usabilitydynamics/k8-container-gate:latest"
+        fi
 
     # Run integration tests
     - name: Setup test environment

@@ -17,7 +17,7 @@ module.exports = {
         'prefer-const': 'off', // Allow var/let
         'quotes': ['error', 'single'],
         'semi': ['error', 'always'],
-        'indent': ['error', 4],
+        'indent': ['error', 2],
         'no-unused-vars': ['warn', { 'args': 'none' }],
         'node/no-unpublished-require': 'off',
         'node/no-missing-require': 'off',

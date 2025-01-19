@@ -59,10 +59,17 @@ Host k8gate
     IdentityFile ~/.ssh/id_rsa
 ```
 
-3. Connect to a pod:
+3. Connect to a pod (non-interactive mode preferred):
 ```bash
-ssh k8gate
+# Run single command
+ssh k8gate "wp plugin list"
+
+# Interactive mode (when necessary)
+ssh k8gate "curl https://cognition-public.s3.amazonaws.com/install_shell_integration.sh | bash"
+ssh -t k8gate
 ```
+
+For detailed instructions on SSH, SFTP, and SCP usage, see [Remote Access Guide](docs/remote-access.md).
 
 ## Architecture
 

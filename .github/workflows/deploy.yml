@@ -90,48 +90,47 @@ jobs:
 
           core.setOutput('description', description.join('\n') );
 
-    # Setup gcloud CLI
-    - id: 'auth'
-      uses: 'google-github-actions/auth@v2'
-      with:
-        credentials_json: '${{ secrets.GKE_SA_KEY }}'
-
-    # Set up Cloud SDK
-    - name: 'Set up Cloud SDK'
-      uses: 'google-github-actions/setup-gcloud@v2'
-      with:
-        project_id: ${{ secrets.GKE_PROJECT }}
-
-    # Configure Docker to use the gcloud command-line tool as a credential
-    # helper for authentication
-    - run: |-
+    # Build and deployment steps only run on push events
+    - name: Build and Deploy
+      if: github.event_name == 'push'
+      run: |
+        # Setup gcloud CLI
+        echo "Setting up Google Cloud CLI..."
+        gcloud auth activate-service-account --key-file=<(echo '${{ secrets.GKE_SA_KEY }}')
+        gcloud --quiet config set project ${{ secrets.GKE_PROJECT }}
         gcloud --quiet auth configure-docker $AR_LOCATION-docker.pkg.dev
 
-    # Build the Docker image
-    - name: Build
-      run: |-
+        # Build Docker image
+        echo "Building Docker image..."
         docker build \
           --tag "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
           -f Dockerfile.udx \
           .
-          
-    # Push the Docker image to Google Container Registry
-    - name: Publish
-      run: |-
+        
+        # Push Docker image
+        echo "Publishing Docker image..."
         docker push "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
 
     # Run integration tests
     - name: Setup test environment
       run: |
+        # Build test image without pushing
+        docker build \
+          --tag "k8gate-test:latest" \
+          --build-arg GITHUB_SHA="$GITHUB_SHA" \
+          --build-arg GITHUB_REF="$GITHUB_REF" \
+          -f Dockerfile.udx \
+          .
+
         # Start container for integration tests
         docker run -d --name test-container \
           -e KUBERNETES_CLUSTER_ENDPOINT=${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }} \
           -e KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} \
           -e KUBERNETES_CLUSTER_USER_TOKEN=${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }} \
           -p 2222:22 \
-          ${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}
+          k8gate-test:latest
 
         # Wait for container to be ready
         sleep 15
@@ -192,7 +191,9 @@ jobs:
           ./sbom.spdx.json
 
     # Get the GKE credentials so we can deploy to the cluster
-    - uses: google-github-actions/get-gke-credentials@v2
+    - name: Get GKE credentials
+      if: github.event_name == 'push'
+      uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_REGION }}
@@ -200,11 +201,14 @@ jobs:
     
     # Set up kustomize
     - name: Set up Kustomize
+      if: github.event_name == 'push'
       run: |-
         curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz
         chmod u+x ./kustomize
     # Deploy secret variables
-    - run: |
+    - name: Configure deployment files
+      if: github.event_name == 'push'
+      run: |
         sed -i.bak "s|CLUSTER_NAME_VALUE|${{ vars.GKE_CLUSTER }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-v2.yml
@@ -231,7 +235,9 @@ jobs:
         sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" ci/deployment-v2.yml
         sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" ci/deployment-v2.yml
     # Deploy the Docker image to the GKE cluster
-    - run: |
+    - name: Deploy to Kubernetes
+      if: github.event_name == 'push'
+      run: |
         kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/service.yml && \
         kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/deployment-v2.yml && \
         kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/deployment-restart-cronjob.yml

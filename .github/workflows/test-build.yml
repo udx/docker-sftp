@@ -41,18 +41,20 @@ jobs:
     - name: Set up test environment
       run: |
         # Create test directories with proper permissions
-        mkdir -p /home/runner/.ssh
-        mkdir -p /home/runner/authorized_keys.d
-        chmod 700 /home/runner/.ssh
-        chmod 755 /home/runner/authorized_keys.d
+        sudo mkdir -p /home/runner/.ssh
+        sudo mkdir -p /home/runner/authorized_keys.d
+        sudo chmod 700 /home/runner/.ssh
+        sudo chmod 755 /home/runner/authorized_keys.d
         
         # Generate SSH key pair
-        ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""
-        chmod 600 /home/runner/.ssh/id_rsa
+        sudo ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""
+        sudo chmod 600 /home/runner/.ssh/id_rsa
+        sudo chown -R runner:runner /home/runner/.ssh
         
         # Set up authorized_keys for container
-        cp /home/runner/.ssh/id_rsa.pub /home/runner/authorized_keys.d/test-user
-        chmod 644 /home/runner/authorized_keys.d/test-user
+        sudo cp /home/runner/.ssh/id_rsa.pub /home/runner/authorized_keys.d/test-user
+        sudo chmod 644 /home/runner/authorized_keys.d/test-user
+        sudo chown -R runner:runner /home/runner/authorized_keys.d
         
         # Debug SSH setup
         echo "=== Host SSH Setup ==="
@@ -73,6 +75,7 @@ jobs:
           -e TEST_SSH_USER=test-user \
           -e DEBUG=ssh:* \
           -v /home/runner/authorized_keys.d:/etc/ssh/authorized_keys.d:ro \
+          -v /home/runner/.ssh/id_rsa.pub:/etc/ssh/authorized_keys.d/test-user:ro \
           -p 2222:22 \
           usabilitydynamics/k8-container-gate:test
         
@@ -81,10 +84,13 @@ jobs:
         
         # Set correct permissions in container
         docker exec test-container sh -c "
-          chmod 600 /etc/ssh/ssh_host_rsa_key && \
-          chmod -R 755 /etc/ssh/authorized_keys.d && \
+          mkdir -p /etc/ssh/authorized_keys.d && \
+          chmod 755 /etc/ssh/authorized_keys.d && \
           chmod 644 /etc/ssh/authorized_keys.d/test-user && \
           chown -R root:root /etc/ssh/authorized_keys.d && \
+          chmod 600 /etc/ssh/ssh_host_rsa_key && \
+          chmod 644 /etc/ssh/ssh_host_rsa_key.pub && \
+          ls -la /etc/ssh/ && \
           ls -la /etc/ssh/authorized_keys.d/
         "
         

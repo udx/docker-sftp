@@ -23,14 +23,14 @@ jobs:
         cluster_name: test-cluster
         wait: 120s
         config: |
-          kind: Cluster
           apiVersion: kind.x-k8s.io/v1alpha4
+          kind: Cluster
           nodes:
-          - role: control-plane
-            extraPortMappings:
-            - containerPort: 22
-              hostPort: 2222
-              protocol: TCP
+            - role: control-plane
+              extraPortMappings:
+                - containerPort: 22
+                  hostPort: 2222
+                  protocol: TCP
     
     - name: Build test image
       run: |

@@ -8,6 +8,7 @@ ENV SERVICE_ENABLE_FIREBASE=false
 ENV USE_GKE_GCLOUD_AUTH_PLUGIN=True
 
 # Install required packages (minimized from original as udx-worker-nodejs includes many)
+USER root
 RUN apt-get update && apt-get install -y \
     openssh-server \
     curl \
@@ -38,6 +39,8 @@ RUN curl -L https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl -o /usr/lo
 # Install Google Cloud SDK
 RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/root --disable-prompts \
     && /root/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin
+
+USER udx
 
 # Add Google Cloud SDK to PATH
 ENV PATH $PATH:/root/google-cloud-sdk/bin

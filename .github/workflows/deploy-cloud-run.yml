@@ -1,0 +1,85 @@
+name: Deploy to Cloud Run
+
+on:
+  workflow_run:
+    workflows: ["Publish to DockerHub"]
+    types:
+      - completed
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+    
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
+    
+    - name: Deploy to Cloud Run
+      id: deploy
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: k8-container-gate
+      run: |
+        # Deploy service
+        gcloud run deploy k8-container-gate \
+          --image=${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} \
+          --platform=managed \
+          --region=us-central1 \
+          --port=8080 \
+          --memory=512Mi \
+          --cpu=1 \
+          --timeout=300 \
+          --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }} \
+          --set-env-vars="NODE_ENV=production,SERVICE_ENABLE_SSHD=true,SERVICE_ENABLE_API=true" \
+          --set-env-vars="KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}" \
+          --set-secrets="KUBERNETES_CLUSTER_USER_TOKEN=k8gate-k8s-token:latest,ACCESS_TOKEN=k8gate-github-token:latest" \
+          --allow-unauthenticated \
+          --use-http2
+        
+        # Get service URL
+        echo "SERVICE_URL=$(gcloud run services describe k8-container-gate --platform managed --region us-central1 --format 'value(status.url)')" >> $GITHUB_OUTPUT
+    
+    - name: Set up TCP load balancer for SSH
+      id: ssh-lb
+      run: |
+        # Create TCP load balancer
+        gcloud compute forwarding-rules create k8gate-ssh \
+          --load-balancing-scheme=EXTERNAL \
+          --ports=22 \
+          --target-service=k8-container-gate \
+          --region=us-central1 || true  # Don't fail if already exists
+        
+        # Get the load balancer IP
+        echo "SSH_ENDPOINT=$(gcloud compute forwarding-rules describe k8gate-ssh --region=us-central1 --format='get(IPAddress)')" >> $GITHUB_OUTPUT
+    
+    - name: Verify Deployment
+      run: |
+        # Wait for service to be ready
+        echo "Waiting for service to be ready..."
+        sleep 30
+        
+        # Test HTTP endpoint
+        echo "Testing HTTP endpoint..."
+        curl -f "${{ steps.deploy.outputs.SERVICE_URL }}/health" || exit 1
+        
+        # Test SSH endpoint
+        echo "Testing SSH endpoint..."
+        nc -zv ${{ steps.ssh-lb.outputs.SSH_ENDPOINT }} 22 || exit 1
+        
+        # Print connection information
+        echo "=== Deployment Information ==="
+        echo "HTTP Endpoint: ${{ steps.deploy.outputs.SERVICE_URL }}"
+        echo "SSH Endpoint: ${{ steps.ssh-lb.outputs.SSH_ENDPOINT }}"
+        echo "To connect: ssh <github-username>@${{ steps.ssh-lb.outputs.SSH_ENDPOINT }}"

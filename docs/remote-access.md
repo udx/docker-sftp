@@ -11,22 +11,30 @@ This guide explains how to access K8 Container Gate using SSH, SFTP, and SCP pro
 
 ## SSH Access
 
-### Non-Interactive Mode (Preferred)
+### Important Note About Non-Interactive Commands
 
-For running single commands or scripts:
+**WARNING**: Non-interactive commands like direct SCP or non-interactive SSH will fail with "pod not found" errors. Always use interactive SSH sessions for file operations.
+
+### Command Execution (Interactive Mode Required)
+
+All SSH operations must be performed in an interactive session:
 
 ```bash
-# Basic command execution
-ssh <github-username>@<endpoint> "<command>"
+# Start interactive session
+ssh -t <github-username>@<endpoint>
 
-# Example: List WordPress plugins
-ssh user@k8gate.example.com "wp plugin list"
+# Then run commands inside the session
+cd /var/www  # IMPORTANT: Always change to /var/www first
+wp plugin list
+git status
 
-# Example: Check git status
-ssh user@k8gate.example.com "git status"
+# For file operations, use the cat command:
+cat > file.txt << 'EOF'
+your file content here
+EOF
 
-# Example: Run multiple commands
-ssh user@k8gate.example.com "cd /var/www && wp core version && git status"
+# View file contents
+cat file.txt
 ```
 
 ### Interactive Mode
@@ -61,23 +69,44 @@ rm file                 # Remove remote file
 exit                    # Close session
 ```
 
-## SCP Usage
+## File Transfer Guide
 
-For direct file transfers:
+**IMPORTANT**: Direct SCP commands will fail with "pod not found" errors. Use these interactive methods instead:
+
+### Method 1: Using cat for File Transfer
 
 ```bash
-# Upload file to remote
-scp /local/path/file <github-username>@<endpoint>:/remote/path/
+# Upload a file
+ssh -t user@endpoint "cat > /var/www/file.txt" < local-file.txt
 
-# Download file from remote
-scp <github-username>@<endpoint>:/remote/path/file /local/path/
+# Download a file
+ssh -t user@endpoint "cat /var/www/file.txt" > local-file.txt
 
-# Transfer directory recursively
-scp -r /local/directory <github-username>@<endpoint>:/remote/path/
-
-# Transfer with specific SSH key
-scp -i ~/.ssh/specific_key /local/file <github-username>@<endpoint>:/remote/path/
+# Create/Edit file directly
+ssh -t user@endpoint
+cd /var/www  # Always change to /var/www first
+cat > file.txt << 'EOF'
+file content here
+EOF
 ```
+
+### Method 2: Using SFTP Interactive Mode
+
+```bash
+# Start SFTP session
+sftp user@endpoint
+
+# Important: Change to /var/www first
+cd /var/www
+
+# Then perform operations
+put local-file.txt
+get remote-file.txt
+ls
+pwd
+```
+
+Note: All file operations must be performed in the /var/www directory.
 
 ## Common Operations
 

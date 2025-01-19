@@ -30,15 +30,21 @@ jobs:
       run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
     
     - name: Build Docker image
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
       run: |
         docker build \
-          --tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} \
+          --tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} \
           --build-arg NODE_ENV=test \
           -f Dockerfile.udx .
     
     - name: Save Docker image
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
       run: |
-        docker save usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} > /tmp/docker-image.tar
+        docker save ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} > /tmp/docker-image.tar
     
     - name: Upload Docker image
       uses: actions/upload-artifact@v3

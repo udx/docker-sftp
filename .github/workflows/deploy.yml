@@ -116,21 +116,34 @@ jobs:
     # Run integration tests
     - name: Setup test environment
       run: |
-        # Build test image without pushing
+        # Pull base image for testing
+        docker pull usabilitydynamics/udx-worker-nodejs:latest
+
+        # Build minimal test image
         docker build \
           --tag "k8gate-test:latest" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
-          -f Dockerfile.udx \
-          .
+          --build-arg NODE_ENV=test \
+          -f- . <<EOF
+        FROM usabilitydynamics/udx-worker-nodejs:latest
+        COPY . /app
+        WORKDIR /app
+        RUN npm install
+        EXPOSE 22
+        CMD ["npm", "test"]
+        EOF
 
         # Start container for integration tests
         docker run -d --name test-container \
-          -e KUBERNETES_CLUSTER_ENDPOINT=${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }} \
-          -e KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} \
-          -e KUBERNETES_CLUSTER_USER_TOKEN=${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }} \
+          -e NODE_ENV=test \
+          -e TEST_MODE=true \
           -p 2222:22 \
           k8gate-test:latest
+
+        # Wait for container to be ready
+        sleep 10
+        docker logs test-container
 
         # Wait for container to be ready
         sleep 15

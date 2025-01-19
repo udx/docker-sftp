@@ -15,6 +15,10 @@ on:
       - master
       - latest
       - develop-*
+  pull_request:
+    branches:
+      - master
+      - latest
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}

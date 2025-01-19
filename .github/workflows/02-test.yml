@@ -49,7 +49,7 @@ jobs:
     - name: Set Tag from package.json
       id: version
       run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-    
+      
     - name: Download artifacts
       uses: dawidd6/action-download-artifact@v2
       with:

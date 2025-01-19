@@ -1,5 +1,6 @@
-// Increase timeout for all tests
 const { jest } = require('@jest/globals');
+
+// Increase timeout for all tests
 jest.setTimeout(30000);
 
 // Add environment variables for local testing if not set

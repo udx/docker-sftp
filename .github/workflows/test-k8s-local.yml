@@ -28,7 +28,7 @@ jobs:
           -f Dockerfile.udx .
         
         # Load image into KinD
-        kind load docker-image k8gate-test:latest
+        kind load docker-image usabilitydynamics/k8-container-gate:test
     
     - name: Deploy to local cluster
       run: |
@@ -64,7 +64,7 @@ jobs:
             spec:
               containers:
               - name: k8gate
-                image: k8gate-test:latest
+                image: usabilitydynamics/k8-container-gate:test
                 env:
                 - name: NODE_ENV
                   value: test

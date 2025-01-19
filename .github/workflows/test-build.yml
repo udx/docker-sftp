@@ -1,0 +1,55 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches: [ master, latest ]
+  push:
+    branches: [ master, latest ]
+
+jobs:
+  build-and-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Build test image
+      run: |
+        docker build \
+          --tag k8gate-test:latest \
+          --build-arg NODE_ENV=test \
+          -f Dockerfile.udx .
+    
+    - name: Run unit tests
+      run: npm test
+    
+    - name: Run integration tests
+      run: |
+        # Start test container
+        docker run -d --name test-container \
+          -e NODE_ENV=test \
+          -e TEST_MODE=true \
+          -p 2222:22 \
+          k8gate-test:latest
+        
+        # Wait for container to be ready
+        sleep 10
+        docker logs test-container
+        
+        # Run tests
+        TEST_SSH_HOST=localhost \
+        TEST_SSH_PORT=2222 \
+        npm run test:integration

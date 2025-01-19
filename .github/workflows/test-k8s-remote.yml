@@ -1,0 +1,124 @@
+name: Remote Kubernetes Tests
+
+on:
+  pull_request:
+    branches: [ master, latest ]
+  push:
+    branches: [ master, latest ]
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+  GKE_REGION: ${{ secrets.GKE_REGION }}
+  IMAGE_NAME: ${{ secrets.GKE_REGISTRY }}/k8gate-test
+
+jobs:
+  test-k8s-remote:
+    name: Test with Remote K8s
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GKE_PROJECT }}
+        service_account_key: ${{ secrets.GKE_SA_KEY }}
+        install_components: gke-gcloud-auth-plugin
+    
+    - name: Configure Docker auth
+      run: gcloud --quiet auth configure-docker ${{ secrets.GKE_REGISTRY }}
+    
+    - name: Build and push test image
+      run: |
+        docker build \
+          --tag "$IMAGE_NAME:${{ github.sha }}" \
+          --build-arg NODE_ENV=test \
+          -f Dockerfile.udx .
+        docker push "$IMAGE_NAME:${{ github.sha }}"
+    
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v2
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_REGION }}
+    
+    - name: Deploy test instance
+      run: |
+        # Create test namespace
+        kubectl create namespace test-k8gate-remote
+        
+        # Deploy test instance
+        cat <<EOF | kubectl apply -f -
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: k8gate-test-secrets
+          namespace: test-k8gate-remote
+        type: Opaque
+        stringData:
+          ACCESS_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          KUBERNETES_CLUSTER_USER_TOKEN: "${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}"
+        ---
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: k8gate-test
+          namespace: test-k8gate-remote
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: k8gate-test
+          template:
+            metadata:
+              labels:
+                app: k8gate-test
+            spec:
+              containers:
+              - name: k8gate
+                image: "$IMAGE_NAME:${{ github.sha }}"
+                env:
+                - name: NODE_ENV
+                  value: test
+                - name: TEST_MODE
+                  value: "true"
+                ports:
+                - containerPort: 22
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: k8gate-test
+          namespace: test-k8gate-remote
+        spec:
+          type: LoadBalancer
+          ports:
+          - port: 22
+            targetPort: 22
+          selector:
+            app: k8gate-test
+        EOF
+        
+        # Wait for deployment
+        kubectl -n test-k8gate-remote rollout status deployment/k8gate-test
+        
+        # Wait for service
+        kubectl -n test-k8gate-remote wait --for=condition=ready service/k8gate-test --timeout=300s
+    
+    - name: Run tests
+      run: |
+        # Get service IP
+        SERVICE_IP=$(kubectl -n test-k8gate-remote get service k8gate-test -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        # Run integration tests
+        TEST_SSH_HOST=$SERVICE_IP \
+        TEST_SSH_PORT=22 \
+        npm run test:integration
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        kubectl delete namespace test-k8gate-remote

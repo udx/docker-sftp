@@ -1,0 +1,80 @@
+name: Deploy to GCP
+
+on:
+  push:
+    branches: [ master, latest ]
+    tags: [ 'v*' ]
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: ${{ secrets.GKE_CLUSTER }}
+  GKE_REGION: ${{ secrets.GKE_REGION }}
+  IMAGE_NAME: ${{ secrets.GKE_REGISTRY }}/k8-container-gate
+
+jobs:
+  deploy-gcp:
+    name: Deploy to Google Cloud
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+      with:
+        project_id: ${{ secrets.GKE_PROJECT }}
+        service_account_key: ${{ secrets.GKE_SA_KEY }}
+        install_components: gke-gcloud-auth-plugin
+    
+    - name: Configure Docker auth
+      run: gcloud --quiet auth configure-docker ${{ secrets.GKE_REGISTRY }}
+    
+    - name: Build and push production image
+      run: |
+        docker build \
+          --tag "$IMAGE_NAME:${{ github.sha }}" \
+          --build-arg NODE_ENV=production \
+          -f Dockerfile.udx .
+        docker push "$IMAGE_NAME:${{ github.sha }}"
+        
+        # Tag as latest if on master branch
+        if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+          docker tag "$IMAGE_NAME:${{ github.sha }}" "$IMAGE_NAME:latest"
+          docker push "$IMAGE_NAME:latest"
+        fi
+        
+        # Tag with version if this is a tag
+        if [[ "${{ github.ref }}" == "refs/tags/"* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          docker tag "$IMAGE_NAME:${{ github.sha }}" "$IMAGE_NAME:$VERSION"
+          docker push "$IMAGE_NAME:$VERSION"
+        fi
+    
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v2
+      with:
+        cluster_name: ${{ env.GKE_CLUSTER }}
+        location: ${{ env.GKE_REGION }}
+    
+    - name: Deploy to GCP
+      run: |
+        # Update deployment image
+        kubectl set image deployment/k8-container-gate \
+          k8-container-gate="$IMAGE_NAME:${{ github.sha }}" \
+          --namespace=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}
+        
+        # Wait for rollout
+        kubectl rollout status deployment/k8-container-gate \
+          --namespace=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}
+    
+    - name: Verify deployment
+      run: |
+        # Get service IP
+        SERVICE_IP=$(kubectl get service k8-container-gate \
+          --namespace=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} \
+          -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        # Basic connection test
+        timeout 60 bash -c 'until nc -z $0 22; do sleep 1; done' $SERVICE_IP
+        
+        echo "Deployment verified and accessible at $SERVICE_IP:22"

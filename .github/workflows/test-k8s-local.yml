@@ -1,0 +1,103 @@
+name: Local Kubernetes Tests
+
+on:
+  pull_request:
+    branches: [ master, latest ]
+  push:
+    branches: [ master, latest ]
+
+jobs:
+  test-k8s-local:
+    name: Test with Local K8s
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up KinD cluster
+      uses: helm/kind-action@v1.8.0
+    
+    - name: Build test image
+      run: |
+        docker build \
+          --tag k8gate-test:latest \
+          --build-arg NODE_ENV=test \
+          -f Dockerfile.udx .
+        
+        # Load image into KinD
+        kind load docker-image k8gate-test:latest
+    
+    - name: Deploy to local cluster
+      run: |
+        # Create test namespace
+        kubectl create namespace test-k8gate
+        
+        # Deploy test instance
+        cat <<EOF | kubectl apply -f -
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: k8gate-test-secrets
+          namespace: test-k8gate
+        type: Opaque
+        stringData:
+          ACCESS_TOKEN: "test-token"
+          KUBERNETES_CLUSTER_USER_TOKEN: "test-token"
+        ---
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: k8gate-test
+          namespace: test-k8gate
+        spec:
+          replicas: 1
+          selector:
+            matchLabels:
+              app: k8gate-test
+          template:
+            metadata:
+              labels:
+                app: k8gate-test
+            spec:
+              containers:
+              - name: k8gate
+                image: k8gate-test:latest
+                env:
+                - name: NODE_ENV
+                  value: test
+                - name: TEST_MODE
+                  value: "true"
+                ports:
+                - containerPort: 22
+        ---
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: k8gate-test
+          namespace: test-k8gate
+        spec:
+          ports:
+          - port: 22
+            targetPort: 22
+          selector:
+            app: k8gate-test
+        EOF
+        
+        # Wait for deployment
+        kubectl -n test-k8gate rollout status deployment/k8gate-test
+    
+    - name: Run tests
+      run: |
+        # Get service IP
+        SERVICE_IP=$(kubectl -n test-k8gate get service k8gate-test -o jsonpath='{.spec.clusterIP}')
+        
+        # Run integration tests
+        TEST_SSH_HOST=$SERVICE_IP \
+        TEST_SSH_PORT=22 \
+        npm run test:integration
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        kubectl delete namespace test-k8gate
+        kind delete cluster

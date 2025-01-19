@@ -144,7 +144,11 @@ jobs:
         FROM usabilitydynamics/udx-worker-nodejs:latest
         COPY . /app
         WORKDIR /app
-        RUN npm install
+        USER root
+        RUN mkdir -p /home/udx/.npm && \
+            chown -R udx:udx /home/udx/.npm && \
+            npm install
+        USER udx
         EXPOSE 22
         CMD ["npm", "test"]
         EOF

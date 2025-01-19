@@ -8,7 +8,8 @@ A secure SSH/SFTP gateway that provides direct access to Kubernetes pods using G
 - 🚀 Direct SSH/SFTP access to Kubernetes pods
 - 👥 Role-based access control tied to GitHub permissions
 - 🔄 Real-time key synchronization
-- 📊 Container state management
+- 📊 Flexible state management (Kubernetes, Firebase, Local)
+- 🛡️ Configurable rate limiting
 - 🔍 Detailed access logging
 
 ## Quick Start
@@ -111,6 +112,7 @@ pm2 logs api         # API server
 
 - [Architecture Details](docs/architecture.md)
 - [Security Model](docs/security.md)
+- [State Management](docs/state-management.md)
 - [Kubernetes Integration](docs/kubernetes.md)
 - [Client Configuration](docs/client-configuration.md)
 - [Troubleshooting](docs/troubleshooting.md)

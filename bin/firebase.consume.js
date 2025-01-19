@@ -4,27 +4,27 @@
  * @type {admin}
  */
 //var newrelic = require('newrelic')
-var admin = require("firebase-admin/lib/index");
+var admin = require('firebase-admin/lib/index');
 var _ = require( 'lodash' );
 
 exports.changeQueue = [];
 
 var firebaseConfig = {
-  "type": "service_account",
-  "project_id": process.env.FIREBASE_PROJECT_ID,
-  "private_key_id": process.env.FIREBASE_PRIVATE_KEY_ID,
-  "private_key": process.env.FIREBASE_PRIVATE_KEY.split('\\n' ).join( '\n' ),
-  "client_email": process.env.FIREBASE_CLIENT_EMAIL,
-  "client_id": process.env.FIREBASE_CLIENT_ID,
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://accounts.google.com/o/oauth2/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": process.env.FIREBASE_CLIENT_CERT_URL
+    'type': 'service_account',
+    'project_id': process.env.FIREBASE_PROJECT_ID,
+    'private_key_id': process.env.FIREBASE_PRIVATE_KEY_ID,
+    'private_key': process.env.FIREBASE_PRIVATE_KEY.split('\\n' ).join( '\n' ),
+    'client_email': process.env.FIREBASE_CLIENT_EMAIL,
+    'client_id': process.env.FIREBASE_CLIENT_ID,
+    'auth_uri': 'https://accounts.google.com/o/oauth2/auth',
+    'token_uri': 'https://accounts.google.com/o/oauth2/token',
+    'auth_provider_x509_cert_url': 'https://www.googleapis.com/oauth2/v1/certs',
+    'client_x509_cert_url': process.env.FIREBASE_CLIENT_CERT_URL
 };
 
 admin.initializeApp({
-  credential: admin.credential.cert(firebaseConfig),
-  databaseURL: 'https://rabbit-v2.firebaseio.com'
+    credential: admin.credential.cert(firebaseConfig),
+    databaseURL: 'https://rabbit-v2.firebaseio.com'
 });
 
 var deploymentCollection = admin.database().ref('deployment');
@@ -33,21 +33,28 @@ var deploymentCollection = admin.database().ref('deployment');
 deploymentCollection.once('value', haveInitialData );
 
 function haveInitialData( snapshot ) {
-  console.log('haveInitialData - Have initial data with [%d] documents.', _.size( snapshot.val() ) );
+    console.log('haveInitialData - Have initial data with [%d] documents.', _.size( snapshot.val() ) );
 
-  //console.log(require('util').inspect(snapshot.toJSON(), {showHidden: false, depth: 2, colors: true}));
-  //process.exit();
-  updateKeys( snapshot );
-
+    //console.log(require('util').inspect(snapshot.toJSON(), {showHidden: false, depth: 2, colors: true}));
+    //process.exit();
+    require('../lib/utility').updateKeys({
+        keysPath: '/etc/ssh/authorized_keys.d',
+        passwordFile: '/etc/passwd',
+        passwordTemplate: 'alpine.passwords'
+    }, function (err) {
+        if (err) {
+            console.error('Error updating keys:', err);
+        }
+    });
 }
 
 // do not use child_added or it'll iterate over every single one
 deploymentCollection.on('child_changed', addtToChangeQueue );
 
 function addtToChangeQueue( data ) {
-  console.log('addtToChangeQueue', _.size( data.val( ) ) );
+    console.log('addtToChangeQueue', _.size( data.val( ) ) );
 
-  exports.changeQueue.push( data );
+    exports.changeQueue.push( data );
 }
 
 /**
@@ -60,25 +67,31 @@ function addtToChangeQueue( data ) {
  * If have items in changeQueue, run once first payload from first item.
  */
 function maybeUpdateKeys() {
-  console.log( 'maybeUpdateKeys - ', _.size( exports.changeQueue ) );
+    console.log( 'maybeUpdateKeys - ', _.size( exports.changeQueue ) );
 
 
-  if( _.size( exports.changeQueue ) > 0 ) {
-    console.log( 'maybeUpdateKeys - have keys' );
-    updateKeys(_.first(exports.changeQueue));
-    exports.changeQueue = [];
+    if( _.size( exports.changeQueue ) > 0 ) {
+        console.log( 'maybeUpdateKeys - have keys' );
+        require('../lib/utility').updateKeys({
+            keysPath: '/etc/ssh/authorized_keys.d',
+            passwordFile: '/etc/passwd',
+            passwordTemplate: 'alpine.passwords'
+        }, function (err) {
+            if (err) {
+                console.error('Error updating keys:', err);
+            }
+        });
+        exports.changeQueue = [];
 
-  } else {
-    console.log( 'maybeUpdateKeys - skip' );
-  }
+    } else {
+        console.log( 'maybeUpdateKeys - skip' );
+    }
 
 }
 
 // Check every 30s
 setInterval(maybeUpdateKeys,30000);
 
-function deploymnetRemoved(data) {
-  // console.log('child_removed', require('util').inspect(data.val(), {showHidden: false, depth: 2, colors: true}));
-};
+// Removed unused function
 
 

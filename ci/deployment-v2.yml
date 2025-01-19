@@ -5,7 +5,7 @@ metadata:
   name: GITHUB_ORG-sftp-GITHUB_BRANCH
   labels:
     name: GITHUB_ORG-sftp-GITHUB_BRANCH
-    git.name: docker-sftp
+    git.name: k8-container-gate
     git.owner: GITHUB_ORG
     git.branch: GITHUB_BRANCH
 spec:
@@ -19,7 +19,7 @@ spec:
     metadata:
       labels:
         name: GITHUB_ORG-sftp-GITHUB_BRANCH
-        git.name: docker-sftp
+        git.name: k8-container-gate
         git.owner: GITHUB_ORG
         git.branch: GITHUB_BRANCH
       annotations:
@@ -29,7 +29,7 @@ spec:
       containers:
         - name: sftp
           #image: gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
-          image: "AR_LOCATION-docker.pkg.dev/PROJECT_ID/docker-sftp/GITHUB_BRANCH:IMAGE_VERSION"
+          image: "AR_LOCATION-docker.pkg.dev/PROJECT_ID/k8-container-gate/GITHUB_BRANCH:IMAGE_VERSION"
           imagePullPolicy: Always
           ports:
             - name: ssh
@@ -66,6 +66,17 @@ spec:
               value: CLUSTER_CONTEXT_VALUE
             - name: ACCESS_TOKEN
               value: ACCESS_TOKEN_VALUE
+            # State Management Configuration
+            - name: STATE_PROVIDER
+              value: "kubernetes"
+            - name: FIREBASE_PROJECT_ID
+              value: FIREBASE_PROJECT_ID_VALUE
+            - name: FIREBASE_PRIVATE_KEY
+              value: FIREBASE_PRIVATE_KEY_VALUE
+            - name: FIREBASE_CLIENT_EMAIL
+              value: FIREBASE_CLIENT_EMAIL_VALUE
+            - name: FIREBASE_DATABASE_URL
+              value: FIREBASE_DATABASE_URL_VALUE
           livenessProbe:
             tcpSocket:
               port: ssh

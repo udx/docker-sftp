@@ -109,12 +109,41 @@ jobs:
           --tag "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
+          -f Dockerfile.udx \
           .
           
     # Push the Docker image to Google Container Registry
     - name: Publish
       run: |-
         docker push "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
+
+    # Run integration tests
+    - name: Setup test environment
+      run: |
+        # Start container for integration tests
+        docker run -d --name test-container \
+          -e KUBERNETES_CLUSTER_ENDPOINT=${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }} \
+          -e KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} \
+          -e KUBERNETES_CLUSTER_USER_TOKEN=${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }} \
+          -p 2222:22 \
+          ${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}
+
+        # Wait for container to be ready
+        sleep 15
+
+    - name: Run tests
+      run: |
+        # Install dependencies
+        npm install
+
+        # Run integration tests
+        TEST_SSH_HOST=localhost \
+        TEST_SSH_PORT=2222 \
+        npm run test:integration
+
+    - name: Cleanup test environment
+      if: always()
+      run: docker rm -f test-container
 
     # Scan Docker image for vulnerabilities
     - name: Scan Docker Image using Trivy
@@ -183,6 +212,10 @@ jobs:
         sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" ci/deployment-v2.yml
         sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" ci/deployment-v2.yml
         sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|FIREBASE_PROJECT_ID_VALUE|${{ secrets.FIREBASE_PROJECT_ID }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|FIREBASE_PRIVATE_KEY_VALUE|${{ secrets.FIREBASE_PRIVATE_KEY }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|FIREBASE_CLIENT_EMAIL_VALUE|${{ secrets.FIREBASE_CLIENT_EMAIL }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|FIREBASE_DATABASE_URL_VALUE|${{ secrets.FIREBASE_DATABASE_URL }}|g" ci/deployment-v2.yml
         sed -i.bak "s|IMAGE_VERSION|${{ steps.version.outputs.TAG }}|g" ci/deployment-v2.yml
         sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/service.yml
         sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/deployment-v2.yml

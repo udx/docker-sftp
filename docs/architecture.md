@@ -49,13 +49,33 @@ Handles SSH key synchronization and access control.
 
 ### 4. State Management
 
-Uses Firebase for maintaining container state and configuration.
+Flexible state management system supporting multiple backends for container state and configuration.
+
+#### Providers:
+1. **Kubernetes Provider**
+   - Uses Kubernetes Secrets
+   - Supports concurrent access
+   - Polling-based updates
+   - Best for Kubernetes-native deployments
+
+2. **Firebase Provider**
+   - Real-time updates
+   - Event-driven architecture
+   - Automatic cleanup
+   - Best for multi-cloud deployments
+
+3. **Local Provider**
+   - File-based storage
+   - File watching for updates
+   - Simple configuration
+   - Best for development and testing
 
 #### Features:
-- Real-time container tracking
-- State persistence
-- Automatic cleanup
-- Event handling
+- Provider abstraction layer
+- Real-time state synchronization
+- Automatic failover support
+- Event-driven updates
+- Configurable backends
 
 ## Security Model
 

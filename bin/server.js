@@ -29,45 +29,44 @@ app.use(singleEndpoint);
 
 app.listen(process.env.NODE_PORT || 8080, '0.0.0.0', serverOnline);
 
-var _containersStateHash = "";
+var _containersStateHash = '';
 
-process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
-setInterval(function() {
+setInterval(function () {
     var _container_url = 'http://localhost:' + process.env.NODE_PORT + '/v1/pods';
 
     axios({
-            method: "get",
-            url: _container_url,
-            headers: { 'x-rabbit-internal-token': process.env.KUBERNETES_CLUSTER_USER_TOKEN }
-        })
+        method: 'get',
+        url: _container_url,
+        headers: { 'x-rabbit-internal-token': process.env.KUBERNETES_CLUSTER_USER_TOKEN }
+    })
         .then(res => {
-            let body = _.get(res, "data", {});
+            let body = _.get(res, 'data', {});
             if (_.size(_.get(body, 'items', [])) === 0) {
-                console.error("No response from container lookup at [%s].", _container_url);
-                console.error(" -err ", err);
-                console.error(" -headers ", _.get(res, 'headers'));
+                console.error('No response from container lookup at [%s].', _container_url);
+                console.error(' -headers ', _.get(res, 'headers'));
                 //body = require('../static/fixtures/pods');
                 return false;
             }
 
-            var _containers = body = _.map(body.items, function(singleItem) {
+            var _containers = body = _.map(body.items, function (singleItem) {
                 singleItem.Labels = _.get(singleItem, 'metadata.labels');
                 singleItem.Labels['ci.rabbit.name'] = _.get(singleItem.Labels,'name', null);
                 singleItem.Labels['ci.rabbit.ssh.user'] = _.get(singleItem.Labels,'ci.rabbit.ssh.user', null);
                 return singleItem;
             });
 
-            var _checkString = "";
+            var _checkString = '';
             //console.log("_checkString1", _checkString);
-            (_containers || []).forEach(function(containerInfo) {
-                _checkString += _.get(containerInfo, 'metadata.name', "");
+            (_containers || []).forEach(function (containerInfo) {
+                _checkString += _.get(containerInfo, 'metadata.name', '');
             });
 
             if (_containersStateHash === md5(_checkString)) {
-                console.log("SSH keys is up to date.");
+                console.log('SSH keys is up to date.');
             } else {
-                console.log("Need to upgrade SSH keys.");
+                console.log('Need to upgrade SSH keys.');
                 utility.updateKeys({
                     keysPath: '/etc/ssh/authorized_keys.d',
                     passwordFile: '/etc/passwd',
@@ -81,14 +80,14 @@ setInterval(function() {
             _containersStateHash = md5(_checkString);
         })
         .catch(err => {
-            console.error("No response from container lookup at [%s].", _container_url);
-            console.error(" -err ", err);
+            console.error('No response from container lookup at [%s].', _container_url);
+            console.error(' -err ', err);
             //console.error(" -headers ", _.get(resp, 'headers'));
             //body = require('../static/fixtures/pods');
             return false;
         });
 
-}, 60000)
+}, 60000);
 
 /**
  *
@@ -113,12 +112,12 @@ function getPods(req, res) {
     debug('getPods', req.url);
 
     axios({
-            method: "get",
-            url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
-            headers: {
-                'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN
-            }
-        })
+        method: 'get',
+        url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
+        headers: {
+            'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN
+        }
+    })
         .then(response => {
             res.send(response.data);
         })
@@ -136,13 +135,13 @@ function getPods(req, res) {
  */
 function flushFirebaseContainers(req, res) {
 
-    var _containerCollection = utility.getCollection('container', '', function(error, data) {
+    var _containerCollection = utility.getCollection('container', '', function (error, data) {
 
         _containerCollection.remove();
 
         res.send({
             ok: false,
-            message: "Flushing containers not fully implemented, come find me."
+            message: 'Flushing containers not fully implemented, come find me.'
         });
     });
 
@@ -152,13 +151,13 @@ function flushFirebaseContainers(req, res) {
 function appEndpoint(req, res) {
 
     res.send({
-        items: _.map(app.get('sshUser'), function(someUser) {
+        items: _.map(app.get('sshUser'), function (someUser) {
             return {
                 _id: someUser._id,
                 sshUser: _.get(someUser, 'meta.sshUser'),
                 connectionString: ['ssh ', _.get(someUser, 'meta.sshUser'), '@ssh.rabbit.ci'].join(''),
-                pod: _.get(someUser, 'metadata.labels', {})['io.kubernetes.pod.name'],
-            }
+                pod: _.get(someUser, 'metadata.labels', {})['io.kubernetes.pod.name']
+            };
         })
     });
 
@@ -181,7 +180,7 @@ function singleUserEndpoint(req, res) {
     // Emit auth event for tracking
     events.emitLogin(req.params.user, 'any');
 
-    var _result = _.find(app.get('sshUser'), function(someUser) {
+    var _result = _.find(app.get('sshUser'), function (someUser) {
 
         var _ssh = _.get(someUser, 'metadata.labels', {})['ci.rabbit.ssh.user'];
         var _pod = _.get(someUser, 'metadata.labels', {})['io.kubernetes.pod.name'];
@@ -205,15 +204,15 @@ function singleUserEndpoint(req, res) {
     if (_result) {
 
         _connection_string = [
-            "-n",
+            '-n',
             _.get(_result, 'metadata.labels', {})['io.kubernetes.pod.namespace'],
             'exec ',
             _.get(_result, 'metadata.labels', {})['io.kubernetes.pod.name']
-        ]
+        ];
 
     }
 
-    res.send(_connection_string.join(" "))
+    res.send(_connection_string.join(' '));
 }
 
 function singleEndpoint(req, res) {
@@ -274,15 +273,15 @@ function serverOnline() {
             
             // Fallback to legacy Firebase if enabled
             if (process.env.SERVICE_ENABLE_FIREBASE === 'true') {
-                var _collection = utility.getCollection('container', 'meta/sshUser', function(error, data) {
+                var _collection = utility.getCollection('container', 'meta/sshUser', function (error, data) {
                     app.set('sshUser', utility.parseContainerCollection(data));
                 });
 
-                _collection.on('child_changed', function(data) {
+                _collection.on('child_changed', function (data) {
                     sshUser[_.get(data.val(), '_id')] = data.val();
                 });
 
-                _collection.on('child_removed', function(data) {
+                _collection.on('child_removed', function (data) {
                     delete sshUser[_.get(data.val(), '_id')];
                 });
             }
@@ -305,18 +304,18 @@ function serverOnline() {
         });
     }
 
-    if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf("https") === 0) {
+    if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf('https') === 0) {
         axios({
             method: 'post', //you can set what request you want to be
             url: process.env.SLACK_NOTIFICACTION_URL,
             data: {
                 channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
                 username: 'SSH/Server',
-                text: "Container " + (process.env.HOSTNAME || process.env.HOST) + " is up. ```kubectl -n k8gate logs -f " + (process.env.HOSTNAME || process.env.HOST) + "```"
+                text: 'Container ' + (process.env.HOSTNAME || process.env.HOST) + ' is up. ```kubectl -n k8gate logs -f ' + (process.env.HOSTNAME || process.env.HOST) + '```'
             }
         });
     } else {
-        console.log("process.env.SLACK_NOTIFICACTION_URL isn't set");
+        console.log('process.env.SLACK_NOTIFICACTION_URL isn\'t set');
     }
 
 }

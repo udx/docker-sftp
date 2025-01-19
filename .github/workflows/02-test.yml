@@ -81,6 +81,9 @@ jobs:
         sudo chown -R runner:runner /home/runner/authorized_keys.d
     
     - name: Run integration tests
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
       run: |
         # Start test container
         docker run -d --name test-container \
@@ -89,7 +92,7 @@ jobs:
           -e TEST_SSH_USER=test-user \
           -e DEBUG=ssh:* \
           -p 2222:22 \
-          usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+          ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         
         # Set up SSH in container
         docker cp /home/runner/.ssh/id_rsa.pub test-container:/tmp/test-user.pub

@@ -1,6 +1,7 @@
 const { exec } = require('child_process');
 const util = require('util');
 const execAsync = util.promisify(exec);
+const { describe, test, expect, beforeAll } = require('@jest/globals');
 
 describe('SSH Integration Tests', () => {
     const sshConfig = {

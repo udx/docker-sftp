@@ -9,6 +9,9 @@ const axios = require('axios');
 const _ = require('lodash');
 const express = require('express');
 const debug = require('debug')('ssh');
+const { exec } = require('child_process');
+const util = require('util');
+const execAsync = util.promisify(exec);
 const app = express();
 let utility = require('../lib/utility');
 const md5 = require('md5');
@@ -64,6 +67,48 @@ app.get('/health', async (req, res) => {
 app.get('/_cat/connection-string/:user', singleUserEndpoint);
 
 // list of all containers
+// Health check endpoint for Cloud Run
+app.get('/_health', async (req, res) => {
+    try {
+        // Check SSH daemon
+        await execAsync('pgrep sshd');
+        
+        // Check Kubernetes connectivity
+        const k8sResponse = await axios({
+            method: 'get',
+            url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
+            headers: {
+                'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN,
+                'Accept': 'application/json'
+            },
+            timeout: 5000
+        });
+        
+        if (k8sResponse.status === 200) {
+            res.status(200).json({
+                status: 'healthy',
+                ssh: true,
+                kubernetes: true,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            res.status(503).json({
+                status: 'unhealthy',
+                ssh: true,
+                kubernetes: false,
+                error: 'Kubernetes API returned non-200 status'
+            });
+        }
+    } catch (err) {
+        res.status(503).json({
+            status: 'unhealthy',
+            ssh: err.cmd === 'pgrep sshd' ? false : true,
+            kubernetes: err.cmd === 'pgrep sshd' ? true : false,
+            error: err.message
+        });
+    }
+});
+
 app.get('/users', userEndpoint);
 app.get('/apps', appEndpoint);
 app.get('/v1/pods', getPods);
@@ -82,8 +127,8 @@ process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
 setInterval(function () {
     var _container_url = process.env.KUBERNETES_CLUSTER_ENDPOINT ? 
-    process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods' :
-    'http://localhost:' + process.env.NODE_PORT + '/v1/pods';
+        process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods' :
+        'http://localhost:' + process.env.NODE_PORT + '/v1/pods';
 
     axios({
         method: 'get',

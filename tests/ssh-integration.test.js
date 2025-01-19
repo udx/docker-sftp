@@ -6,6 +6,7 @@ const { describe, test, expect, beforeAll } = require('@jest/globals');
 describe('SSH Integration Tests', () => {
     const sshConfig = {
         host: process.env.TEST_SSH_HOST || 'localhost',
+        port: process.env.TEST_SSH_PORT || 2222,
         user: process.env.TEST_SSH_USER || 'test-user',
         keyPath: process.env.TEST_SSH_KEY_PATH || '~/.ssh/id_rsa'
     };
@@ -47,7 +48,7 @@ describe('SSH Integration Tests', () => {
 
     test('SSH connection and command execution', async () => {
         for (const cmd of testCommands) {
-            const sshCmd = `ssh -i ${sshConfig.keyPath} -p ${process.env.TEST_SSH_PORT || 22} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host} "${cmd}"`;
+            const sshCmd = `ssh -i ${sshConfig.keyPath} -p ${sshConfig.port} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host} "${cmd}"`;
             console.log('Executing SSH command:', sshCmd);
             
             try {
@@ -73,7 +74,7 @@ describe('SSH Integration Tests', () => {
             await execAsync(`echo "test content" > ${testFile}`);
 
             // Execute SFTP commands
-            const sftpCmd = `sftp -i ${sshConfig.keyPath} -P ${process.env.TEST_SSH_PORT || 22} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host}`;
+            const sftpCmd = `sftp -i ${sshConfig.keyPath} -P ${sshConfig.port} -o StrictHostKeyChecking=no ${sshConfig.user}@${sshConfig.host}`;
             console.log('Executing SFTP command:', sftpCmd);
             console.log('SFTP commands:', sftpCommands);
             

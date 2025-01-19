@@ -68,44 +68,64 @@ jobs:
     
     - name: Run integration tests
       run: |
-        # Start test container with proper permissions
+        # Start test container
         docker run -d --name test-container \
           -e NODE_ENV=test \
           -e TEST_MODE=true \
           -e TEST_SSH_USER=test-user \
           -e DEBUG=ssh:* \
-          -v /home/runner/authorized_keys.d:/etc/ssh/authorized_keys.d:ro \
-          -v /home/runner/.ssh/id_rsa.pub:/etc/ssh/authorized_keys.d/test-user:ro \
           -p 2222:22 \
           usabilitydynamics/k8-container-gate:test
         
-        # Wait for container to start and set up SSH
-        sleep 10
+        # Wait for container to start
+        sleep 5
         
-        # Set correct permissions in container
-        docker exec test-container sh -c "
+        # Set up SSH in container
+        docker cp /home/runner/.ssh/id_rsa.pub test-container:/tmp/test-user.pub
+        docker exec test-container sh -c '
+          # Generate SSH host keys
+          ssh-keygen -A && \
           mkdir -p /etc/ssh/authorized_keys.d && \
+          cp /tmp/test-user.pub /etc/ssh/authorized_keys.d/test-user && \
+          chown -R root:root /etc/ssh/authorized_keys.d && \
           chmod 755 /etc/ssh/authorized_keys.d && \
           chmod 644 /etc/ssh/authorized_keys.d/test-user && \
-          chown -R root:root /etc/ssh/authorized_keys.d && \
           chmod 600 /etc/ssh/ssh_host_rsa_key && \
           chmod 644 /etc/ssh/ssh_host_rsa_key.pub && \
-          ls -la /etc/ssh/ && \
-          ls -la /etc/ssh/authorized_keys.d/
-        "
+          # Verify sshd config
+          echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+          echo "AuthorizedKeysFile /etc/ssh/authorized_keys.d/%u" >> /etc/ssh/sshd_config && \
+          echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
+          # Start sshd in debug mode
+          /usr/sbin/sshd -D -e &
+        '
         
         # Wait for container and SSH to be ready
-        sleep 30
+        sleep 10
         docker logs test-container
         
         # Debug container SSH setup
         echo "=== Container SSH Setup ==="
-        docker exec test-container ls -la /etc/ssh/
-        docker exec test-container ls -la /etc/ssh/authorized_keys.d/
-        docker exec test-container cat /etc/ssh/authorized_keys.d/test-user
-        docker exec test-container ps aux | grep sshd
-        docker exec test-container cat /var/log/sshd.log || true
-        docker exec test-container cat /etc/ssh/sshd_config || true
+        docker exec test-container sh -c '
+          echo "SSH daemon status:" && \
+          service ssh status && \
+          echo "\nSSH config:" && \
+          cat /etc/ssh/sshd_config && \
+          echo "\nSSH host keys:" && \
+          ls -l /etc/ssh/ssh_host_* && \
+          echo "\nAuthorized keys:" && \
+          ls -l /etc/ssh/authorized_keys.d/ && \
+          cat /etc/ssh/authorized_keys.d/test-user && \
+          echo "\nSSH processes:" && \
+          ps aux | grep sshd && \
+          echo "\nSSH logs:" && \
+          (cat /var/log/auth.log 2>/dev/null || journalctl -u ssh 2>/dev/null || echo "No SSH logs found")
+        '
+        echo "=========================="
+        
+        # Test SSH connection with debug output
+        echo "=== Testing SSH Connection ==="
+        ssh -vvv -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no test-user@localhost -p 2222 "id && echo SSH_CONNECTION=$SSH_CONNECTION"
         echo "=========================="
         
         # Test SSH connection with verbose output

@@ -1,21 +1,18 @@
-name: Build and Test
+name: Test
 
 on:
   pull_request:
-    branches: [ master, latest ]
+    branches: [ master ]
   push:
-    branches: [ master, latest ]
+    branches: [ master ]
 
 jobs:
-  build-and-test:
-    name: Build and Test
+  unit-test:
     runs-on: ubuntu-latest
+    needs: build
     
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        lfs: true
     
     - name: Set up Node.js
       uses: actions/setup-node@v4
@@ -24,19 +21,26 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: |
-        npm install
-        npm install --save-dev jest eslint eslint-plugin-node
+      run: npm install
     
-    - name: Run linting
-      run: npm run lint
+    - name: Run unit tests
+      run: npm test
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: build
     
-    - name: Build test image
-      run: |
-        docker build \
-          --tag usabilitydynamics/k8-container-gate:test \
-          --build-arg NODE_ENV=test \
-          -f Dockerfile.udx .
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download Docker image
+      uses: actions/download-artifact@v3
+      with:
+        name: docker-image
+        path: /tmp
+    
+    - name: Load Docker image
+      run: docker load --input /tmp/docker-image.tar
     
     - name: Set up test environment
       run: |
@@ -55,16 +59,6 @@ jobs:
         sudo cp /home/runner/.ssh/id_rsa.pub /home/runner/authorized_keys.d/test-user
         sudo chmod 644 /home/runner/authorized_keys.d/test-user
         sudo chown -R runner:runner /home/runner/authorized_keys.d
-        
-        # Debug SSH setup
-        echo "=== Host SSH Setup ==="
-        ls -la /home/runner/.ssh/
-        ls -la /home/runner/authorized_keys.d/
-        cat /home/runner/authorized_keys.d/test-user
-        echo "======================"
-    
-    - name: Run unit tests
-      run: npm test
     
     - name: Run integration tests
       run: |
@@ -76,9 +70,6 @@ jobs:
           -e DEBUG=ssh:* \
           -p 2222:22 \
           usabilitydynamics/k8-container-gate:test
-        
-        # Wait for container to start
-        sleep 5
         
         # Set up SSH in container
         docker cp /home/runner/.ssh/id_rsa.pub test-container:/tmp/test-user.pub
@@ -97,51 +88,15 @@ jobs:
           echo "AuthorizedKeysFile /etc/ssh/authorized_keys.d/%u" >> /etc/ssh/sshd_config && \
           echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
           # Start sshd in debug mode
-          /usr/sbin/sshd -D -e &
-        '
+          /usr/sbin/sshd -D -e &'
         
-        # Wait for container and SSH to be ready
-        sleep 10
-        docker logs test-container
-        
-        # Debug container SSH setup
-        echo "=== Container SSH Setup ==="
-        docker exec test-container sh -c '
-          echo "SSH daemon status:" && \
-          service ssh status && \
-          echo "\nSSH config:" && \
-          cat /etc/ssh/sshd_config && \
-          echo "\nSSH host keys:" && \
-          ls -l /etc/ssh/ssh_host_* && \
-          echo "\nAuthorized keys:" && \
-          ls -l /etc/ssh/authorized_keys.d/ && \
-          cat /etc/ssh/authorized_keys.d/test-user && \
-          echo "\nSSH processes:" && \
-          ps aux | grep sshd && \
-          echo "\nSSH logs:" && \
-          (cat /var/log/auth.log 2>/dev/null || journalctl -u ssh 2>/dev/null || echo "No SSH logs found")
-        '
-        echo "=========================="
-        
-        # Test SSH connection with debug output
-        echo "=== Testing SSH Connection ==="
-        ssh -vvv -i /home/runner/.ssh/id_rsa -o StrictHostKeyChecking=no test-user@localhost -p 2222 "id && echo SSH_CONNECTION=$SSH_CONNECTION"
-        echo "=========================="
-        
-        # Test SSH connection with verbose output
-        ssh -v -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no test-user@localhost -p 2222 "echo SSH Connection Test"
-        
-        # Run tests with verbose SSH debugging
+        # Run tests
         TEST_SSH_HOST=localhost \
         TEST_SSH_PORT=2222 \
         TEST_SSH_USER=test-user \
         TEST_SSH_KEY_PATH=~/.ssh/id_rsa \
-        DEBUG=ssh:* \
-        SSH_VERBOSE=1 \
         npm run test:integration
     
     - name: Cleanup
       if: always()
-      run: |
-        docker rm -f test-container || true
-        rm -f authorized_keys
+      run: docker rm -f test-container || true

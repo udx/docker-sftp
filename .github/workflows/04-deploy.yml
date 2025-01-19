@@ -1,0 +1,52 @@
+name: Deploy
+
+on:
+  push:
+    branches: [ master ]
+    tags: [ 'v*' ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build, unit-test, integration-test, scan]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download Docker image
+      uses: actions/download-artifact@v3
+      with:
+        name: docker-image
+        path: /tmp
+    
+    - name: Load Docker image
+      run: docker load --input /tmp/docker-image.tar
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+    
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v1
+      with:
+        cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+        location: ${{ secrets.GKE_CLUSTER_LOCATION }}
+        credentials: ${{ secrets.GKE_SA_KEY }}
+    
+    - name: Set up Kustomize
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+    
+    - name: Configure deployment files
+      run: |
+        cd ci
+        kustomize edit set image k8-container-gate=usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+    
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -k ci/
+        kubectl rollout status deployment/k8-container-gate -n default

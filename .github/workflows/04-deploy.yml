@@ -8,20 +8,30 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    needs: [build, unit-test, integration-test, scan]
     if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Download Docker image
-      uses: actions/download-artifact@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
-        name: docker-image
-        path: /tmp
+        node-version: '20'
+        cache: 'npm'
     
-    - name: Load Docker image
-      run: docker load --input /tmp/docker-image.tar
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+    
+    - name: Build Docker image
+      run: |
+        docker build \
+          --tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} \
+          --build-arg NODE_ENV=test \
+          -f Dockerfile.udx .
     
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -46,6 +56,20 @@ jobs:
         cd ci
         kustomize edit set image k8-container-gate=usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
     
+    - name: Push to Docker Hub
+      run: |
+        # Tag and push with version from package.json
+        docker push usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:latest
+        docker push usabilitydynamics/k8-container-gate:latest
+        
+        # If this is a tag, also push the git tag version
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:${VERSION}
+          docker push usabilitydynamics/k8-container-gate:${VERSION}
+        fi
+
     - name: Deploy to Kubernetes
       run: |
         kubectl apply -k ci/

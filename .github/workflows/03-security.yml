@@ -9,24 +9,34 @@ on:
 jobs:
   scan:
     runs-on: ubuntu-latest
-    needs: build
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Download Docker image
-      uses: actions/download-artifact@v3
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
-        name: docker-image
-        path: /tmp
+        node-version: '20'
+        cache: 'npm'
     
-    - name: Load Docker image
-      run: docker load --input /tmp/docker-image.tar
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+    
+    - name: Build Docker image
+      run: |
+        docker build \
+          --tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} \
+          --build-arg NODE_ENV=test \
+          -f Dockerfile.udx .
     
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'usabilitydynamics/k8-container-gate:test'
+        image-ref: 'usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -36,7 +46,7 @@ jobs:
     - name: Generate SBOM
       uses: anchore/sbom-action@v0
       with:
-        image: usabilitydynamics/k8-container-gate:test
+        image: usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
         artifact-name: sbom.json
         format: cyclonedx-json
     

@@ -19,6 +19,18 @@ jobs:
     
     - name: Set up KinD cluster
       uses: helm/kind-action@v1.8.0
+      with:
+        cluster_name: test-cluster
+        wait: 120s
+        config: |
+          kind: Cluster
+          apiVersion: kind.x-k8s.io/v1alpha4
+          nodes:
+          - role: control-plane
+            extraPortMappings:
+            - containerPort: 22
+              hostPort: 2222
+              protocol: TCP
     
     - name: Build test image
       run: |
@@ -27,13 +39,33 @@ jobs:
           --build-arg NODE_ENV=test \
           -f Dockerfile.udx .
         
+        # Wait for cluster to be ready
+        kubectl wait --for=condition=Ready nodes --all --timeout=300s
+        
         # Load image into KinD
-        kind load docker-image usabilitydynamics/k8-container-gate:test
+        kind load docker-image --name test-cluster usabilitydynamics/k8-container-gate:test
     
     - name: Deploy to local cluster
       run: |
         # Create test namespace
         kubectl create namespace test-k8gate
+        
+        # Create SSH key secret from GitHub Actions secrets
+        mkdir -p /tmp/ssh-keys
+        echo "${{ secrets.TEST_SSH_PRIVATE_KEY }}" > /tmp/ssh-keys/id_rsa
+        echo "${{ secrets.TEST_SSH_PUBLIC_KEY }}" > /tmp/ssh-keys/id_rsa.pub
+        chmod 600 /tmp/ssh-keys/id_rsa
+        
+        # Set up authorized keys
+        mkdir -p authorized_keys.d
+        echo "${{ secrets.TEST_SSH_PUBLIC_KEY }}" > authorized_keys.d/test-user
+        chmod 644 authorized_keys.d/test-user
+        
+        # Create Kubernetes secret
+        kubectl -n test-k8gate create secret generic ssh-keys \
+          --from-file=id_rsa=/tmp/ssh-keys/id_rsa \
+          --from-file=id_rsa.pub=/tmp/ssh-keys/id_rsa.pub \
+          --from-file=authorized_keys=authorized_keys.d/test-user
         
         # Deploy test instance
         cat <<EOF | kubectl apply -f -
@@ -70,8 +102,19 @@ jobs:
                   value: test
                 - name: TEST_MODE
                   value: "true"
+                - name: TEST_SSH_USER
+                  value: test-user
+                volumeMounts:
+                - name: ssh-keys
+                  mountPath: "/etc/ssh/authorized_keys.d"
+                  readOnly: true
                 ports:
                 - containerPort: 22
+              volumes:
+              - name: ssh-keys
+                secret:
+                  secretName: ssh-keys
+                  defaultMode: 0644
         ---
         apiVersion: v1
         kind: Service
@@ -79,24 +122,36 @@ jobs:
           name: k8gate-test
           namespace: test-k8gate
         spec:
+          type: NodePort
           ports:
           - port: 22
             targetPort: 22
+            nodePort: 32222
           selector:
             app: k8gate-test
         EOF
         
         # Wait for deployment
-        kubectl -n test-k8gate rollout status deployment/k8gate-test
+        kubectl -n test-k8gate rollout status deployment/k8gate-test --timeout=300s
+        
+        # Wait for pod to be ready
+        kubectl wait --for=condition=ready pod -l app=k8gate-test -n test-k8gate --timeout=300s
     
     - name: Run tests
       run: |
-        # Get service IP
-        SERVICE_IP=$(kubectl -n test-k8gate get service k8gate-test -o jsonpath='{.spec.clusterIP}')
+        # Set up SSH key for tests
+        mkdir -p ~/.ssh
+        echo "${{ secrets.TEST_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
         
-        # Run integration tests
-        TEST_SSH_HOST=$SERVICE_IP \
-        TEST_SSH_PORT=22 \
+        # Wait for service to be ready
+        kubectl -n test-k8gate get service k8gate-test
+        
+        # Run integration tests using NodePort
+        TEST_SSH_HOST=localhost \
+        TEST_SSH_PORT=32222 \
+        TEST_SSH_USER=test-user \
+        TEST_SSH_KEY_PATH=~/.ssh/id_rsa \
         npm run test:integration
     
     - name: Cleanup

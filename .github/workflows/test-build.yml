@@ -31,6 +31,18 @@ jobs:
     - name: Run linting
       run: npm run lint
     
+    - name: Generate test SSH key
+      run: |
+        # Create SSH directory and keys
+        mkdir -p ~/.ssh
+        ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+        chmod 600 ~/.ssh/id_rsa
+        
+        # Create authorized_keys directory
+        mkdir -p authorized_keys.d
+        cp ~/.ssh/id_rsa.pub authorized_keys.d/test-user
+        chmod 644 authorized_keys.d/test-user
+    
     - name: Build test image
       run: |
         docker build \
@@ -38,34 +50,52 @@ jobs:
           --build-arg NODE_ENV=test \
           -f Dockerfile.udx .
     
-    - name: Generate test SSH key
+    - name: Set up test environment
       run: |
-        ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-        cat ~/.ssh/id_rsa.pub > authorized_keys
+        # Create test directories
+        mkdir -p /home/runner/.ssh
+        mkdir -p authorized_keys.d
+        chmod 700 /home/runner/.ssh
+        
+        # Generate SSH key pair
+        ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""
+        chmod 600 /home/runner/.ssh/id_rsa
+        
+        # Set up authorized_keys for container
+        cp /home/runner/.ssh/id_rsa.pub authorized_keys.d/test-user
+        chmod 644 authorized_keys.d/test-user
     
     - name: Run unit tests
       run: npm test
     
     - name: Run integration tests
       run: |
-        # Start test container
+        # Start test container with proper permissions
         docker run -d --name test-container \
           -e NODE_ENV=test \
           -e TEST_MODE=true \
-          -e TEST_SSH_USER=udx \
-          -v $(pwd)/authorized_keys:/etc/ssh/authorized_keys.d/udx \
+          -e TEST_SSH_USER=test-user \
+          -e DEBUG=ssh:* \
+          -v $(pwd)/authorized_keys.d:/etc/ssh/authorized_keys.d:ro \
           -p 2222:22 \
-          k8gate-test:latest
+          usabilitydynamics/k8-container-gate:test
         
-        # Wait for container to be ready
-        sleep 15
+        # Wait for container and SSH to be ready
+        sleep 30
         docker logs test-container
         
-        # Run tests with generated key
+        # Verify SSH daemon is running
+        docker exec test-container ps aux | grep sshd
+        
+        # Verify authorized_keys is mounted
+        docker exec test-container ls -la /etc/ssh/authorized_keys.d
+        
+        # Run tests with correct permissions
         TEST_SSH_HOST=localhost \
         TEST_SSH_PORT=2222 \
-        TEST_SSH_USER=udx \
+        TEST_SSH_USER=test-user \
         TEST_SSH_KEY_PATH=~/.ssh/id_rsa \
+        DEBUG=ssh:* \
         npm run test:integration
     
     - name: Cleanup

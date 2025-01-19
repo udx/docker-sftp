@@ -13,6 +13,35 @@ A secure, Kubernetes-native SSH/SFTP gateway with GitHub-based authentication an
 - 🔍 Detailed access logging
 - 🌐 Multi-cloud deployment support
 
+## Container Labels
+
+For a container to be accessible via K8 Container Gate, it must have the following labels:
+
+| Label | Description | Example |
+|-------|-------------|---------|
+| `ci.rabbit.ssh.user` | SSH username for container access | `myapp-dev` |
+| `git.name` | Repository name | `my-project` |
+| `git.owner` | Repository owner | `organization` |
+| `git.branch` | Git branch (optional) | `main` |
+| `name` | Container name | `myapp-web` |
+
+Example Kubernetes deployment:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    metadata:
+      labels:
+        ci.rabbit.ssh.user: myapp-dev
+        git.name: my-project
+        git.owner: organization
+        git.branch: main
+        name: myapp-web
+```
+
 ## Quick Start
 
 ### Prerequisites

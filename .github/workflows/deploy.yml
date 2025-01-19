@@ -41,6 +41,7 @@ jobs:
     permissions:
       contents: write
       checks: write
+      pull-requests: write
       # required for all workflows
       security-events: write
 

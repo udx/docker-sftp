@@ -31,18 +31,6 @@ jobs:
     - name: Run linting
       run: npm run lint
     
-    - name: Generate test SSH key
-      run: |
-        # Create SSH directory and keys
-        mkdir -p ~/.ssh
-        ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
-        chmod 600 ~/.ssh/id_rsa
-        
-        # Create authorized_keys directory
-        mkdir -p authorized_keys.d
-        cp ~/.ssh/id_rsa.pub authorized_keys.d/test-user
-        chmod 644 authorized_keys.d/test-user
-    
     - name: Build test image
       run: |
         docker build \

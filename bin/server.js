@@ -12,6 +12,8 @@ const debug = require('debug')('ssh');
 const app = express();
 let utility = require('../lib/utility');
 const md5 = require('md5');
+const rateLimit = require('../lib/rate-limit');
+const events = require('../lib/events');
 
 var accessToken = process.env.ACCESS_TOKEN;
 
@@ -169,6 +171,15 @@ function appEndpoint(req, res) {
  * @param res
  */
 function singleUserEndpoint(req, res) {
+    // Check rate limits before processing request
+    const check = rateLimit.checkLimit(req.params.user, 'any');
+    if (!check.allowed) {
+        res.status(429).send('Too many requests');
+        return;
+    }
+
+    // Emit auth event for tracking
+    events.emitLogin(req.params.user, 'any');
 
     var _result = _.find(app.get('sshUser'), function(someUser) {
 
@@ -211,40 +222,75 @@ function singleEndpoint(req, res) {
 }
 
 function serverOnline() {
-    console.log('rabbit-ssh-server online!');
+    console.log('k8-container-gate-server online!');
 
     var sshUser = app.get('sshUser') || {};
 
+    // Initialize state provider
+    const stateProvider = utility.getStateProvider({
+        provider: process.env.STATE_PROVIDER || 'kubernetes',
+        options: {
+            kubernetes: {
+                endpoint: process.env.KUBERNETES_CLUSTER_ENDPOINT,
+                namespace: process.env.KUBERNETES_CLUSTER_NAMESPACE,
+                token: process.env.KUBERNETES_CLUSTER_USER_TOKEN
+            },
+            firebase: {
+                credentials: {
+                    projectId: process.env.FIREBASE_PROJECT_ID,
+                    privateKey: process.env.FIREBASE_PRIVATE_KEY,
+                    clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+                },
+                databaseURL: process.env.FIREBASE_DATABASE_URL
+            },
+            local: {
+                statePath: '/var/lib/k8gate/state.json',
+                keysPath: '/etc/ssh/authorized_keys.d'
+            }
+        }
+    });
 
-    if (process.env.SERVICE_ENABLE_FIREBASE === 'true') {
-
-        var _collection = utility.getCollection('container', 'meta/sshUser', function(error, data) {
-
-            app.set('sshUser', utility.parseContainerCollection(data));
-
-        });
-
-        _collection.once('child_added', function(data) {
-
-            data = utility.parseContainerCollection(data.val());
-
-            if (!data) {
-                return;
+    // Load and watch state
+    async function initializeState() {
+        try {
+            await stateProvider.initialize();
+            const keys = await stateProvider.loadState('keys');
+            if (keys) {
+                app.set('sshUser', keys);
+                debug('Loaded SSH keys from state provider');
             }
 
-            return;
+            // Set up state watching if supported
+            if (stateProvider.supportsRealtime()) {
+                stateProvider.watchState('keys', (updatedKeys) => {
+                    if (updatedKeys) {
+                        app.set('sshUser', updatedKeys);
+                        debug('Updated SSH keys from state provider');
+                    }
+                });
+            }
+        } catch (err) {
+            console.error('Failed to initialize state provider:', err.message);
+            
+            // Fallback to legacy Firebase if enabled
+            if (process.env.SERVICE_ENABLE_FIREBASE === 'true') {
+                var _collection = utility.getCollection('container', 'meta/sshUser', function(error, data) {
+                    app.set('sshUser', utility.parseContainerCollection(data));
+                });
 
-        });
+                _collection.on('child_changed', function(data) {
+                    sshUser[_.get(data.val(), '_id')] = data.val();
+                });
 
-        _collection.on('child_changed', function(data) {
-            sshUser[_.get(data.val(), '_id')] = data.val();
-        });
-
-        _collection.on('child_removed', function(data) {
-            delete sshUser[_.get(data.val(), '_id')];
-        });
-
+                _collection.on('child_removed', function(data) {
+                    delete sshUser[_.get(data.val(), '_id')];
+                });
+            }
+        }
     }
+
+    // Initialize state management
+    initializeState();
 
     // detect non-kubernetes
     if (process.env.KUBERNETES_CLUSTER_ENDPOINT) {
@@ -266,7 +312,7 @@ function serverOnline() {
             data: {
                 channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
                 username: 'SSH/Server',
-                text: "Container " + (process.env.HOSTNAME || process.env.HOST) + " is up. ```kubectl -n rabbit-system logs -f " + (process.env.HOSTNAME || process.env.HOST) + "```"
+                text: "Container " + (process.env.HOSTNAME || process.env.HOST) + " is up. ```kubectl -n k8gate logs -f " + (process.env.HOSTNAME || process.env.HOST) + "```"
             }
         });
     } else {

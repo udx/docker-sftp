@@ -40,7 +40,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                 data: {
                     channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
                     username: 'SSH/Server',
-                    text: "SSH Keys refreshed on " + (process.env.HOSTNAME || process.env.HOST) + " has finished. ```kubectl -n rabbit-system exec -it " + (process.env.HOSTNAME || process.env.HOST) + " sh```"
+                    text: "SSH Keys refreshed on " + (process.env.HOSTNAME || process.env.HOST) + " has finished. ```kubectl -n k8gate exec -it " + (process.env.HOSTNAME || process.env.HOST) + " sh```"
                 }
             });
 
@@ -275,13 +275,47 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
      * @param error
      * @param _allKeys
      */
-    function haveAllKeys(error, _allKeys) {
+    async function haveAllKeys(error, _allKeys) {
         debug('haveAllKeys [%d]', Object.keys(_allKeys).length);
 
-        //
-        if (options.statePath && _allKeys) {
-            fs.writeFileSync(options.statePath, JSON.stringify({ keys: _allKeys }, null, 2), 'utf8');
-            return taskCallback(null, { ok: true, statePath: options.statePath })
+        // Store keys using state provider
+        if (_allKeys) {
+            try {
+                const stateProvider = utility.getStateProvider({
+                    provider: process.env.STATE_PROVIDER || 'kubernetes',
+                    options: {
+                        kubernetes: {
+                            endpoint: process.env.KUBERNETES_CLUSTER_ENDPOINT,
+                            namespace: process.env.KUBERNETES_CLUSTER_NAMESPACE,
+                            token: process.env.KUBERNETES_CLUSTER_USER_TOKEN
+                        },
+                        firebase: {
+                            credentials: {
+                                projectId: process.env.FIREBASE_PROJECT_ID,
+                                privateKey: process.env.FIREBASE_PRIVATE_KEY,
+                                clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+                            },
+                            databaseURL: process.env.FIREBASE_DATABASE_URL
+                        },
+                        local: {
+                            statePath: '/var/lib/k8gate/state.json',
+                            keysPath: '/etc/ssh/authorized_keys.d'
+                        }
+                    }
+                });
+
+                await stateProvider.initialize();
+                await stateProvider.saveState('keys', _allKeys);
+                debug('Successfully stored keys using state provider');
+            } catch (err) {
+                console.error('Failed to store keys:', err.message);
+                
+                // Fallback to legacy file storage
+                if (options.statePath) {
+                    fs.writeFileSync(options.statePath, JSON.stringify({ keys: _allKeys }, null, 2), 'utf8');
+                    debug('Stored keys using legacy file storage');
+                }
+            }
         }
 
         // create /etc/ssh/authorized_keys.d/{APP} directories

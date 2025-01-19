@@ -17,20 +17,26 @@ jobs:
         fetch-depth: 0
         lfs: true
     
+    - name: Create KinD config
+      run: |
+        cat > /tmp/kind-config.yaml << 'EOF'
+        kind: Cluster
+        apiVersion: kind.x-k8s.io/v1alpha4
+        nodes:
+        - role: control-plane
+          extraPortMappings:
+          - containerPort: 22
+            hostPort: 2222
+            protocol: TCP
+        EOF
+        cat /tmp/kind-config.yaml
+        
     - name: Set up KinD cluster
       uses: helm/kind-action@v1.8.0
       with:
         cluster_name: test-cluster
+        config: /tmp/kind-config.yaml
         wait: 120s
-        config: |
-          kind: Cluster
-          apiVersion: kind.x-k8s.io/v1alpha4
-          nodes:
-          - role: control-plane
-            extraPortMappings:
-            - containerPort: 22
-              hostPort: 2222
-              protocol: TCP
     
     - name: Build test image
       run: |
@@ -56,31 +62,28 @@ jobs:
         chmod 700 /home/runner/.ssh
         chmod 755 /home/runner/authorized_keys.d
         
-        # Generate SSH key pair
-        ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""
+        # Generate SSH keys
+        ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""  # Client key
+        ssh-keygen -t rsa -b 4096 -f /tmp/ssh_host_rsa_key -N ""     # Host key
         chmod 600 /home/runner/.ssh/id_rsa
+        chmod 600 /tmp/ssh_host_rsa_key
         
         # Set up authorized keys
         cp /home/runner/.ssh/id_rsa.pub /home/runner/authorized_keys.d/test-user
         chmod 644 /home/runner/authorized_keys.d/test-user
         
         # Create Kubernetes secret for SSH keys
-        kubectl create namespace test-k8gate
         kubectl -n test-k8gate create secret generic ssh-keys \
-          --from-file=ssh_host_rsa_key=/home/runner/.ssh/id_rsa \
+          --from-file=ssh_host_rsa_key=/tmp/ssh_host_rsa_key \
+          --from-file=ssh_host_rsa_key.pub=/tmp/ssh_host_rsa_key.pub \
           --from-file=authorized_keys=/home/runner/authorized_keys.d/test-user
         
         # Debug SSH setup
         echo "=== SSH Setup ==="
         ls -la /home/runner/.ssh/
         ls -la /home/runner/authorized_keys.d/
+        ls -la /tmp/ssh_host_rsa_key*
         echo "================="
-        
-        # Create Kubernetes secret
-        kubectl -n test-k8gate create secret generic ssh-keys \
-          --from-file=id_rsa=/tmp/ssh-keys/id_rsa \
-          --from-file=id_rsa.pub=/tmp/ssh-keys/id_rsa.pub \
-          --from-file=authorized_keys=authorized_keys.d/test-user
         
         # Deploy test instance
         cat <<EOF | kubectl apply -f -
@@ -108,6 +111,10 @@ jobs:
             metadata:
               labels:
                 app: k8gate-test
+                ci.rabbit.ssh.user: test-user
+                git.name: docker-sftp
+                git.owner: andypotanin
+                name: k8gate-test
             spec:
               containers:
               - name: k8gate
@@ -119,17 +126,34 @@ jobs:
                   value: "true"
                 - name: TEST_SSH_USER
                   value: test-user
+                - name: DEBUG
+                  value: "ssh:*"
                 volumeMounts:
+                - name: ssh-host-keys
+                  mountPath: "/etc/ssh"
                 - name: ssh-keys
                   mountPath: "/etc/ssh/authorized_keys.d"
                   readOnly: true
                 ports:
                 - containerPort: 22
               volumes:
+              - name: ssh-host-keys
+                secret:
+                  secretName: ssh-keys
+                  items:
+                  - key: ssh_host_rsa_key
+                    path: ssh_host_rsa_key
+                    mode: 0600
+                  - key: ssh_host_rsa_key.pub
+                    path: ssh_host_rsa_key.pub
+                    mode: 0644
               - name: ssh-keys
                 secret:
                   secretName: ssh-keys
-                  defaultMode: 0644
+                  items:
+                  - key: authorized_keys
+                    path: test-user
+                    mode: 0644
         ---
         apiVersion: v1
         kind: Service

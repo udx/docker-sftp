@@ -203,7 +203,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
         .catch(err => {
             console.log('getPods error: ', err.message);
             console.error('No response from container lookup at [%s].', _container_url);
-            console.error('Error processing: ', err.message);
+            console.error('No pods found or error accessing Kubernetes API:', err.message);
             //console.error(" -headers ", _.get(resp, 'headers'));
             //body = require('../static/fixtures/pods');
             return false;

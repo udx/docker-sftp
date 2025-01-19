@@ -21,7 +21,9 @@ jobs:
         cache: 'npm'
     
     - name: Install dependencies
-      run: npm install
+      run: |
+        npm install
+        npm install --save-dev jest eslint eslint-plugin-node
     
     - name: Run linting
       run: npm run lint
@@ -33,6 +35,11 @@ jobs:
           --build-arg NODE_ENV=test \
           -f Dockerfile.udx .
     
+    - name: Generate test SSH key
+      run: |
+        ssh-keygen -t rsa -b 4096 -f ~/.ssh/id_rsa -N ""
+        cat ~/.ssh/id_rsa.pub > authorized_keys
+    
     - name: Run unit tests
       run: npm test
     
@@ -42,14 +49,24 @@ jobs:
         docker run -d --name test-container \
           -e NODE_ENV=test \
           -e TEST_MODE=true \
+          -e TEST_SSH_USER=udx \
+          -v $(pwd)/authorized_keys:/etc/ssh/authorized_keys.d/udx \
           -p 2222:22 \
           k8gate-test:latest
         
         # Wait for container to be ready
-        sleep 10
+        sleep 15
         docker logs test-container
         
-        # Run tests
+        # Run tests with generated key
         TEST_SSH_HOST=localhost \
         TEST_SSH_PORT=2222 \
+        TEST_SSH_USER=udx \
+        TEST_SSH_KEY_PATH=~/.ssh/id_rsa \
         npm run test:integration
+    
+    - name: Cleanup
+      if: always()
+      run: |
+        docker rm -f test-container || true
+        rm -f authorized_keys

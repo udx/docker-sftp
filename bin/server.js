@@ -18,6 +18,49 @@ const events = require('../lib/events');
 var accessToken = process.env.ACCESS_TOKEN;
 
 // for SSH Entrypoint to get Kubernetes connection string that includes namespace and pod name
+// Health check endpoint for Cloud Run
+app.get('/health', async (req, res) => {
+    try {
+        // Check SSH daemon
+        const sshStatus = await new Promise((resolve) => {
+            require('child_process').exec('pgrep sshd', (error) => {
+                resolve(error ? false : true);
+            });
+        });
+
+        // Check state provider
+        let stateStatus = false;
+        try {
+            const stateProvider = utility.getStateProvider({
+                provider: process.env.STATE_PROVIDER || 'kubernetes'
+            });
+            await stateProvider.initialize();
+            stateStatus = true;
+        } catch (err) {
+            console.error('State provider health check failed:', err.message);
+        }
+
+        // Overall health status
+        const isHealthy = sshStatus && stateStatus;
+
+        res.status(isHealthy ? 200 : 503).json({
+            status: isHealthy ? 'healthy' : 'unhealthy',
+            timestamp: new Date().toISOString(),
+            checks: {
+                ssh: sshStatus ? 'up' : 'down',
+                stateProvider: stateStatus ? 'up' : 'down'
+            },
+            version: process.env.npm_package_version || 'unknown'
+        });
+    } catch (error) {
+        console.error('Health check failed:', error);
+        res.status(500).json({
+            status: 'error',
+            error: error.message
+        });
+    }
+});
+
 app.get('/_cat/connection-string/:user', singleUserEndpoint);
 
 // list of all containers
@@ -27,14 +70,20 @@ app.get('/v1/pods', getPods);
 app.delete('/flushFirebaseContainers', flushFirebaseContainers);
 app.use(singleEndpoint);
 
-app.listen(process.env.NODE_PORT || 8080, '0.0.0.0', serverOnline);
+const port = process.env.PORT || process.env.NODE_PORT || 8080;
+app.listen(port, '0.0.0.0', () => {
+    console.log(`k8-container-gate-server listening on port ${port}`);
+    serverOnline();
+});
 
 var _containersStateHash = '';
 
 process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = 0;
 
 setInterval(function () {
-    var _container_url = 'http://localhost:' + process.env.NODE_PORT + '/v1/pods';
+    var _container_url = process.env.KUBERNETES_CLUSTER_ENDPOINT ? 
+    process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods' :
+    'http://localhost:' + process.env.NODE_PORT + '/v1/pods';
 
     axios({
         method: 'get',
@@ -115,8 +164,11 @@ function getPods(req, res) {
         method: 'get',
         url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
         headers: {
-            'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN
-        }
+            'Authorization': 'Bearer ' + process.env.KUBERNETES_CLUSTER_USER_TOKEN,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+        },
+        timeout: 10000 // 10 second timeout
     })
         .then(response => {
             res.send(response.data);

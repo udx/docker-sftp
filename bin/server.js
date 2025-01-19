@@ -18,7 +18,13 @@ const md5 = require('md5');
 const rateLimit = require('../lib/rate-limit');
 const events = require('../lib/events');
 
+// Access token from worker.yml secrets
 var accessToken = process.env.ACCESS_TOKEN;
+
+// Health check endpoint for Kubernetes
+app.get('/health', (req, res) => {
+    res.send({ status: 'ok' });
+});
 
 // for SSH Entrypoint to get Kubernetes connection string that includes namespace and pod name
 // Health check endpoint for Cloud Run
@@ -115,6 +121,7 @@ app.get('/v1/pods', getPods);
 app.delete('/flushFirebaseContainers', flushFirebaseContainers);
 app.use(singleEndpoint);
 
+// Listen on configured port with health check support
 const port = process.env.PORT || process.env.NODE_PORT || 8080;
 app.listen(port, '0.0.0.0', () => {
     console.log(`k8-container-gate-server listening on port ${port}`);
@@ -205,6 +212,7 @@ function userEndpoint(req, res) {
 function getPods(req, res) {
     debug('getPods', req.url);
 
+    // Use Kubernetes endpoint and token from worker.yml secrets
     axios({
         method: 'get',
         url: process.env.KUBERNETES_CLUSTER_ENDPOINT + '/api/v1/pods',
@@ -213,7 +221,13 @@ function getPods(req, res) {
             'Accept': 'application/json',
             'Content-Type': 'application/json'
         },
-        timeout: 10000 // 10 second timeout
+        timeout: 10000, // 10 second timeout
+        // Support for custom CA certificates
+        ...(process.env.KUBERNETES_CLUSTER_CERTIFICATE && {
+            httpsAgent: new https.Agent({
+                ca: process.env.KUBERNETES_CLUSTER_CERTIFICATE
+            })
+        })
     })
         .then(response => {
             res.send(response.data);

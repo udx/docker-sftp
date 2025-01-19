@@ -17,13 +17,22 @@ AcceptEnv LANG LC_* TERM
 # Enable SFTP with proper subsystem
 Subsystem sftp internal-sftp
 
+# Force specific entrypoint for all SSH sessions
 ForceCommand="/opt/sources/rabbitci/rabbit-ssh/bin/controller.ssh.entrypoint.sh"
 
+# User environment and authentication
 PermitUserEnvironment yes
 PasswordAuthentication no
 
+# Key-based authentication configuration
 AuthorizedKeysFile=/etc/ssh/authorized_keys.d/%u
 KexAlgorithms=ecdh-sha2-nistp256,ecdh-sha2-nistp384,ecdh-sha2-nistp521,diffie-hellman-group14-sha1,diffie-hellman-group-exchange-sha256
+
+# Additional security settings for UDX Worker environment
+AllowAgentForwarding no
+AllowTcpForwarding no
+GatewayPorts no
+X11Forwarding no
 
 # What ports, IPs and protocols we listen for
 Port 22

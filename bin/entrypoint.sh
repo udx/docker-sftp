@@ -44,11 +44,12 @@ if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
 
 fi;
 
+# Install dependencies
 npm install google-gax
-
-pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js --silent
-
 npm install
 
-## Command pass-through.
+# Start services using PM2 (included in udx-worker-nodejs)
+pm2 startOrReload /opt/sources/rabbitci/rabbit-ssh/static/ecosystem.config.js --silent
+
+# Command pass-through for container exec
 exec "$@"

@@ -1,0 +1,93 @@
+---
+kind: workerConfig
+version: udx.io/worker-v1/config
+config:
+  env:
+    # Service Control
+    NODE_ENV: "production"
+    SERVICE_ENABLE_SSHD: "true"
+    SERVICE_ENABLE_API: "true"
+    SERVICE_ENABLE_FIREBASE: "false"
+    DEBUG: "ssh:*"
+    NODE_PORT: "8080"
+
+    # Kubernetes Configuration
+    KUBERNETES_CLUSTER_NAME: "${KUBERNETES_CLUSTER_NAME}"
+    KUBERNETES_CLUSTER_NAMESPACE: "${KUBERNETES_CLUSTER_NAMESPACE}"
+    KUBERNETES_CLUSTER_SERVICEACCOUNT: "${KUBERNETES_CLUSTER_SERVICEACCOUNT}"
+    KUBERNETES_CLUSTER_CONTEXT: "${KUBERNETES_CLUSTER_CONTEXT}"
+
+    # Deployment Labels
+    GIT_NAME: "docker-sftp"
+    GIT_OWNER: "${GIT_OWNER}"
+    GIT_BRANCH: "${GIT_BRANCH}"
+    
+    # Google Cloud Configuration
+    USE_GKE_GCLOUD_AUTH_PLUGIN: "True"
+    
+    # SSH Configuration
+    ALLOW_SSH_ACCESS_ROLES: "${ALLOW_SSH_ACCESS_ROLES}"
+
+  secrets:
+    # Kubernetes Secrets
+    KUBERNETES_CLUSTER_ENDPOINT: "azure/k8s-secrets/cluster-endpoint"
+    KUBERNETES_CLUSTER_USER_TOKEN: "azure/k8s-secrets/user-token"
+    KUBERNETES_CLUSTER_CERTIFICATE: "azure/k8s-secrets/cluster-cert"
+    KUBERNETES_CLUSTER_USER_SECRET: "azure/k8s-secrets/user-secret"
+    
+    # GitHub Integration
+    ACCESS_TOKEN: "azure/github/access-token"
+    
+    # Notification Integration
+    SLACK_NOTIFICACTION_URL: "azure/notifications/slack-webhook"
+    SLACK_NOTIFICACTION_CHANNEL: "azure/notifications/slack-channel"
+
+  # Service Configuration
+  services:
+    - name: "sshd"
+      type: "system"
+      command: "/usr/sbin/sshd -D -f /etc/ssh/sshd_config -e"
+      
+    - name: "rabbit-ssh-server"
+      type: "node"
+      script: "/opt/sources/rabbitci/rabbit-ssh/bin/server.js"
+      max_memory_restart: "512M"
+      
+    - name: "firebase-consume"
+      type: "node"
+      script: "/opt/sources/rabbitci/rabbit-ssh/bin/firebase.consume.js"
+      max_memory_restart: "512M"
+      enabled: "${SERVICE_ENABLE_FIREBASE}"
+
+  # Health Check Configuration
+  health:
+    liveness:
+      tcpSocket:
+        port: 22
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 2
+    readiness:
+      tcpSocket:
+        port: 22
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 3
+      failureThreshold: 2
+      
+  # SFTP Configuration
+  sftp:
+    enabled: true
+    subsystem: "internal-sftp"
+    chroot: "/home/%u"
+    umask: "0022"
+    
+  # SSH Configuration
+  ssh:
+    enabled: true
+    port: 22
+    host_keys:
+      - /etc/ssh/ssh_host_rsa_key
+      - /etc/ssh/ssh_host_dsa_key
+    authorized_keys: /etc/ssh/authorized_keys.d/%u

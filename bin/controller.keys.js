@@ -18,44 +18,44 @@
  *
  */
 const axios = require('axios');
-var async = require('async');
-var Mustache = require('mustache');
-
-var fs = require('fs');
-var debug = require('debug')('update-ssh');
-var _ = require('lodash');
+const async = require('async');
+const Mustache = require('mustache');
+const fs = require('fs');
+const debug = require('debug')('update-ssh');
+const _ = require('lodash');
+const utility = require('../lib/utility');
 
 module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
-    let allowedRoles = process.env.ALLOW_SSH_ACCESS_ROLES || "admin,maintain,write";
-    let productionBranch = process.env.PRODUCTION_BRANCH || "production";
-    let allowedRolesForProd = process.env.ALLOW_SSH_ACCES_PROD_ROLES || "admin";
+    let allowedRoles = process.env.ALLOW_SSH_ACCESS_ROLES || 'admin,maintain,write';
+    let productionBranch = process.env.PRODUCTION_BRANCH || 'production';
+    let allowedRolesForProd = process.env.ALLOW_SSH_ACCES_PROD_ROLES || 'admin';
 
     taskCallback = 'function' === typeof taskCallback ? taskCallback : function taskCallback() {
 
-        if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf("https") === 0) {
+        if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf('https') === 0) {
             axios({
                 method: 'post', //you can set what request you want to be
                 url: process.env.SLACK_NOTIFICACTION_URL,
                 data: {
                     channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
                     username: 'SSH/Server',
-                    text: "SSH Keys refreshed on " + (process.env.HOSTNAME || process.env.HOST) + " has finished. ```kubectl -n rabbit-system exec -it " + (process.env.HOSTNAME || process.env.HOST) + " sh```"
+                    text: 'SSH Keys refreshed on ' + (process.env.HOSTNAME || process.env.HOST) + ' has finished. ```kubectl -n k8gate exec -it ' + (process.env.HOSTNAME || process.env.HOST) + ' sh```'
                 }
             });
 
         } else {
-            console.log("process.env.SLACK_NOTIFICACTION_URL isn't set");
+            console.log('process.env.SLACK_NOTIFICACTION_URL isn\'t set');
         }
 
-    }
+    };
 
     options = _.defaults(options, {
         statePath: process.env.CONTROLLER_KEYS_PATH || null,
         keysPath: process.env.DIRECTORY_KEYS_BASE || './tmp/authorized_keys.d',
         passwordFile: process.env.PASSWORD_FILE || './tmp/passwd-tmp',
         passwordTemplate: process.env.PASSWORDS_TEMPLATE || 'alpine.passwords',
-        passwordPath: process.env.PASSWORDS_PATH || '/opt/sources/rabbitci/rabbit-ssh/static/templates/',
+        passwordPath: process.env.PASSWORDS_PATH || '/opt/sources/rabbitci/rabbit-ssh/static/templates/'
     });
 
     if (!options.accessToken) {
@@ -64,17 +64,17 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
     // check that target key directory exists
     if (!fs.existsSync(options.keysPath)) {
-        console.error("authorized_keys [%s] directory missing.", options.keysPath);
+        console.error('authorized_keys [%s] directory missing.', options.keysPath);
         return;
     }
 
     if (!options.passwordFile) {
-        console.error("the PASSWORD_FILE is not explicitly set.");
+        console.error('the PASSWORD_FILE is not explicitly set.');
         return;
     }
 
     if (!options.passwordTemplate) {
-        console.error("the PASSWORDS_TEMPLATE is not explicitly set.");
+        console.error('the PASSWORDS_TEMPLATE is not explicitly set.');
         return;
     }
 
@@ -94,21 +94,20 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
     var _container_url = 'http://localhost:' + process.env.NODE_PORT + '/v1/pods';
 
     axios({
-            method: "get",
-            url: _container_url,
-            headers: { 'x-rabbit-internal-token': process.env.KUBERNETES_CLUSTER_USER_TOKEN }
-        })
+        method: 'get',
+        url: _container_url,
+        headers: { 'x-rabbit-internal-token': process.env.KUBERNETES_CLUSTER_USER_TOKEN }
+    })
         .then(response => {
-            let body = _.get(response, "data", {});
+            let body = _.get(response, 'data', {});
             if (_.size(_.get(body, 'items', [])) === 0) {
-                console.error("No response from container lookup at [%s].", _container_url);
-                console.error("Error fetching Kuberneter Pods", err.message);
-                console.error(" -headers ", _.get(resp, 'headers'));
+                console.error('No response from container lookup at [%s].', _container_url);
+                console.error('No pods found in response');
                 //body = require('../static/fixtures/pods');
                 return false;
             }
 
-            var _containers = body = _.map(body.items, function(singleItem) {
+            var _containers = body = _.map(body.items, function (singleItem) {
 
                 singleItem.Labels = _.get(singleItem, 'metadata.labels');
 
@@ -121,7 +120,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
             });
 
-            (_containers || []).forEach(function(containerInfo) {
+            (_containers || []).forEach(function (containerInfo) {
 
                 var _labels = _.get(containerInfo, 'metadata.labels', {});
 
@@ -145,22 +144,22 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
             _.each(_applications, function addConainers(application) {
 
-                application.containers = _.map(_.filter(body, { Labels: { 'ci.rabbit.ssh.user': application.sshUser } }), function(foundContainer) {
+                application.containers = _.map(_.filter(body, { Labels: { 'ci.rabbit.ssh.user': application.sshUser } }), function (foundContainer) {
                     return {
                         podName: _.get(foundContainer, 'metadata.name') || foundContainer.Labels['ci.rabbit.name'],
-                        containerName: _.get(foundContainer, 'spec.containers[0].name'),
-                    }
-                })
+                        containerName: _.get(foundContainer, 'spec.containers[0].name')
+                    };
+                });
 
             });
 
             async.eachLimit(_.values(_applications), 3, function fetchCollaborators(data, callback) {
                 // console.log( 'fetchCollaborators', data );
 
-                var _token = _.get(options, "accessToken");
+                var _token = _.get(options, 'accessToken');
 
                 let requestOptions = {
-                    method: "get",
+                    method: 'get',
                     url: 'https://api.github.com/repos/' + data._id + '/collaborators',
                     headers: {
                         'Authorization': 'token ' + _token,
@@ -170,18 +169,18 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
                 axios(requestOptions)
                     .then(res => {
-                        let body = _.get(res, "data", {});
+                        let body = _.get(res, 'data', {});
                         debug('haveAppCollaborators [%s] using [%s] got code [%s]', requestOptions.url, _token, _.get(res, 'statusCode'));
 
                         if (_.get(res, 'headers.x-ratelimit-remaining') === '0') {
-                            console.error("GitHub ratelimit exceeded using [%s] token.", requestOptions.headers.Authorization);
+                            console.error('GitHub ratelimit exceeded using [%s] token.', requestOptions.headers.Authorization);
                         }
 
                         // get just the permissions, add users to application
-                        ('object' === typeof body && body.length > 0 ? body : []).forEach(function(thisUser) {
+                        ('object' === typeof body && body.length > 0 ? body : []).forEach(function (thisUser) {
                             // provide access only for users with roles: `maintain` and `admin`
-                            if ((_.includes(_.split(allowedRoles, ","), thisUser.role_name) && (!data.sshUser.includes('.' + productionBranch)) || 
-                            _.includes(_.split(allowedRolesForProd, ","), thisUser.role_name))) {
+                            if ((_.includes(_.split(allowedRoles, ','), thisUser.role_name) && (!data.sshUser.includes('.' + productionBranch)) || 
+                            _.includes(_.split(allowedRolesForProd, ','), thisUser.role_name))) {
                                 _applications[data.sshUser].users[thisUser.login] = {
                                     _id: thisUser.login,
                                     permissions: thisUser.permissions
@@ -194,17 +193,17 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                         callback();
                     })
                     .catch(err => {
-                        console.error(" Error fetching collaborators for " + data._id, err.message);
+                        console.error(' Error fetching collaborators for ' + data._id, err.message);
                         callback();
                     });
 
-            }, haveCollaborators)
+            }, haveCollaborators);
 
         })
         .catch(err => {
             console.log('getPods error: ', err.message);
-            console.error("No response from container lookup at [%s].", _container_url);
-            console.error("Error processing: ", err.message);
+            console.error('No response from container lookup at [%s].', _container_url);
+            console.error('No pods found or error accessing Kubernetes API:', err.message);
             //console.error(" -headers ", _.get(resp, 'headers'));
             //body = require('../static/fixtures/pods');
             return false;
@@ -223,7 +222,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
             //console.log( arguments );
         });
 
-        getCollaboratorsKeys(haveAllKeys, _users)
+        getCollaboratorsKeys(haveAllKeys, _users);
     }
 
     /**
@@ -244,14 +243,14 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
              */
 
             axios({
-                    method: "get",
-                    url: 'https://github.com/' + userName + '.keys',
-                })
+                method: 'get',
+                url: 'https://github.com/' + userName + '.keys'
+            })
                 .then(response => {
-                    let body = _.get(response, "data")
+                    let body = _.get(response, 'data');
                     debug('gitHubCallback', userName);
 
-                    var _userKeys = body.split("\n");
+                    var _userKeys = body.split('\n');
 
                     _allKeys[userName] = cleanArray(_userKeys);
 
@@ -275,20 +274,54 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
      * @param error
      * @param _allKeys
      */
-    function haveAllKeys(error, _allKeys) {
+    async function haveAllKeys(error, _allKeys) {
         debug('haveAllKeys [%d]', Object.keys(_allKeys).length);
 
-        //
-        if (options.statePath && _allKeys) {
-            fs.writeFileSync(options.statePath, JSON.stringify({ keys: _allKeys }, null, 2), 'utf8');
-            return taskCallback(null, { ok: true, statePath: options.statePath })
+        // Store keys using state provider
+        if (_allKeys) {
+            try {
+                const stateProvider = utility.getStateProvider({
+                    provider: process.env.STATE_PROVIDER || 'kubernetes',
+                    options: {
+                        kubernetes: {
+                            endpoint: process.env.KUBERNETES_CLUSTER_ENDPOINT,
+                            namespace: process.env.KUBERNETES_CLUSTER_NAMESPACE,
+                            token: process.env.KUBERNETES_CLUSTER_USER_TOKEN
+                        },
+                        firebase: {
+                            credentials: {
+                                projectId: process.env.FIREBASE_PROJECT_ID,
+                                privateKey: process.env.FIREBASE_PRIVATE_KEY,
+                                clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+                            },
+                            databaseURL: process.env.FIREBASE_DATABASE_URL
+                        },
+                        local: {
+                            statePath: '/var/lib/k8gate/state.json',
+                            keysPath: '/etc/ssh/authorized_keys.d'
+                        }
+                    }
+                });
+
+                await stateProvider.initialize();
+                await stateProvider.saveState('keys', _allKeys);
+                debug('Successfully stored keys using state provider');
+            } catch (err) {
+                console.error('Failed to store keys:', err.message);
+                
+                // Fallback to legacy file storage
+                if (options.statePath) {
+                    fs.writeFileSync(options.statePath, JSON.stringify({ keys: _allKeys }, null, 2), 'utf8');
+                    debug('Stored keys using legacy file storage');
+                }
+            }
         }
 
         // create /etc/ssh/authorized_keys.d/{APP} directories
         _.keys(_applications).forEach(function createDirectory(appID) {
 
             if (!_applications[appID].sshUser) {
-                console.log("Skipping [%s] because it does not have the 'ci.rabbit.ssh.user' label.", appID);
+                console.log('Skipping [%s] because it does not have the \'ci.rabbit.ssh.user\' label.', appID);
                 return;
             }
 
@@ -298,7 +331,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
             debug('Creating SSH keys file for [%s] at [%s]/', appID, _path);
 
-            _.values(_applications[appID].users).forEach(function(userData) {
+            _.values(_applications[appID].users).forEach(function (userData) {
 
                 var _envs = {
                     application: appID,
@@ -309,57 +342,57 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                     CONNECTION_STRING: [_applications[appID].namespace, ' ', _.get(_applications[appID], 'containers[0].podName'), ' -c ', _.get(_applications[appID], 'containers[0].containerName')].join(' ')
                 };
 
-                _.get(_allKeys, userData._id, []).forEach(function(thisUsersKey) {
+                _.get(_allKeys, userData._id, []).forEach(function (thisUsersKey) {
                     writableKeys.push('environment="ENV_VARS=' + _envs.CONNECTION_STRING + ';'+userData._id+'"   ' + thisUsersKey);
-                })
+                });
 
             });
 
             if (writableKeys.length > 0) {
 
-                fs.writeFile(_path, writableKeys.join("\n"), function(err) {
+                fs.writeFile(_path, writableKeys.join('\n'), function (err) {
 
                     if (err) {
                         return console.error(err.message);
                     }
 
-                    debug("Wrote SSH Key file for [%s] identified as [%s] user.", appID, _applications[appID].sshUser);
+                    debug('Wrote SSH Key file for [%s] identified as [%s] user.', appID, _applications[appID].sshUser);
                     // console.log("The file was saved!");
 
                 });
 
             } else {
-                console.error("No keys returned [%s] not updated.", _path)
+                console.error('No keys returned [%s] not updated.', _path);
             }
 
-            _.each(_applications[appID].containers, function(singleContainer) {
+            _.each(_applications[appID].containers, function (singleContainer) {
 
                 var _container_path = (options.keysPath) + '/' + _.get(singleContainer, 'podName');
 
                 if (writableKeys.length > 0) {
-                    fs.writeFile(_container_path, writableKeys.join("\n"), function(err) {
+                    fs.writeFile(_container_path, writableKeys.join('\n'), function (err) {
 
                         if (err) {
                             return console.error(err.message);
                         }
 
-                        console.log("Wrote SSH Key file for [%s] applications contianer [%s].", appID, _.get(singleContainer, 'podName'));
+                        console.log('Wrote SSH Key file for [%s] applications contianer [%s].', appID, _.get(singleContainer, 'podName'));
                         // console.log("The file was saved!");
 
                     });
 
                 } else {
-                    console.error("No keys returned [%s] not updated.", _container_path)
+                    console.error('No keys returned [%s] not updated.', _container_path);
 
                 }
-            })
+            });
 
         });
 
         var _full_path = (options.passwordPath) + '' + (options.passwordTemplate) + '.mustache';
 
         // create /etc/passwd file
-        fs.readFile(_full_path, 'utf8', function(err, source) {
+        fs.readFile(_full_path, 'utf8', function (err, source) {
 
             if (err) {
                 return console.error(err.message);
@@ -369,9 +402,9 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                 applications: _.values(_applications)
             });
 
-            fs.writeFile(options.passwordFile, userFile, 'utf8', function(error) {
-                console.log('Updated [%s] file with [%d] applications.', options.passwordFile, _.size(_applications))
-                taskCallback(null, { ok: true, applications: _applications, users: _users })
+            fs.writeFile(options.passwordFile, userFile, 'utf8', function (error) {
+                console.log('Updated [%s] file with [%d] applications.', options.passwordFile, _.size(_applications));
+                taskCallback(null, { ok: true, applications: _applications, users: _users });
             });
         });
 
@@ -392,7 +425,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
         return newArray;
     }
 
-}
+};
 
 if (!module.parent) {
     module.exports.updateKeys();

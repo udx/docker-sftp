@@ -4,6 +4,8 @@ ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true
 ENV SERVICE_ENABLE_API=true
 ENV SERVICE_ENABLE_FIREBASE=false
+ENV PORT=8080
+ENV NODE_PORT=8080
 
 RUN apk update --no-cache && apk upgrade --no-cache && apk add bash tar
 
@@ -74,6 +76,11 @@ VOLUME [ "/etc/ssh/authorized_keys.d" ]
 
 ENTRYPOINT ["/opt/sources/rabbitci/rabbit-ssh/bin/entrypoint.sh"]
 
+# Expose both HTTP and SSH ports
+EXPOSE 8080
 EXPOSE 22
+
+# Install production dependencies
+RUN npm ci --only=production
 
 CMD [ "/usr/local/bin/node", "/usr/local/bin/pm2", "logs" ]

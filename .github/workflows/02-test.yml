@@ -1,0 +1,122 @@
+name: Test
+
+on:
+  workflow_run:
+    workflows: ["Build and Lint"]
+    types:
+      - completed
+    branches: [master]
+
+jobs:
+  unit-test:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: |
+        npm install
+        npm install --save-dev jest @jest/globals
+    
+    - name: Run unit tests
+      run: npm test
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: [unit-test]
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      
+    - name: Download artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: Build and Lint
+        workflow_conclusion: success
+        name: docker-image
+        path: /tmp
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Load Docker image
+      run: docker load --input /tmp/docker-image.tar
+    
+    - name: Set up test environment
+      run: |
+        # Create test directories with proper permissions
+        sudo mkdir -p /home/runner/.ssh
+        sudo mkdir -p /home/runner/authorized_keys.d
+        sudo chmod 700 /home/runner/.ssh
+        sudo chmod 755 /home/runner/authorized_keys.d
+        
+        # Generate SSH key pair
+        sudo ssh-keygen -t rsa -b 4096 -f /home/runner/.ssh/id_rsa -N ""
+        sudo chmod 600 /home/runner/.ssh/id_rsa
+        sudo chown -R runner:runner /home/runner/.ssh
+        
+        # Set up authorized_keys for container
+        sudo cp /home/runner/.ssh/id_rsa.pub /home/runner/authorized_keys.d/test-user
+        sudo chmod 644 /home/runner/authorized_keys.d/test-user
+        sudo chown -R runner:runner /home/runner/authorized_keys.d
+    
+    - name: Run integration tests
+      run: |
+        # Start test container
+        docker run -d --name test-container \
+          -e NODE_ENV=test \
+          -e TEST_MODE=true \
+          -e TEST_SSH_USER=test-user \
+          -e DEBUG=ssh:* \
+          -p 2222:22 \
+          usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        
+        # Set up SSH in container
+        docker cp /home/runner/.ssh/id_rsa.pub test-container:/tmp/test-user.pub
+        docker exec test-container sh -c '
+          # Generate SSH host keys
+          ssh-keygen -A && \
+          mkdir -p /etc/ssh/authorized_keys.d && \
+          cp /tmp/test-user.pub /etc/ssh/authorized_keys.d/test-user && \
+          chown -R root:root /etc/ssh/authorized_keys.d && \
+          chmod 755 /etc/ssh/authorized_keys.d && \
+          chmod 644 /etc/ssh/authorized_keys.d/test-user && \
+          chmod 600 /etc/ssh/ssh_host_rsa_key && \
+          chmod 644 /etc/ssh/ssh_host_rsa_key.pub && \
+          # Verify sshd config
+          echo "PubkeyAuthentication yes" >> /etc/ssh/sshd_config && \
+          echo "AuthorizedKeysFile /etc/ssh/authorized_keys.d/%u" >> /etc/ssh/sshd_config && \
+          echo "PasswordAuthentication no" >> /etc/ssh/sshd_config && \
+          # Start sshd in debug mode
+          /usr/sbin/sshd -D -e &'
+        
+        # Run tests
+        TEST_SSH_HOST=localhost \
+        TEST_SSH_PORT=2222 \
+        TEST_SSH_USER=test-user \
+        TEST_SSH_KEY_PATH=~/.ssh/id_rsa \
+        npm run test:integration
+    
+    - name: Cleanup
+      if: always()
+      run: docker rm -f test-container || true

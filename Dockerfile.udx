@@ -1,0 +1,59 @@
+FROM usabilitydynamics/udx-worker-nodejs:latest
+
+# Environment variables
+ENV NODE_ENV=production
+ENV SERVICE_ENABLE_SSHD=true
+ENV SERVICE_ENABLE_API=true
+ENV SERVICE_ENABLE_FIREBASE=false
+ENV USE_GKE_GCLOUD_AUTH_PLUGIN=True
+
+# Install required packages (minimized from original as udx-worker-nodejs includes many)
+USER root
+RUN apt-get update && apt-get install -y \
+    openssh-server \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up directories
+RUN mkdir -p /home/udx/.kube \
+    && mkdir -p /opt/sources/k8gate/server \
+    && mkdir -p /root/.ssh \
+    && mkdir -p /etc/ssh/authorized_keys.d \
+    && rm -rf /etc/ssh/*
+
+# Copy application files
+COPY . /opt/sources/k8gate/server
+COPY static/etc/ssh/ /etc/ssh/
+
+# Set permissions
+RUN chown udx:udx /opt/sources/k8gate/server/bin/entrypoint.sh \
+    && chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
+    && touch /var/log/sshd.log \
+    && chown udx:udx /var/log/sshd.log \
+    && chown -R udx:udx /home/udx
+
+# Install kubectl (using version from original)
+RUN curl -L https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+    && chmod +x /usr/local/bin/kubectl
+
+# Install Google Cloud SDK
+RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/root --disable-prompts \
+    && /root/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin
+
+USER udx
+
+# Add Google Cloud SDK to PATH
+ENV PATH $PATH:/root/google-cloud-sdk/bin
+
+# Volume for SSH keys
+VOLUME [ "/etc/ssh/authorized_keys.d" ]
+
+# Set working directory
+WORKDIR /opt/sources/k8gate/server
+
+# Expose SSH port
+EXPOSE 22
+
+# Set entrypoint and default command
+ENTRYPOINT ["/opt/sources/k8gate/server/bin/entrypoint.sh"]
+CMD [ "pm2", "logs" ]

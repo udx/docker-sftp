@@ -1,0 +1,32 @@
+Test Workflow Implementation Checklist:
+
+1. Basic Build and Test Workflow (test-build.yml)
+   - [x] Build container
+   - [x] Run basic tests
+   - [x] Run integration tests
+   Status: Created, needs testing
+
+2. Local Kubernetes Test Workflow (test-k8s-local.yml)
+   - [x] Spin up local K8s cluster using KinD
+   - [x] Deploy SFTP Worker inside cluster
+   - [x] Run tests against local deployment
+   Status: Created, needs testing
+
+3. Remote Kubernetes Test Workflow (test-k8s-remote.yml)
+   - [x] Connect to remote K8s cluster
+   - [x] Deploy SFTP Worker
+   - [x] Run tests against remote deployment
+   Status: Created, needs testing
+
+4. GCP Deployment Workflow (deploy-gcp.yml)
+   - [x] Build and push to Google Container Registry
+   - [x] Deploy as standalone container
+   - [x] Connect to Kubernetes engine
+   - [x] Verify deployment
+   Status: Created, needs testing
+
+Next Steps:
+- Implement and test each workflow
+- Verify cross-cluster connectivity
+- Test AKS/non-AKS configurations
+- Update documentation with workflow details

@@ -60,7 +60,7 @@ gcloud run deploy k8-container-gate \
   --memory=512Mi \
   --cpu=1 \
   --timeout=300 \
-  --service-account=k8gate-sa@${PROJECT_ID}.iam.gserviceaccount.com \
+  --service-account=[SERVICE_ACCOUNT_EMAIL] \
   --set-env-vars="NODE_ENV=production,SERVICE_ENABLE_SSHD=true,SERVICE_ENABLE_API=true" \
   --set-env-vars="KUBERNETES_CLUSTER_ENDPOINT=[CLUSTER_ENDPOINT],KUBERNETES_CLUSTER_NAMESPACE=[NAMESPACE]" \
   --set-secrets="KUBERNETES_CLUSTER_USER_TOKEN=k8gate-k8s-token:latest,ACCESS_TOKEN=k8gate-github-token:latest" \

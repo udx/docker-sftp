@@ -150,6 +150,7 @@ config:
 - `SERVICE_ENABLE_SSHD`: Enable SSH daemon (default: true)
 - `SERVICE_ENABLE_API`: Enable API server (default: true)
 - `SERVICE_ENABLE_FIREBASE`: Enable Firebase integration (default: false)
+- `USE_GKE_GCLOUD_AUTH_PLUGIN`: Enable GKE auth plugin (default: true)
 
 ### Worker Configuration
 

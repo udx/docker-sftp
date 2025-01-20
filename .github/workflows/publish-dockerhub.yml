@@ -1,0 +1,87 @@
+name: Publish to DockerHub
+
+on:
+  workflow_run:
+    workflows: ["Build and Test Container"]
+    types:
+      - completed
+    branches: [master]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+    
+    - name: Download Docker image
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: Build and Test Container
+        workflow_conclusion: success
+        name: docker-image
+        path: /tmp
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Load Docker image
+      run: docker load --input /tmp/docker-image.tar
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        artifact-name: sbom.json
+        format: cyclonedx-json
+
+    - name: Configure Docker Registry
+      run: |
+        echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
+        
+    - name: Push to Docker Hub
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: k8-container-gate
+      run: |
+        # Push version tag
+        docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
+        docker push ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
+        
+        # Tag and push latest
+        docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:latest
+        docker push ${REGISTRY}/${IMAGE_NAME}:latest
+        
+        # If this is a tag, also push the git tag version
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:${VERSION}
+          docker push usabilitydynamics/k8-container-gate:${VERSION}
+        fi
+
+    - name: Verify DockerHub Image
+      run: |
+        # Pull the image we just pushed to verify it's accessible
+        docker pull usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        
+        # Run basic verification
+        docker run --rm usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} node -e 'console.log("Image verification successful")'

@@ -1,0 +1,111 @@
+name: Build and Test Container
+
+on:
+  pull_request:
+    branches: [ master ]
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Run linting
+      run: npm run lint
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+    
+    - name: Build Docker image
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: k8-container-gate
+      run: |
+        docker build \
+          --tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} \
+          --build-arg NODE_ENV=test \
+          -f Dockerfile.udx .
+    
+    - name: Test container startup and services
+      env:
+        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        IMAGE_NAME: k8-container-gate
+      run: |
+        # Create test SSH key
+        ssh-keygen -t rsa -f /tmp/test_key -N ""
+        
+        # Start container with test configuration
+        docker run -d --name test-container \
+          -e NODE_ENV=test \
+          -e SERVICE_ENABLE_SSHD=true \
+          -e SERVICE_ENABLE_API=true \
+          -e DEBUG=ssh:* \
+          -e KUBERNETES_CLUSTER_ENDPOINT="${{ secrets.TEST_K8S_ENDPOINT }}" \
+          -e KUBERNETES_CLUSTER_NAMESPACE="${{ secrets.TEST_K8S_NAMESPACE }}" \
+          -e KUBERNETES_CLUSTER_USER_TOKEN="${{ secrets.TEST_K8S_TOKEN }}" \
+          -p 2222:22 \
+          -p 8080:8080 \
+          ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
+        
+        # Wait for container to start
+        sleep 15
+        
+        # Check if sshd is running and properly configured
+        docker exec test-container sh -c '
+          # Verify sshd process
+          pgrep sshd || exit 1
+          
+          # Check sshd config
+          sshd -t || exit 1
+          
+          # Verify SSH directory permissions
+          test -d /etc/ssh/authorized_keys.d || exit 1
+          test "$(stat -c %a /etc/ssh/authorized_keys.d)" = "755" || exit 1
+        '
+        
+        # Check if API server is running
+        docker exec test-container sh -c '
+          # Verify Node process
+          pgrep node || exit 1
+          
+          # Check API server port
+          netstat -tlpn | grep :8080 || exit 1
+        '
+        
+        # Test API server health endpoint
+        curl -f http://localhost:8080/health || exit 1
+        
+        # Test SSH connection
+        docker cp /tmp/test_key.pub test-container:/etc/ssh/authorized_keys.d/test-user
+        docker exec test-container chmod 644 /etc/ssh/authorized_keys.d/test-user
+        
+        # Attempt SSH connection (should fail without proper setup, but verify port is open)
+        nc -zv localhost 2222 || exit 1
+        
+        # Get container logs for debugging
+        echo "=== Container Logs ==="
+        docker logs test-container
+    
+    - name: Save Docker image
+      run: |
+        docker save ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} > /tmp/docker-image.tar
+    
+    - name: Upload Docker image
+      uses: actions/upload-artifact@v3
+      with:
+        name: docker-image
+        path: /tmp/docker-image.tar
+        retention-days: 1

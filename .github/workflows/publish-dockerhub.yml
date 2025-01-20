@@ -56,15 +56,12 @@ jobs:
         
     - name: Push to Docker Hub
       env:
-        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-        IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
+        REGISTRY: usabilitydynamics
+        IMAGE_NAME: k8-container-gate
       run: |
         # Push version tag
-        docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         docker push ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
-        
-        # Tag and push latest
-        docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:latest
+        # Push latest tag
         docker push ${REGISTRY}/${IMAGE_NAME}:latest
         
         # If this is a tag, also push the git tag version

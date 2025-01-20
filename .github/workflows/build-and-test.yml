@@ -31,17 +31,18 @@ jobs:
     
     - name: Build Docker image
       env:
-        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        REGISTRY: usabilitydynamics
         IMAGE_NAME: k8-container-gate
       run: |
         docker build \
           --tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} \
+          --tag ${REGISTRY}/${IMAGE_NAME}:latest \
           --build-arg NODE_ENV=test \
           -f Dockerfile.udx .
     
     - name: Test container startup and services
       env:
-        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        REGISTRY: usabilitydynamics
         IMAGE_NAME: k8-container-gate
       run: |
         # Create test SSH key

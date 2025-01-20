@@ -43,7 +43,7 @@ Only use interactive mode when absolutely necessary:
 
 ```bash
 # Set up interactive session
-ssh <github-username>@<endpoint> "curl https://cognition-public.s3.amazonaws.com/install_shell_integration.sh | bash"
+ssh <github-username>@<endpoint> wp plugin list
 
 # Connect interactively
 ssh -t <github-username>@<endpoint>
@@ -51,23 +51,11 @@ ssh -t <github-username>@<endpoint>
 
 ## SFTP Access
 
-For file transfer operations:
+For file transfer operations, typically to `/var/www` directory:
 
 ```bash
 # Start SFTP session
-sftp <github-username>@<endpoint>
-
-# Common SFTP commands:
-put local-file           # Upload local file
-get remote-file          # Download remote file
-ls                       # List remote files
-pwd                      # Show remote directory
-lcd /local/path         # Change local directory
-cd /remote/path         # Change remote directory
-mkdir directory         # Create remote directory
-rm file                 # Remove remote file
-exit                    # Close session
-```
+sftp -t <github-username>@<endpoint>
 
 ## File Transfer Guide
 

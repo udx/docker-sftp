@@ -1,127 +1,254 @@
-# Docker SFTP/SSH Gateway for Kubernetes
+# K8 Container Gate (formerly docker-sftp)
 
-A secure SSH/SFTP gateway that provides direct access to Kubernetes pods using GitHub authentication and permissions.
+A secure, Kubernetes-native SSH/SFTP gateway with GitHub-based authentication and flexible state management.
 
 ## Features
 
-- 🔐 GitHub-based authentication using SSH keys
+- 🔐 GitHub-based SSH key authentication
 - 🚀 Direct SSH/SFTP access to Kubernetes pods
 - 👥 Role-based access control tied to GitHub permissions
 - 🔄 Real-time key synchronization
 - 📊 Flexible state management (Kubernetes, Firebase, Local)
 - 🛡️ Configurable rate limiting
 - 🔍 Detailed access logging
+- 🌐 Multi-cloud deployment support
+
+## Container Labels
+
+For a container to be accessible via K8 Container Gate, it must have the following labels:
+
+| Label | Description | Example |
+|-------|-------------|---------|
+| `ci.rabbit.ssh.user` | SSH username for container access | `myapp-dev` |
+| `git.name` | Repository name | `my-project` |
+| `git.owner` | Repository owner | `organization` |
+| `git.branch` | Git branch (optional) | `main` |
+| `name` | Container name | `myapp-web` |
+
+Example Kubernetes deployment:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  template:
+    metadata:
+      labels:
+        ci.rabbit.ssh.user: myapp-dev
+        git.name: my-project
+        git.owner: organization
+        git.branch: main
+        name: myapp-web
+```
 
 ## Quick Start
 
+### Prerequisites
+
+- Kubernetes cluster (AKS, GKE, or other)
+- kubectl configured with cluster access
+- GitHub account with repository access
+- Docker for local development
+
+### Installation
+
+1. Clone the repository:
 ```bash
-# Connect to a pod
-ssh [pod-name]@ssh.rabbit.ci
+git clone https://github.com/andypotanin/k8-container-gate.git
+cd k8-container-gate
 ```
+
+2. Configure environment variables:
+```bash
+# Kubernetes Configuration
+export KUBERNETES_CLUSTER_NAME="your-cluster"
+export KUBERNETES_CLUSTER_NAMESPACE="your-namespace"
+export KUBERNETES_CLUSTER_SERVICEACCOUNT="k8gate-service-account"
+
+# GitHub Configuration
+export ACCESS_TOKEN="your-github-token"
+export ALLOW_SSH_ACCESS_ROLES="admin,maintain,write"
+```
+
+3. Deploy to Kubernetes:
+```bash
+kubectl apply -f ci/deployment-aks.yml
+```
+
+### Basic Usage
+
+1. Add your SSH public key to GitHub
+2. Configure your SSH client:
+```bash
+# ~/.ssh/config
+Host k8gate
+    HostName <your-loadbalancer-ip>
+    User <github-username>
+    IdentityFile ~/.ssh/id_rsa
+```
+
+3. Connect to a pod (non-interactive mode preferred):
+```bash
+# Run single command
+ssh k8gate "wp plugin list"
+
+# Interactive mode (when necessary)
+ssh k8gate "curl https://cognition-public.s3.amazonaws.com/install_shell_integration.sh | bash"
+ssh -t k8gate
+```
+
+For detailed instructions on SSH, SFTP, and SCP usage, see [Remote Access Guide](docs/remote-access.md).
 
 ## Architecture
 
-### Core Components
+K8 Container Gate consists of several core components:
 
-1. **SSH Gateway**
-   - Handles SSH/SFTP connections
-   - Authenticates using GitHub SSH keys
-   - Routes connections to appropriate pods
-
-2. **API Server**
-   - Manages pod connections
-   - Handles container state
-   - Provides health endpoints
-
-3. **Key Management**
-   - Syncs with GitHub collaborators
-   - Manages access permissions
-   - Updates authorized_keys
-
-### Security
-
-- GitHub-based authentication
+### 1. SSH Gateway
+- OpenSSH server with custom authentication
+- GitHub key synchronization
 - Role-based access control
-- No password authentication
-- Kubernetes service account integration
+
+### 2. State Management
+Flexible backend storage options:
+- Kubernetes Secrets (default)
+- Firebase Realtime Database
+- Local file system
+
+### 3. Access Control
+- GitHub-based authentication
+- Repository-level permissions
+- Rate limiting and monitoring
+
+For detailed architecture information, see [Architecture Documentation](docs/architecture.md).
 
 ## Configuration
 
-### Required Environment Variables
+### worker.yml Configuration
 
-| Variable | Description |
-|----------|-------------|
-| `KUBERNETES_CLUSTER_ENDPOINT` | Kubernetes API endpoint |
-| `KUBERNETES_CLUSTER_NAME` | Cluster name |
-| `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name |
-| `KUBERNETES_CLUSTER_USER_TOKEN` | Kubernetes auth token |
-| `ALLOW_SSH_ACCESS_ROLES` | GitHub roles allowed to access |
-
-See [Environment Variables](docs/environment.md) for full list.
-
-## Usage
-
-### SSH Access
-```bash
-# Direct shell access
-ssh www-myapp-com
-
-# Run specific command
-ssh www-myapp-com "ls -la"
+```yaml
+kind: workerConfig
+version: udx.io/worker-v1/config
+config:
+  env:
+    # Service Control
+    NODE_ENV: "production"
+    SERVICE_ENABLE_SSHD: "true"
+    SERVICE_ENABLE_API: "true"
+    DEBUG: "ssh:*"
+    
+  # Repository Configuration
+  repos:
+    - name: "owner/repo"
+      branch: "master"
+      roles: ["admin", "maintain", "write"]
 ```
 
-### SFTP Access
-```bash
-# Interactive SFTP session
-sftp www-myapp-com
+### State Management Configuration
 
-# File transfer
-scp local-file www-myapp-com:/remote/path/
+```yaml
+state:
+  provider: kubernetes  # or firebase, local
+  options:
+    kubernetes:
+      secretName: k8-container-gate-keys
+      namespace: ${KUBERNETES_CLUSTER_NAMESPACE}
 ```
 
-## Logging and Debugging
+For detailed configuration options, see [State Management Documentation](docs/state-management.md).
 
-Key log locations:
-- SSH/SFTP sessions: `/var/log/sshd.log`
-  - Contains connection attempts
-  - SFTP path resolutions
-  - User session details
-- Process logs: `pm2 logs`
-  - API server activity
-  - Key synchronization events
-  - General process health
-- Container logs: `kubectl logs <pod-name>`
-  - Container-level events
-  - System messages
-  - Authentication details
+## Deployment
 
-Quick debug commands:
+### Azure Kubernetes Service (AKS)
+
+1. Create AKS cluster:
 ```bash
-# View SSH session logs
-tail -f /var/log/sshd.log
-
-# View API and process logs
-pm2 logs
-
-# View specific service logs
-pm2 logs sshd        # SSH daemon
-pm2 logs api         # API server
+az aks create \
+  --resource-group your-rg \
+  --name your-cluster \
+  --node-count 1 \
+  --enable-addons monitoring
 ```
 
-## Documentation
+2. Configure authentication:
+```bash
+az aks get-credentials --resource-group your-rg --name your-cluster
+```
 
-- [Architecture Details](docs/architecture.md)
-- [Security Model](docs/security.md)
-- [State Management](docs/state-management.md)
-- [Kubernetes Integration](docs/kubernetes.md)
-- [Client Configuration](docs/client-configuration.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [API Reference](docs/api.md)
+3. Deploy K8 Container Gate:
+```bash
+kubectl apply -f ci/deployment-aks.yml
+```
+
+### Other Kubernetes Platforms
+
+The deployment process is similar for other Kubernetes platforms. Adjust the following:
+
+1. Use platform-specific cluster creation
+2. Configure appropriate RBAC
+3. Apply the deployment configuration
+
+## Development
+
+### Local Development
+
+1. Install dependencies:
+```bash
+npm install
+```
+
+2. Start development server:
+```bash
+npm run dev-start
+```
+
+### Running Tests
+
+```bash
+npm test
+```
+
+### Linting
+
+```bash
+npm run lint
+npm run lint:fix  # Auto-fix issues
+```
+
+## Troubleshooting
+
+### Common Issues
+
+1. SSH Connection Failed
+- Verify GitHub SSH key is properly added
+- Check ALLOW_SSH_ACCESS_ROLES configuration
+- Verify pod status with `kubectl get pods`
+
+2. State Management Issues
+- Check provider configuration in worker.yml
+- Verify Kubernetes secrets permissions
+- Check Firebase credentials if using Firebase provider
+
+### Logs
+
+View container logs:
+```bash
+kubectl logs -f deployment/k8-container-gate
+```
+
+View SSH daemon logs:
+```bash
+kubectl exec -it deployment/k8-container-gate -- tail -f /var/log/sshd.log
+```
 
 ## Contributing
 
-See [CONTRIBUTING.md](docs/contributing.md) for development guidelines.
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
 
 ## License
 
-This project is proprietary software. All rights reserved.
+This project is licensed under the MIT License - see the LICENSE file for details.

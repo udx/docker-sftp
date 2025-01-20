@@ -23,9 +23,7 @@ env:
   DEPLOYMENT_NAME: ${{ secrets.DEPLOYMENT_NAME }} # Add your deployment name here.
   SLACK_NOTIFICACTION_URL: ${{ secrets.SLACK_NOTIFICACTION_URL }}
   SLACK_NOTIFICACTION_CHANNEL: ${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}
-  AR_LOCATION: ${{ vars.AR_LOCATION }}
-  AR_REPOSITORY: ${{ vars.AR_REPOSITORY }}
-  IMAGE_NAME: ${{vars.AR_LOCATION}}-docker.pkg.dev/${{secrets.GKE_PROJECT}}/${{vars.AR_REPOSITORY}}/${{github.ref_name}}
+  IMAGE_NAME: andypotanin/docker-sftp
 
 jobs:
   setup-build-publish-deploy:
@@ -97,10 +95,12 @@ jobs:
       with:
         project_id: ${{ secrets.GKE_PROJECT }}
 
-    # Configure Docker to use the gcloud command-line tool as a credential
-    # helper for authentication
-    - run: |-
-        gcloud --quiet auth configure-docker $AR_LOCATION-docker.pkg.dev
+    # Login to Docker Hub
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
     # Build the Docker image
     - name: Build
@@ -111,10 +111,11 @@ jobs:
           --build-arg GITHUB_REF="$GITHUB_REF" \
           .
           
-    # Push the Docker image to Google Container Registry
+    # Push the Docker image to Docker Hub
     - name: Publish
       run: |-
         docker push "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
+        docker push "${{env.IMAGE_NAME}}:latest"
 
     # Scan Docker image for vulnerabilities
     - name: Scan Docker Image using Trivy

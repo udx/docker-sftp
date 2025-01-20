@@ -40,7 +40,7 @@ jobs:
     - name: Run Trivy vulnerability scanner
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: 'usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}'
+        image-ref: '${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}'
         format: 'table'
         exit-code: '1'
         ignore-unfixed: true
@@ -50,21 +50,17 @@ jobs:
     - name: Generate SBOM
       uses: anchore/sbom-action@v0
       with:
-        image: usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        image: ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         artifact-name: sbom.json
         format: cyclonedx-json
-
-    - name: Configure Docker Registry
-      run: |
-        echo "${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USERNAME }}" --password-stdin
         
     - name: Push to Docker Hub
       env:
         REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
-        IMAGE_NAME: k8-container-gate
+        IMAGE_NAME: ${{ secrets.IMAGE_NAME }}
       run: |
         # Push version tag
-        docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
+        docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         docker push ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         
         # Tag and push latest
@@ -74,14 +70,14 @@ jobs:
         # If this is a tag, also push the git tag version
         if [[ $GITHUB_REF == refs/tags/* ]]; then
           VERSION=${GITHUB_REF#refs/tags/}
-          docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:${VERSION}
-          docker push usabilitydynamics/k8-container-gate:${VERSION}
+          docker tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} ${REGISTRY}/${IMAGE_NAME}:${VERSION}
+          docker push ${REGISTRY}/${IMAGE_NAME}:${VERSION}
         fi
 
     - name: Verify DockerHub Image
       run: |
         # Pull the image we just pushed to verify it's accessible
-        docker pull usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        docker pull ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         
         # Run basic verification
-        docker run --rm usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} node -e 'console.log("Image verification successful")'
+        docker run --rm ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} node -e 'console.log("Image verification successful")'

@@ -70,7 +70,9 @@ USER udx
 ENV PATH $PATH:/root/google-cloud-sdk/bin
 
 # Install dependencies
-RUN npm ci --only=production
+RUN mkdir -p /home/udx/.npm && \
+    chown -R udx:udx /home/udx/.npm && \
+    npm ci --only=production
 
 # Volume for SSH keys
 VOLUME [ "/etc/ssh/authorized_keys.d" ]

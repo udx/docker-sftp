@@ -144,45 +144,6 @@ config:
       roles: ["admin", "maintain", "write"]
 ```
 
-### Environment Variables
-
-- `NODE_ENV`: Set the Node.js environment (default: production)
-- `SERVICE_ENABLE_SSHD`: Enable SSH daemon (default: true)
-- `SERVICE_ENABLE_API`: Enable API server (default: true)
-- `SERVICE_ENABLE_FIREBASE`: Enable Firebase integration (default: false)
-- `USE_GKE_GCLOUD_AUTH_PLUGIN`: Enable GKE auth plugin (default: true)
-
-### Worker Configuration
-
-The container uses UDX Worker for service management. Configuration files:
-
-- `/home/udx/.cd/configs/worker.yml`: Environment configuration
-- `/etc/worker/services.yml`: Service definitions
-
-Default services:
-```yaml
-services:
-  - name: sshd
-    command: /usr/sbin/sshd -D
-    autostart: true
-    autorestart: true
-  - name: api
-    command: node server.js
-    autostart: true
-    autorestart: true
-```
-
-### SSH Configuration
-
-SSH keys are managed in `/etc/ssh/authorized_keys.d/`. Mount this directory as a volume to persist SSH keys:
-
-```bash
-docker run -d \
-  -v /path/to/keys:/etc/ssh/authorized_keys.d \
-  -p 22:22 -p 8080:8080 \
-  usabilitydynamics/k8-container-gate
-```
-
 ### State Management Configuration
 
 ```yaml

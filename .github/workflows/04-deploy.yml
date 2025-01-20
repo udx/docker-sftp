@@ -1,0 +1,86 @@
+name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Security Scan"]
+    types:
+      - completed
+    branches: [ master ]
+  push:
+    tags: [ 'v*' ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      
+    - name: Download artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: Build and Lint
+        workflow_conclusion: success
+        name: docker-image
+        path: /tmp
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Load Docker image
+      run: docker load --input /tmp/docker-image.tar
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKER_HUB_USERNAME }}
+        password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+    
+    - name: Get GKE credentials
+      uses: google-github-actions/get-gke-credentials@v1
+      with:
+        cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
+        location: ${{ secrets.GKE_CLUSTER_LOCATION }}
+        credentials: ${{ secrets.GKE_SA_KEY }}
+    
+    - name: Set up Kustomize
+      run: |
+        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+        sudo mv kustomize /usr/local/bin/
+    
+    - name: Configure deployment files
+      run: |
+        cd ci
+        kustomize edit set image k8-container-gate=usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+    
+    - name: Push to Docker Hub
+      run: |
+        # Tag and push with version from package.json
+        docker push usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:latest
+        docker push usabilitydynamics/k8-container-gate:latest
+        
+        # If this is a tag, also push the git tag version
+        if [[ $GITHUB_REF == refs/tags/* ]]; then
+          VERSION=${GITHUB_REF#refs/tags/}
+          docker tag usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} usabilitydynamics/k8-container-gate:${VERSION}
+          docker push usabilitydynamics/k8-container-gate:${VERSION}
+        fi
+
+    - name: Deploy to Kubernetes
+      run: |
+        kubectl apply -k ci/
+        kubectl rollout status deployment/k8-container-gate -n default

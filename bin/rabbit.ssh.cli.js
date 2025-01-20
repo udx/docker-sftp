@@ -9,37 +9,37 @@ var utility = require( '../lib/utility' );
 var dot = require( 'dot-object' );
 var _ = require( 'lodash' );
 
-utility.getCollection( 'container', 'meta/sshUser', function( error, data ) {
+utility.getCollection( 'container', 'meta/sshUser', function ( error, data ) {
 
-  _.each(data, function( singleItem ) {
-    if (['kill', 'destroy', 'die', 'oom', 'stop' ].indexOf(singleItem.lastAction) >= 0) {
-      return;
-    }
+    _.each(data, function ( singleItem ) {
+        if (['kill', 'destroy', 'die', 'oom', 'stop' ].indexOf(singleItem.lastAction) >= 0) {
+            return;
+        }
 
-    if( !_.find(singleItem.fields, { key: 'ci.rabbit.ssh.user'} ) ) {
-      return;
-    }
+        if( !_.find(singleItem.fields, { key: 'ci.rabbit.ssh.user'} ) ) {
+            return;
+        }
 
-    if( !_.find(singleItem.fields, { key: 'git.name'} ) ) {
-      return;
-    }
+        if( !_.find(singleItem.fields, { key: 'git.name'} ) ) {
+            return;
+        }
 
-    var _fields = {};
+        var _fields = {};
 
-    _.each(singleItem.fields, function( item ) {
-      _fields[ item.key ] = item.value;
-    })
+        _.each(singleItem.fields, function ( item ) {
+            _fields[ item.key ] = item.value;
+        });
 
-    singleItem.fields = dot.object(_fields);
-    //console.log(require('util').inspect(singleItem, {showHidden: false, depth: 2, colors: true}));
+        singleItem.fields = dot.object(_fields);
+        //console.log(require('util').inspect(singleItem, {showHidden: false, depth: 2, colors: true}));
 
-    console.log( _.get(singleItem, 'fields.io.kubernetes.pod.namespace' ),_.get(singleItem, 'fields.io.kubernetes.pod.name' ), _.get(singleItem, 'fields.git.name' ),  _.get(singleItem, 'fields.git.branch' ),  _.get(singleItem, 'fields.ci.rabbit.ssh.user' ) )
+        console.log( _.get(singleItem, 'fields.io.kubernetes.pod.namespace' ),_.get(singleItem, 'fields.io.kubernetes.pod.name' ), _.get(singleItem, 'fields.git.name' ),  _.get(singleItem, 'fields.git.branch' ),  _.get(singleItem, 'fields.ci.rabbit.ssh.user' ) );
 
     //process.exit();
-  });
+    });
 
-  process.exit();
+    process.exit();
 
-})
-console.log( "Rabbit SSH CLI" );
+});
+console.log( 'Rabbit SSH CLI' );
 

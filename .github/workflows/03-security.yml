@@ -1,0 +1,63 @@
+name: Security Scan
+
+on:
+  workflow_run:
+    workflows: ["Test"]
+    types:
+      - completed
+    branches: [master]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm install
+    
+    - name: Set Tag from package.json
+      id: version
+      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      
+    - name: Download artifacts
+      uses: dawidd6/action-download-artifact@v2
+      with:
+        workflow: Build and Lint
+        workflow_conclusion: success
+        name: docker-image
+        path: /tmp
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Load Docker image
+      run: docker load --input /tmp/docker-image.tar
+    
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+    
+    - name: Generate SBOM
+      uses: anchore/sbom-action@v0
+      with:
+        image: usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        artifact-name: sbom.json
+        format: cyclonedx-json
+    
+    - name: Upload Trivy scan results
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: trivy-results.sarif

@@ -6,7 +6,9 @@ ENV NODE_ENV=${NODE_ENV} \
     SERVICE_ENABLE_SSHD=true \
     SERVICE_ENABLE_API=true \
     SERVICE_ENABLE_FIREBASE=false \
-    USE_GKE_GCLOUD_AUTH_PLUGIN=true
+    USE_GKE_GCLOUD_AUTH_PLUGIN=true \
+    PORT=8080 \
+    NODE_PORT=8080
 
 # Switch to root for package installations
 USER root
@@ -17,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-sftp-server \
     curl \
     netcat-traditional \
+    ca-certificates \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -28,6 +31,7 @@ RUN mkdir -p /home/udx/.kube \
     /etc/ssh \
     /etc/ssh/authorized_keys.d \
     /home/udx/.cd/configs \
+    /etc/worker \
     && rm -rf /etc/ssh/* \
     && mkdir -p /etc/ssh/authorized_keys.d \
     && chmod 755 /etc/ssh/authorized_keys.d \
@@ -36,6 +40,10 @@ RUN mkdir -p /home/udx/.kube \
 
 # Copy SSH configuration
 COPY --chown=udx:udx static/etc/ssh/ /etc/ssh/
+
+# Copy worker configurations
+COPY --chown=udx:udx src/configs/worker.yml /home/udx/.cd/configs/worker.yml
+COPY --chown=udx:udx src/configs/services.yml /etc/worker/services.yml
 
 # Set up logging and permissions
 RUN touch /var/log/sshd.log \
@@ -53,17 +61,9 @@ RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/usr/local
 # Copy application files
 COPY --chown=udx:udx . .
 
-# Create worker configuration
-RUN echo "---\nkind: workerConfig\nversion: udx.io/worker-v1/config\nconfig:\n  env:\n    NODE_ENV: ${NODE_ENV}\n" > /home/udx/.cd/configs/worker.yml \
-    && echo "---\nkind: workerService\nversion: udx.io/worker-v1/service\nservices:\n  - name: sshd\n    command: /usr/sbin/sshd -D\n    autostart: true\n    autorestart: true\n  - name: api\n    command: node server.js\n    autostart: true\n    autorestart: true\n" > /etc/worker/services.yml \
-    && chown -R udx:udx /home/udx/.cd
-
 # Set permissions for executables and npm
 RUN mkdir -p /usr/local/lib/node_modules \
     && chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
-    && npm install -g pm2 \
-    && chown -R udx:udx /usr/local/lib/node_modules \
-    && chmod -R 755 /usr/local/lib/node_modules \
     && mkdir -p /home/udx/.npm \
     && chown -R udx:udx /home/udx/.npm \
     && chmod -R 775 /home/udx/.npm
@@ -85,4 +85,3 @@ EXPOSE 22 8080
 
 # Set entrypoint
 ENTRYPOINT ["/opt/sources/k8gate/server/bin/entrypoint.sh"]
-CMD [ "pm2", "logs" ]

@@ -28,7 +28,7 @@ jobs:
     - name: Set Tag from package.json
       id: version
       run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-    
+
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
@@ -130,7 +130,7 @@ jobs:
         
         # Verify SSH port is open
         nc -zv localhost 2222 || exit 1
-    
+
     - name: Push Docker image
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       env:
@@ -140,7 +140,7 @@ jobs:
         # Push both tagged and latest versions
         docker push ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         docker push ${REGISTRY}/${IMAGE_NAME}:latest
-    
+
     - name: Save Docker image
       run: |
         docker save ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} > /tmp/docker-image.tar

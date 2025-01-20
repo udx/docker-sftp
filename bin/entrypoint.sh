@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Load worker configuration
+source /usr/local/lib/worker_config.sh
+
 # generate fresh rsa key
 if [ ! -f "/etc/ssh/ssh_host_rsa_key" ]; then
   ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
@@ -50,16 +53,23 @@ fi
 npm install google-gax
 npm install
 
-# Start services based on environment variables
-if [ "${SERVICE_ENABLE_SSHD}" = "true" ]; then
-  echo "Starting SSH daemon..."
-  /usr/sbin/sshd -D &
-fi
+# Start services using worker service configuration
+if [ -f "/etc/worker/services.yml" ]; then
+  echo "Starting services from worker configuration..."
+  worker service start
+else
+  echo "No worker service configuration found. Starting services directly..."
+  
+  if [ "${SERVICE_ENABLE_SSHD}" = "true" ]; then
+    echo "Starting SSH daemon..."
+    /usr/sbin/sshd -D &
+  fi
 
-if [ "${SERVICE_ENABLE_API}" = "true" ]; then
-  echo "Starting API server..."
-  pm2 start server.js
+  if [ "${SERVICE_ENABLE_API}" = "true" ]; then
+    echo "Starting API server..."
+    node server.js &
+  fi
 fi
 
 # Keep container running
-pm2 logs
+tail -f /var/log/sshd.log

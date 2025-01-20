@@ -1,0 +1,13 @@
+---
+kind: workerService
+version: udx.io/worker-v1/service
+services:
+  - name: sshd
+    command: /usr/sbin/sshd -D
+    autostart: true
+    autorestart: true
+    
+  - name: api
+    command: node server.js
+    autostart: true
+    autorestart: true

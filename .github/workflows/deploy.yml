@@ -23,7 +23,7 @@ env:
   DEPLOYMENT_NAME: ${{ secrets.DEPLOYMENT_NAME }} # Add your deployment name here.
   SLACK_NOTIFICACTION_URL: ${{ secrets.SLACK_NOTIFICACTION_URL }}
   SLACK_NOTIFICACTION_CHANNEL: ${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}
-  IMAGE_NAME: andypotanin/docker-sftp
+  IMAGE_NAME: usabilitydynamics/k8-container-gate
 
 jobs:
   setup-build-publish-deploy:
@@ -192,7 +192,7 @@ jobs:
         sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/deployment-v2.yml
         sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/deployment-restart-cronjob.yml
         sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" ci/deployment-v2.yml
-        sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" ci/deployment-v2.yml
+        # Removed AR_LOCATION reference as we're using Docker Hub
     # Deploy the Docker image to the GKE cluster
     - run: |
         kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/service.yml && \

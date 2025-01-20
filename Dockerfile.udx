@@ -32,6 +32,7 @@ RUN mkdir -p /home/udx/.kube \
     /etc/ssh/authorized_keys.d \
     /home/udx/.cd/configs \
     /etc/worker \
+    /var/log \
     && rm -rf /etc/ssh/* \
     && mkdir -p /etc/ssh/authorized_keys.d \
     && chmod 755 /etc/ssh/authorized_keys.d \
@@ -46,8 +47,10 @@ COPY --chown=udx:udx src/configs/worker.yml /home/udx/.cd/configs/worker.yml
 COPY --chown=udx:udx src/configs/services.yml /etc/worker/services.yml
 
 # Set up logging and permissions
-RUN touch /var/log/sshd.log \
-    && chown udx:udx /var/log/sshd.log
+RUN touch /var/log/k8gate.log /var/log/k8gate-events.log /var/log/auth.log \
+    && chown udx:udx /var/log/k8gate.log \
+    && chown udx:udx /var/log/k8gate-events.log \
+    && chown udx:udx /var/log/auth.log
 
 # Install kubectl
 RUN curl -L https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
@@ -63,7 +66,7 @@ COPY --chown=udx:udx . .
 
 # Set permissions for executables and npm
 RUN mkdir -p /usr/local/lib/node_modules \
-    && chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
+    && chmod +x bin/entrypoint.sh \
     && mkdir -p /home/udx/.npm \
     && chown -R udx:udx /home/udx/.npm \
     && chmod -R 775 /home/udx/.npm
@@ -77,11 +80,11 @@ ENV PATH $PATH:/usr/local/google-cloud-sdk/bin
 # Install dependencies
 RUN npm ci --only=production
 
-# Volume for SSH keys
-VOLUME [ "/etc/ssh/authorized_keys.d" ]
+# Volume for SSH keys and logs
+VOLUME [ "/etc/ssh/authorized_keys.d", "/var/log" ]
 
 # Expose ports
 EXPOSE 22 8080
 
 # Set entrypoint
-ENTRYPOINT ["/opt/sources/k8gate/server/bin/entrypoint.sh"]
+ENTRYPOINT ["bin/entrypoint.sh"]

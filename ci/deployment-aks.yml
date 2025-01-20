@@ -1,89 +1,186 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: docker-sftp
+  name: k8gate
   labels:
-    app: docker-sftp
+    app: k8gate
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: docker-sftp
+      app: k8gate
   template:
     metadata:
       labels:
-        app: docker-sftp
+        app: k8gate
     spec:
       containers:
-      - name: docker-sftp
-        image: usabilitydynamics/docker-sftp:latest
+      - name: k8gate
+        image: usabilitydynamics/k8gate:latest
         ports:
         - containerPort: 22
+          name: ssh
+        - containerPort: 8080
+          name: api
         volumeMounts:
         - name: ssh-keys
           mountPath: /etc/ssh/authorized_keys.d
         - name: worker-config
           mountPath: /home/udx/.cd/configs
+        - name: services-config
+          mountPath: /etc/worker
+        - name: logs
+          mountPath: /var/log
         env:
-        - name: KUBERNETES_CLUSTER_NAME
-          valueFrom:
-            configMapKeyRef:
-              name: docker-sftp-config
-              key: cluster_name
-        - name: KUBERNETES_CLUSTER_NAMESPACE
-          valueFrom:
-            configMapKeyRef:
-              name: docker-sftp-config
-              key: namespace
+        - name: NODE_ENV
+          value: production
+        - name: PORT
+          value: "8080"
+        - name: NODE_PORT
+          value: "8080"
         - name: SERVICE_ENABLE_SSHD
           value: "true"
         - name: SERVICE_ENABLE_API
           value: "true"
+        - name: SERVICE_ENABLE_FIREBASE
+          value: "false"
+        - name: USE_GKE_GCLOUD_AUTH_PLUGIN
+          value: "true"
+        - name: DEBUG
+          value: k8gate:*,api:*,auth:*,ssh:*
+        - name: KUBERNETES_CLUSTER_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: k8gate-config
+              key: cluster_name
+        - name: KUBERNETES_CLUSTER_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: k8gate-config
+              key: namespace
+        - name: KUBERNETES_CLUSTER_ENDPOINT
+          valueFrom:
+            configMapKeyRef:
+              name: k8gate-config
+              key: cluster_endpoint
+        - name: KUBERNETES_CLUSTER_SERVICEACCOUNT
+          valueFrom:
+            configMapKeyRef:
+              name: k8gate-config
+              key: serviceaccount
+        - name: KUBERNETES_CLUSTER_CONTEXT
+          valueFrom:
+            configMapKeyRef:
+              name: k8gate-config
+              key: context
+        - name: ALLOW_SSH_ACCESS_ROLES
+          valueFrom:
+            configMapKeyRef:
+              name: k8gate-config
+              key: ssh_access_roles
         envFrom:
         - secretRef:
-            name: docker-sftp-secrets
+            name: k8gate-secrets
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: api
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: api
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 2
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
       volumes:
       - name: ssh-keys
         emptyDir: {}
       - name: worker-config
         configMap:
-          name: docker-sftp-worker-config
+          name: k8gate-worker-config
+      - name: services-config
+        configMap:
+          name: k8gate-services-config
+      - name: logs
+        emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: docker-sftp
+  name: k8gate
 spec:
   type: LoadBalancer
   ports:
   - port: 22
     targetPort: 22
+  - port: 8080
+    targetPort: 8080
   selector:
-    app: docker-sftp
+    app: k8gate
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: docker-sftp-config
+  name: k8gate-config
 data:
-  cluster_name: "${KUBERNETES_CLUSTER_NAME}"
-  namespace: "${KUBERNETES_CLUSTER_NAMESPACE}"
+  cluster_name: ${KUBERNETES_CLUSTER_NAME}
+  namespace: ${KUBERNETES_CLUSTER_NAMESPACE}
+  cluster_endpoint: ${KUBERNETES_CLUSTER_ENDPOINT}
+  serviceaccount: ${KUBERNETES_CLUSTER_SERVICEACCOUNT}
+  context: ${KUBERNETES_CLUSTER_CONTEXT}
+  ssh_access_roles: "admin,maintain,write"
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: docker-sftp-worker-config
+  name: k8gate-worker-config
 data:
   worker.yml: |
     kind: workerConfig
     version: udx.io/worker-v1/config
     config:
       env:
-        NODE_ENV: "production"
-        SERVICE_ENABLE_SSHD: "true"
-        SERVICE_ENABLE_API: "true"
-        DEBUG: "ssh:*"
-      secrets:
-        KUBERNETES_CLUSTER_ENDPOINT: "azure/k8s-secrets/cluster-endpoint"
-        KUBERNETES_CLUSTER_USER_TOKEN: "azure/k8s-secrets/user-token"
-        ACCESS_TOKEN: "azure/github/access-token"
+        NODE_ENV: production
+        PORT: "8080"
+        NODE_PORT: "8080"
+        DEBUG: k8gate:*,api:*,auth:*,ssh:*
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: k8gate-services-config
+data:
+  services.yml: |
+    kind: workerService
+    version: udx.io/worker-v1/service
+    services:
+      - name: sshd
+        command: /usr/sbin/sshd -D -f /etc/ssh/sshd_config -e
+        autostart: true
+        autorestart: true
+        env:
+          DEBUG: ssh:*,auth:*
+      - name: k8gate
+        command: node /opt/sources/k8gate/server/bin/server.js | tee -a /var/log/k8gate.log
+        autostart: true
+        autorestart: true
+        env:
+          DEBUG: k8gate:*,api:*,auth:*
+      - name: log-monitor
+        command: tail -F /var/log/k8gate*.log /var/log/auth.log | grep --line-buffered -E "error|warn|debug|info"
+        autostart: true
+        autorestart: true
+        env:
+          DEBUG: monitor:*

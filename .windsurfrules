@@ -1,3 +1,5 @@
 Must build all using GitHub Actions.
 Docker images stored on Docker Hub.
 Never push to origin, all work must be done in our fork. 
+Always analyze files fully.
+Do not edit files until having analyzed them fully start to end.

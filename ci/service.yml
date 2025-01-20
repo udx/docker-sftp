@@ -14,8 +14,10 @@ spec:
     - name: ssh
       port: 22
       targetPort: 22
+    - name: api
+      port: 8080
+      targetPort: 8080
   selector:
     name: GITHUB_ORG-sftp-GITHUB_BRANCH
     git.name: docker-sftp
     git.branch: GITHUB_BRANCH
-

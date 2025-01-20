@@ -1,46 +1,41 @@
 {
-    "name": "docker-sftp",
+    "name": "k8gate",
     "version": "0.7.1",
-    "description": "SSH tunnels to Kubernetes containers",
+    "description": "Kubernetes SSH Gateway with SFTP and API support",
     "main": "bin/server.js",
     "scripts": {
-        "dev-start": "NODE_ENV=development pm2 start --watch --name server-ssh-dev bin/server.js",
-        "start": "pm2 startOrReload static/ecosystem.config.js",
+        "start": "DEBUG=k8gate:*,api:*,auth:* node bin/server.js | tee -a /var/log/k8gate.log",
+        "start:events": "DEBUG=k8gate:events:*,firebase:* node bin/events.js | tee -a /var/log/k8gate-events.log",
         "test": "jest",
         "test:integration": "jest tests/ssh-integration.test.js",
         "lint": "eslint .",
         "lint:fix": "eslint . --fix"
     },
     "bin": {
-        "controller.keys": "bin/controller.keys.js",
-        "rabbit.ssh": "bin/rabbit.ssh.cli.js"
+        "k8gate": "bin/server.js",
+        "k8gate-events": "bin/events.js",
+        "k8gate-keys": "bin/controller.keys.js"
     },
     "repository": {
         "type": "git",
         "url": "git+https://github.com/udx/docker-sftp.git"
+    },
+    "dependencies": {
+        "axios": "^1.6.5",
+        "debug": "^4.3.4",
+        "express": "^4.18.2",
+        "lodash": "^4.17.21",
+        "md5": "^2.3.0",
+        "winston": "^3.11.0"
+    },
+    "devDependencies": {
+        "eslint": "^8.56.0",
+        "jest": "^29.7.0"
     },
     "author": "",
     "license": "ISC",
     "bugs": {
         "url": "https://github.com/udx/docker-sftp/issues"
     },
-    "homepage": "https://github.com/udx/docker-sftp#readme",
-    "dependencies": {
-        "async": "^3.2.6",
-        "axios": "^1.7.9",
-        "debug": "^4.4.0",
-        "dot-object": "^2.1.5",
-        "express": "^4.21.2",
-        "firebase-admin": "^13.0.2",
-        "google-gax": "^4.4.1",
-        "lodash": "^4.17.21",
-        "md5": "^2.3.0",
-        "mustache": "^4.2.0"
-    },
-    "devDependencies": {
-        "eslint": "^8.56.0",
-        "eslint-plugin-node": "^11.1.0",
-        "jest": "^29.7.0",
-        "globals": "^13.24.0"
-    }
+    "homepage": "https://github.com/udx/docker-sftp#readme"
 }

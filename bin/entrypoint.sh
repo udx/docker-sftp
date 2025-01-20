@@ -71,5 +71,8 @@ else
   fi
 fi
 
-# Keep container running
-tail -f /var/log/sshd.log
+# Create log files if they don't exist
+touch /var/log/k8gate.log /var/log/k8gate-events.log /var/log/auth.log
+
+# Keep container running and monitor logs
+exec tail -F /var/log/k8gate*.log /var/log/auth.log | grep --line-buffered -E "error|warn|debug|info"

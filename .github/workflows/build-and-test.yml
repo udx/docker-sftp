@@ -65,7 +65,7 @@ jobs:
     - name: Build Docker image
       env:
         REGISTRY: usabilitydynamics
-        IMAGE_NAME: k8-container-gate
+        IMAGE_NAME: k8gate
       run: |
         docker build \
           --tag ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }} \
@@ -76,7 +76,17 @@ jobs:
     - name: Test container startup and services
       env:
         REGISTRY: usabilitydynamics
-        IMAGE_NAME: k8-container-gate
+        IMAGE_NAME: k8gate
+        ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        KUBERNETES_CLUSTER_ENDPOINT: https://test-cluster:6443
+        KUBERNETES_CLUSTER_NAME: test-cluster
+        KUBERNETES_CLUSTER_NAMESPACE: test-namespace
+        KUBERNETES_CLUSTER_USER_TOKEN: test-user-token
+        KUBERNETES_CLUSTER_SERVICEACCOUNT: test-serviceaccount
+        KUBERNETES_CLUSTER_CERTIFICATE: test-cert
+        KUBERNETES_CLUSTER_USER_SECRET: test-secret
+        KUBERNETES_CLUSTER_CONTEXT: test-context
+        ALLOW_SSH_ACCESS_ROLES: admin,maintain,write
       run: |
         # Create test SSH key
         ssh-keygen -t rsa -f /tmp/test_key -N ""
@@ -86,9 +96,19 @@ jobs:
           -e NODE_ENV=test \
           -e SERVICE_ENABLE_SSHD=true \
           -e SERVICE_ENABLE_API=true \
-          -e DEBUG=ssh:* \
+          -e DEBUG=k8gate:*,api:*,auth:*,ssh:* \
           -e SERVICE_ENABLE_K8S=false \
           -e SERVICE_ENABLE_FIREBASE=false \
+          -e ACCESS_TOKEN \
+          -e KUBERNETES_CLUSTER_ENDPOINT \
+          -e KUBERNETES_CLUSTER_NAME \
+          -e KUBERNETES_CLUSTER_NAMESPACE \
+          -e KUBERNETES_CLUSTER_USER_TOKEN \
+          -e KUBERNETES_CLUSTER_SERVICEACCOUNT \
+          -e KUBERNETES_CLUSTER_CERTIFICATE \
+          -e KUBERNETES_CLUSTER_USER_SECRET \
+          -e KUBERNETES_CLUSTER_CONTEXT \
+          -e ALLOW_SSH_ACCESS_ROLES \
           -p 2222:22 \
           -p 8080:8080 \
           ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
@@ -135,7 +155,7 @@ jobs:
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       env:
         REGISTRY: usabilitydynamics
-        IMAGE_NAME: k8-container-gate
+        IMAGE_NAME: k8gate
       run: |
         # Push both tagged and latest versions
         docker push ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}

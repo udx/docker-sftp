@@ -13,7 +13,7 @@ env:
   CLOUD_RUN_PROJECT_ID: destinationpickleball-com-8173
   K8S_PROJECT_ID: rabbit-cdmsqarskcacnbpe
   REGION: us-central1
-  SERVICE_NAME: k8-container-gate
+  SERVICE_NAME: k8gate
 
 jobs:
   deploy:
@@ -76,7 +76,7 @@ jobs:
       id: deploy
       env:
         REGISTRY: usabilitydynamics
-        IMAGE_NAME: k8-container-gate
+        IMAGE_NAME: k8gate
       run: |
         # Deploy service
         gcloud run deploy ${{ env.SERVICE_NAME }} \
@@ -89,48 +89,28 @@ jobs:
           --cpu=1 \
           --timeout=300 \
           --service-account=${{ secrets.CLOUD_RUN_SERVICE_ACCOUNT }} \
-          --set-env-vars="NODE_ENV=production,SERVICE_ENABLE_SSHD=true,SERVICE_ENABLE_API=true" \
+          --set-env-vars="NODE_ENV=production" \
+          --set-env-vars="SERVICE_ENABLE_SSHD=true" \
+          --set-env-vars="SERVICE_ENABLE_API=true" \
+          --set-env-vars="SERVICE_ENABLE_FIREBASE=false" \
+          --set-env-vars="DEBUG=k8gate:*,api:*,auth:*,ssh:*" \
+          --set-env-vars="KUBERNETES_CLUSTER_NAME=${{ secrets.GKE_CLUSTER_NAME }}" \
           --set-env-vars="KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}" \
+          --set-env-vars="KUBERNETES_CLUSTER_ENDPOINT=https://${{ secrets.GKE_CLUSTER_ENDPOINT }}" \
+          --set-env-vars="KUBERNETES_CLUSTER_SERVICEACCOUNT=${{ secrets.K8S_SERVICE_ACCOUNT }}" \
+          --set-env-vars="KUBERNETES_CLUSTER_CONTEXT=${{ secrets.KUBERNETES_CLUSTER_CONTEXT }}" \
+          --set-env-vars="ALLOW_SSH_ACCESS_ROLES=${{ secrets.ALLOW_SSH_ACCESS_ROLES }}" \
           --set-env-vars="GCP_PROJECT_ID=${{ env.K8S_PROJECT_ID }}" \
           --set-env-vars="GKE_CLUSTER_NAME=${{ secrets.GKE_CLUSTER_NAME }}" \
           --set-env-vars="GKE_CLUSTER_REGION=${{ env.REGION }}" \
           --set-secrets="K8S_SERVICE_ACCOUNT_KEY=k8s-auth-key:${{ steps.k8s-creds.outputs.SECRET_VERSION }}" \
+          --set-secrets="GITHUB_ACCESS_TOKEN=github-access-token:latest" \
           --allow-unauthenticated \
           --use-http2
         
         # Get service URL
-        echo "SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --platform managed --region ${{ env.REGION }} --project ${{ env.CLOUD_RUN_PROJECT_ID }} --format 'value(status.url)')" >> $GITHUB_OUTPUT
+        echo "SERVICE_URL=$(gcloud run services describe ${{ env.SERVICE_NAME }} --region=${{ env.REGION }} --format='value(status.url)')" >> $GITHUB_OUTPUT
     
-    - name: Set up TCP load balancer for SSH
-      id: ssh-lb
+    - name: Show Service URL
       run: |
-        # Create TCP load balancer in Cloud Run project
-        gcloud compute forwarding-rules create k8gate-ssh \
-          --load-balancing-scheme=EXTERNAL \
-          --ports=22 \
-          --target-service=${{ env.SERVICE_NAME }} \
-          --region=${{ env.REGION }} \
-          --project=${{ env.CLOUD_RUN_PROJECT_ID }} || true
-        
-        # Get the load balancer IP
-        echo "SSH_ENDPOINT=$(gcloud compute forwarding-rules describe k8gate-ssh --region=${{ env.REGION }} --project=${{ env.CLOUD_RUN_PROJECT_ID }} --format='get(IPAddress)')" >> $GITHUB_OUTPUT
-    
-    - name: Verify Deployment
-      run: |
-        # Wait for service to be ready
-        echo "Waiting for service to be ready..."
-        sleep 30
-        
-        # Test HTTP endpoint
-        echo "Testing HTTP endpoint..."
-        curl -f "${{ steps.deploy.outputs.SERVICE_URL }}/health" || exit 1
-        
-        # Test SSH endpoint
-        echo "Testing SSH endpoint..."
-        nc -zv ${{ steps.ssh-lb.outputs.SSH_ENDPOINT }} 22 || exit 1
-        
-        # Print connection information
-        echo "=== Deployment Information ==="
-        echo "HTTP Endpoint: ${{ steps.deploy.outputs.SERVICE_URL }}"
-        echo "SSH Endpoint: ${{ steps.ssh-lb.outputs.SSH_ENDPOINT }}"
-        echo "To connect: ssh <github-username>@${{ steps.ssh-lb.outputs.SSH_ENDPOINT }}"
+        echo "Service URL: ${{ steps.deploy.outputs.SERVICE_URL }}"

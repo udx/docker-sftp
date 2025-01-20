@@ -3,11 +3,45 @@ kind: workerService
 version: udx.io/worker-v1/service
 services:
   - name: sshd
-    command: /usr/sbin/sshd -D
+    command: /usr/sbin/sshd -D -f /etc/ssh/sshd_config -e
     autostart: true
     autorestart: true
+    envs:
+      - DEBUG=ssh:*,auth:*
+    # max_restarts: 50
+    # restart_delay: 10000
+    # log_date_format: YYYY-MM-DD HH:mm Z
     
-  - name: api
-    command: node server.js
+  - name: k8gate
+    command: node /opt/sources/k8gate/server/bin/server.js 2>&1 | tee -a /var/log/k8gate.log
     autostart: true
     autorestart: true
+    envs:
+      - DEBUG=k8gate:*,api:*,auth:*
+      - NODE_ENV=production
+      - PORT=8080
+      - NODE_PORT=8080
+    # max_memory_restart: 512M
+    # max_restarts: 50
+    # restart_delay: 10000
+    # log_date_format: YYYY-MM-DD HH:mm Z
+    # healthcheck:
+    #   http:
+    #     port: ${NODE_PORT}
+    #     path: /health
+    #     interval: 10s
+    #     timeout: 3s
+    #     retries: 2
+    
+  - name: k8gate-events
+    command: node /opt/sources/k8gate/server/bin/events.js 2>&1 | tee -a /var/log/k8gate-events.log
+    autostart: ${SERVICE_ENABLE_FIREBASE}
+    autorestart: true
+    envs:
+      - DEBUG=k8gate:events:*,firebase:*
+    # max_memory_restart: 512M
+    # max_restarts: 50
+    # restart_delay: 10000
+    # log_date_format: YYYY-MM-DD HH:mm Z
+    # depends_on:
+    #   - k8gate

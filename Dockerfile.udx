@@ -1,22 +1,28 @@
 FROM usabilitydynamics/udx-worker-nodejs:latest
 
-# Environment variables
-ENV NODE_ENV=production \
+# Set build arguments and environment variables
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV} \
     SERVICE_ENABLE_SSHD=true \
     SERVICE_ENABLE_API=true \
     SERVICE_ENABLE_FIREBASE=false \
-    USE_GKE_GCLOUD_AUTH_PLUGIN=True
+    USE_GKE_GCLOUD_AUTH_PLUGIN=true
 
-# Install required packages
+# Switch to root for package installations
 USER root
-RUN apt-get update && apt-get install -y \
+
+# Install OpenSSH server and other dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server \
+    openssh-sftp-server \
     curl \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Set up directories and permissions
+WORKDIR /opt/sources/k8gate/server
+
 RUN mkdir -p /home/udx/.kube \
-    /opt/sources/k8gate/server \
     /root/.ssh \
     /etc/ssh \
     /etc/ssh/authorized_keys.d \
@@ -26,13 +32,11 @@ RUN mkdir -p /home/udx/.kube \
     && chown -R udx:udx /home/udx \
     && chown -R udx:udx /opt/sources/k8gate
 
-# Copy application files
-COPY --chown=udx:udx . /opt/sources/k8gate/server
+# Copy SSH configuration
 COPY --chown=udx:udx static/etc/ssh/ /etc/ssh/
 
-# Set permissions for executables
-RUN chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
-    && touch /var/log/sshd.log \
+# Set up logging and permissions
+RUN touch /var/log/sshd.log \
     && chown udx:udx /var/log/sshd.log
 
 # Install kubectl
@@ -43,9 +47,11 @@ RUN curl -L https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl -o /usr/lo
 RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/root --disable-prompts \
     && /root/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin
 
-# Switch to non-root user
+# Copy application files
+COPY --chown=udx:udx . .
+
+# Switch back to non-root user
 USER udx
-WORKDIR /opt/sources/k8gate/server
 
 # Add Google Cloud SDK to PATH
 ENV PATH $PATH:/root/google-cloud-sdk/bin
@@ -56,9 +62,9 @@ RUN npm ci --only=production
 # Volume for SSH keys
 VOLUME [ "/etc/ssh/authorized_keys.d" ]
 
-# Expose SSH port
-EXPOSE 22
+# Expose ports
+EXPOSE 22 8080
 
-# Set entrypoint and default command
+# Set entrypoint
 ENTRYPOINT ["/opt/sources/k8gate/server/bin/entrypoint.sh"]
 CMD [ "pm2", "logs" ]

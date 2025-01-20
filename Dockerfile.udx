@@ -57,7 +57,8 @@ RUN echo "---\nkind: workerConfig\nversion: udx.io/worker-v1/config\nconfig:\n  
     && chown -R udx:udx /home/udx/.cd
 
 # Set permissions for executables
-RUN chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
+RUN mkdir -p /usr/local/lib/node_modules \
+    && chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
     && npm install -g pm2 \
     && chown -R udx:udx /usr/local/lib/node_modules \
     && chmod -R 755 /usr/local/lib/node_modules

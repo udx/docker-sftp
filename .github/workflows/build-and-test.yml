@@ -54,15 +54,17 @@ jobs:
           -e SERVICE_ENABLE_SSHD=true \
           -e SERVICE_ENABLE_API=true \
           -e DEBUG=ssh:* \
-          -e KUBERNETES_CLUSTER_ENDPOINT="${{ secrets.TEST_K8S_ENDPOINT }}" \
-          -e KUBERNETES_CLUSTER_NAMESPACE="${{ secrets.TEST_K8S_NAMESPACE }}" \
-          -e KUBERNETES_CLUSTER_USER_TOKEN="${{ secrets.TEST_K8S_TOKEN }}" \
+          -e SERVICE_ENABLE_K8S=false \
+          -e SERVICE_ENABLE_FIREBASE=false \
           -p 2222:22 \
           -p 8080:8080 \
           ${REGISTRY}/${IMAGE_NAME}:${{ steps.version.outputs.TAG }}
         
         # Wait for container to start
         sleep 15
+        
+        # Get container logs
+        docker logs test-container
         
         # Check if sshd is running and properly configured
         docker exec test-container sh -c '
@@ -93,12 +95,8 @@ jobs:
         docker cp /tmp/test_key.pub test-container:/etc/ssh/authorized_keys.d/test-user
         docker exec test-container chmod 644 /etc/ssh/authorized_keys.d/test-user
         
-        # Attempt SSH connection (should fail without proper setup, but verify port is open)
+        # Verify SSH port is open
         nc -zv localhost 2222 || exit 1
-        
-        # Get container logs for debugging
-        echo "=== Container Logs ==="
-        docker logs test-container
     
     - name: Save Docker image
       run: |

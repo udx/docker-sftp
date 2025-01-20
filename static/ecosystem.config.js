@@ -3,7 +3,7 @@ module.exports.apps = []
 if( process.env.SERVICE_ENABLE_SSHD === 'true' ) {
 
   module.exports.apps.push({
-    "script": "/usr/local/sbin/sshd",
+    "script": "/usr/sbin/sshd", // Updated path for Ubuntu-based udx-worker-nodejs
     "args": "-D -f /etc/ssh/sshd_config -e",
     "name": "sshd",
     "merge_logs": true,

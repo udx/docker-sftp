@@ -35,12 +35,12 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
         if (process.env.SLACK_NOTIFICACTION_URL && process.env.SLACK_NOTIFICACTION_URL.indexOf('https') === 0) {
             axios({
-                method: 'post', //you can set what request you want to be
+                method: 'post',
                 url: process.env.SLACK_NOTIFICACTION_URL,
                 data: {
                     channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
                     username: 'SSH/Server',
-                    text: 'SSH Keys refreshed on ' + (process.env.HOSTNAME || process.env.HOST) + ' has finished. ```kubectl -n k8gate exec -it ' + (process.env.HOSTNAME || process.env.HOST) + ' sh```'
+                    text: "SSH Keys refreshed on " + (process.env.HOSTNAME || process.env.HOST) + " has finished. ```kubectl -n " + process.env.KUBERNETES_CLUSTER_NAMESPACE + " exec -it " + (process.env.HOSTNAME || process.env.HOST) + " sh```"
                 }
             });
 
@@ -52,8 +52,8 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
 
     options = _.defaults(options, {
         statePath: process.env.CONTROLLER_KEYS_PATH || null,
-        keysPath: process.env.DIRECTORY_KEYS_BASE || './tmp/authorized_keys.d',
-        passwordFile: process.env.PASSWORD_FILE || './tmp/passwd-tmp',
+        keysPath: process.env.DIRECTORY_KEYS_BASE || '/etc/ssh/authorized_keys.d',
+        passwordFile: process.env.PASSWORD_FILE || '/etc/passwd',
         passwordTemplate: process.env.PASSWORDS_TEMPLATE || 'alpine.passwords',
         passwordPath: process.env.PASSWORDS_PATH || '/opt/sources/rabbitci/rabbit-ssh/static/templates/'
     });

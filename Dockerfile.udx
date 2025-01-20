@@ -18,8 +18,10 @@ RUN apt-get update && apt-get install -y \
 RUN mkdir -p /home/udx/.kube \
     /opt/sources/k8gate/server \
     /root/.ssh \
+    /etc/ssh \
     /etc/ssh/authorized_keys.d \
     && rm -rf /etc/ssh/* \
+    && mkdir -p /etc/ssh/authorized_keys.d \
     && chmod 755 /etc/ssh/authorized_keys.d \
     && chown -R udx:udx /home/udx \
     && chown -R udx:udx /opt/sources/k8gate

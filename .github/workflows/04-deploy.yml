@@ -49,22 +49,12 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     
-    - name: Get GKE credentials
-      uses: google-github-actions/get-gke-credentials@v1
+    - name: Set up Google Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
       with:
-        cluster_name: ${{ secrets.GKE_CLUSTER_NAME }}
-        location: ${{ secrets.GKE_CLUSTER_LOCATION }}
-        credentials: ${{ secrets.GKE_SA_KEY }}
-    
-    - name: Set up Kustomize
-      run: |
-        curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
-        sudo mv kustomize /usr/local/bin/
-    
-    - name: Configure deployment files
-      run: |
-        cd ci
-        kustomize edit set image k8-container-gate=usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }}
+        project_id: ${{ secrets.GCP_PROJECT_ID }}
+        service_account_key: ${{ secrets.GCP_SA_KEY }}
+        export_default_credentials: true
     
     - name: Push to Docker Hub
       run: |
@@ -80,7 +70,35 @@ jobs:
           docker push usabilitydynamics/k8-container-gate:${VERSION}
         fi
 
-    - name: Deploy to Kubernetes
+    - name: Deploy to Cloud Run
       run: |
-        kubectl apply -k ci/
-        kubectl rollout status deployment/k8-container-gate -n default
+        gcloud run deploy k8-container-gate \
+          --image=usabilitydynamics/k8-container-gate:${{ steps.version.outputs.TAG }} \
+          --platform=managed \
+          --region=us-central1 \
+          --port=8080 \
+          --memory=512Mi \
+          --cpu=1 \
+          --timeout=300 \
+          --service-account=${{ secrets.GCP_SERVICE_ACCOUNT }} \
+          --set-env-vars="NODE_ENV=production,SERVICE_ENABLE_SSHD=true,SERVICE_ENABLE_API=true" \
+          --set-env-vars="KUBERNETES_CLUSTER_ENDPOINT=${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }},KUBERNETES_CLUSTER_NAMESPACE=${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}" \
+          --set-secrets="KUBERNETES_CLUSTER_USER_TOKEN=k8gate-k8s-token:latest,ACCESS_TOKEN=k8gate-github-token:latest" \
+          --allow-unauthenticated \
+          --use-http2
+
+        # Wait for deployment to complete
+        gcloud run services describe k8-container-gate \
+          --platform managed \
+          --region us-central1 \
+          --format 'get(status.conditions[0].status)'
+
+        # Set up TCP load balancer for SSH traffic
+        gcloud compute forwarding-rules create k8gate-ssh \
+          --load-balancing-scheme=EXTERNAL \
+          --ports=22 \
+          --target-service=k8-container-gate \
+          --region=us-central1 || true  # Don't fail if already exists
+
+        # Get the load balancer IP
+        echo "SSH_ENDPOINT=$(gcloud compute forwarding-rules describe k8gate-ssh --region=us-central1 --format='get(IPAddress)')" >> $GITHUB_OUTPUT

@@ -1,9 +1,13 @@
 name: Deploy to GCP
 
 on:
-  push:
-    branches: [ master, latest ]
-    tags: [ 'v*' ]
+  # Manual deployment only
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to deploy'
+        required: true
+        default: 'latest'
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}

@@ -1,19 +1,19 @@
 name: Deploy
 
 on:
-  workflow_run:
-    workflows: ["Security Scan"]
-    types:
-      - completed
-    branches: [ master ]
-  push:
-    tags: [ 'v*' ]
+  # Manual deployment only
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Version tag to deploy (e.g., v1.0.0)'
+        required: true
+        default: 'latest'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    if: (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))
+    if: (github.event_name == 'workflow_dispatch')
     
     steps:
     - uses: actions/checkout@v4

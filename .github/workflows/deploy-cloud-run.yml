@@ -1,23 +1,25 @@
 name: Deploy to Cloud Run
 
 on:
-  workflow_run:
-    workflows: ["Publish to DockerHub"]
-    types:
-      - completed
-    branches: [master]
+  # Manual deployment only
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Docker image tag to deploy'
+        required: true
+        default: 'latest'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set Tag from package.json
+    - name: Set Tag
       id: version
-      run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+      run: |
+        echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_OUTPUT
     
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v1
@@ -29,7 +31,7 @@ jobs:
     - name: Deploy to Cloud Run
       id: deploy
       env:
-        REGISTRY: ${{ secrets.DOCKER_REGISTRY }}
+        REGISTRY: usabilitydynamics
         IMAGE_NAME: k8-container-gate
       run: |
         # Deploy service

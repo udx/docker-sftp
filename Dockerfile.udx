@@ -26,6 +26,7 @@ RUN mkdir -p /home/udx/.kube \
     /root/.ssh \
     /etc/ssh \
     /etc/ssh/authorized_keys.d \
+    /home/udx/.cd/configs \
     && rm -rf /etc/ssh/* \
     && mkdir -p /etc/ssh/authorized_keys.d \
     && chmod 755 /etc/ssh/authorized_keys.d \
@@ -49,6 +50,11 @@ RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/root --di
 
 # Copy application files
 COPY --chown=udx:udx . .
+
+# Create worker configuration
+RUN echo "---\nkind: workerConfig\nversion: udx.io/worker-v1/config\nconfig:\n  env:\n    NODE_ENV: ${NODE_ENV}\n" > /home/udx/.cd/configs/worker.yml \
+    && echo "---\nkind: workerService\nversion: udx.io/worker-v1/service\nservices:\n  - name: sshd\n    command: /usr/sbin/sshd -D\n    autostart: true\n    autorestart: true\n  - name: api\n    command: node server.js\n    autostart: true\n    autorestart: true\n" > /etc/worker/services.yml \
+    && chown -R udx:udx /home/udx/.cd
 
 # Set permissions for executables
 RUN chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \

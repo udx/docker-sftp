@@ -56,12 +56,15 @@ RUN echo "---\nkind: workerConfig\nversion: udx.io/worker-v1/config\nconfig:\n  
     && echo "---\nkind: workerService\nversion: udx.io/worker-v1/service\nservices:\n  - name: sshd\n    command: /usr/sbin/sshd -D\n    autostart: true\n    autorestart: true\n  - name: api\n    command: node server.js\n    autostart: true\n    autorestart: true\n" > /etc/worker/services.yml \
     && chown -R udx:udx /home/udx/.cd
 
-# Set permissions for executables
+# Set permissions for executables and npm
 RUN mkdir -p /usr/local/lib/node_modules \
     && chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
     && npm install -g pm2 \
     && chown -R udx:udx /usr/local/lib/node_modules \
-    && chmod -R 755 /usr/local/lib/node_modules
+    && chmod -R 755 /usr/local/lib/node_modules \
+    && mkdir -p /home/udx/.npm \
+    && chown -R udx:udx /home/udx/.npm \
+    && chmod -R 775 /home/udx/.npm
 
 # Switch back to non-root user
 USER udx
@@ -70,9 +73,7 @@ USER udx
 ENV PATH $PATH:/root/google-cloud-sdk/bin
 
 # Install dependencies
-RUN mkdir -p /home/udx/.npm && \
-    chown -R udx:udx /home/udx/.npm && \
-    npm ci --only=production
+RUN npm ci --only=production
 
 # Volume for SSH keys
 VOLUME [ "/etc/ssh/authorized_keys.d" ]

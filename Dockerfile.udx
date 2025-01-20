@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssh-server \
     openssh-sftp-server \
     curl \
+    netcat-traditional \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -41,12 +42,13 @@ RUN touch /var/log/sshd.log \
     && chown udx:udx /var/log/sshd.log
 
 # Install kubectl
-RUN curl -L https://dl.k8s.io/release/v1.32.0/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+RUN curl -L https://dl.k8s.io/release/v1.29.0/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
     && chmod +x /usr/local/bin/kubectl
 
-# Install Google Cloud SDK
-RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/root --disable-prompts \
-    && /root/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin
+# Install Google Cloud SDK in /usr/local
+RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/usr/local --disable-prompts \
+    && /usr/local/google-cloud-sdk/bin/gcloud components install gke-gcloud-auth-plugin \
+    && chown -R udx:udx /usr/local/google-cloud-sdk
 
 # Copy application files
 COPY --chown=udx:udx . .
@@ -70,7 +72,7 @@ RUN mkdir -p /usr/local/lib/node_modules \
 USER udx
 
 # Add Google Cloud SDK to PATH
-ENV PATH $PATH:/root/google-cloud-sdk/bin
+ENV PATH $PATH:/usr/local/google-cloud-sdk/bin
 
 # Install dependencies
 RUN npm ci --only=production

@@ -35,6 +35,33 @@ jobs:
         username: ${{ secrets.DOCKER_HUB_USERNAME }}
         password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
     
+    - name: Pull base image
+      run: docker pull usabilitydynamics/udx-worker-nodejs:latest || docker pull node:20-slim
+    
+    - name: Build base image if needed
+      if: failure()
+      run: |
+        # Create temporary Dockerfile for base image
+        cat > Dockerfile.base << 'EOF'
+        FROM node:20-slim
+        
+        # Create udx user and group
+        RUN groupadd -r udx && useradd -r -g udx -m udx
+        
+        # Create necessary directories
+        RUN mkdir -p /etc/worker && chown -R udx:udx /etc/worker
+        
+        # Set working directory
+        WORKDIR /opt/sources
+        
+        # Switch to udx user
+        USER udx
+        EOF
+        
+        # Build and push base image
+        docker build -t usabilitydynamics/udx-worker-nodejs:latest -f Dockerfile.base .
+        docker push usabilitydynamics/udx-worker-nodejs:latest
+    
     - name: Build Docker image
       env:
         REGISTRY: usabilitydynamics

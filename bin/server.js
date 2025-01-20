@@ -8,6 +8,7 @@
 const axios = require('axios');
 const _ = require('lodash');
 const express = require('express');
+const https = require('https');
 const debug = require('debug')('ssh');
 const { exec } = require('child_process');
 const util = require('util');

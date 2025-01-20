@@ -40,7 +40,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                 data: {
                     channel: process.env.SLACK_NOTIFICACTION_CHANNEL,
                     username: 'SSH/Server',
-                    text: "SSH Keys refreshed on " + (process.env.HOSTNAME || process.env.HOST) + " has finished. ```kubectl -n " + process.env.KUBERNETES_CLUSTER_NAMESPACE + " exec -it " + (process.env.HOSTNAME || process.env.HOST) + " sh```"
+                    text: 'SSH Keys refreshed on ' + (process.env.HOSTNAME || process.env.HOST) + ' has finished. ```kubectl -n ' + process.env.KUBERNETES_CLUSTER_NAMESPACE + ' exec -it ' + (process.env.HOSTNAME || process.env.HOST) + ' sh```'
                 }
             });
 

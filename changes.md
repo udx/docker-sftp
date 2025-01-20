@@ -1,3 +1,10 @@
+### 0.7.1
+* Added multi-provider support (Kubernetes, Firebase, local state providers)
+* Added Azure Kubernetes Service (AKS) deployment support
+* Enhanced health check endpoints for Cloud Run
+* Added rate limiting and event tracking
+* Improved error handling and logging
+
 ### 0.6.0
 * updated kubectl to 1.32.0
 * changed kubectl package source

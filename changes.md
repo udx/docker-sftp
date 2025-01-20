@@ -1,4 +1,9 @@
-### 0.7.0
+### 0.7.1
+* Added multi-provider support (Kubernetes, Firebase, local state providers)
+* Added Azure Kubernetes Service (AKS) deployment support
+* Enhanced health check endpoints for Cloud Run
+* Added rate limiting and event tracking
+* Improved error handling and logging
 * Migrated deployment from GKE to Cloud Run
 * Added new GitHub Actions workflows for Cloud Run deployment
 * Added comprehensive Cloud Run configuration documentation

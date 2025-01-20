@@ -50,6 +50,12 @@ RUN curl -sSL https://sdk.cloud.google.com | bash -s -- --install-dir=/root --di
 # Copy application files
 COPY --chown=udx:udx . .
 
+# Set permissions for executables
+RUN chmod +x /opt/sources/k8gate/server/bin/entrypoint.sh \
+    && npm install -g pm2 \
+    && chown -R udx:udx /usr/local/lib/node_modules \
+    && chmod -R 755 /usr/local/lib/node_modules
+
 # Switch back to non-root user
 USER udx
 

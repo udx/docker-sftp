@@ -1,3 +1,6 @@
+### 0.6.1
+* added changes to fix startup warnings
+
 ### 0.6.0
 * updated kubectl to 1.32.0
 * changed kubectl package source

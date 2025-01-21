@@ -7,10 +7,14 @@ export _SERVICE=${USER};
 export CONNECTION_STRING=$(echo ${ENV_VARS} | cut -d ';' -f 1)
 export USER_LOGIN=$(echo ${ENV_VARS} | cut -d ';' -f 2)
 
-echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+if [ -z "${SSH_ORIGINAL_COMMAND}" ]; then
+  echo "[$(date)] SSH_ORIGINAL_COMMAND is empty. Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+else
+  echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+fi
 
 ## SFTP handling with Alpine-specific paths
-if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]] || [[ ${SSH_ORIGINAL_COMMAND} == "/usr/lib/ssh/sftp-server" ]]; then
+if [[ "${SSH_ORIGINAL_COMMAND}" == "internal-sftp" ]] || [[ "${SSH_ORIGINAL_COMMAND}" == "/usr/lib/ssh/sftp-server" ]]; then
   echo "[$(date)] SFTP connection attempt from [${SSH_CLIENT}] for user [${USER}] to pod [${CONNECTION_STRING}]" >> /var/log/sshd.log
 
   # Check container OS type for better error reporting

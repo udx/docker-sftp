@@ -54,7 +54,7 @@ if [[ "x${SSH_ORIGINAL_COMMAND}" != "x" ]]; then
   fi
 
   ##/usr/local/bin/kubectl exec ${_SERVICE} -ti -- "${SSH_ORIGINAL_COMMAND}"
-  __commad="/usr/local/bin/kubectl exec -n $CONNECTION_STRING -ti -- $SSH_ORIGINAL_COMMAND"
+  __commad="/usr/local/bin/kubectl exec -n $CONNECTION_STRING -i -- $SSH_ORIGINAL_COMMAND"
   
   echo $__commad >> /var/log/sshd.log
 

@@ -47,9 +47,10 @@ fi
 ## Specific Command, pipe into container.
 if [[ "x${SSH_ORIGINAL_COMMAND}" != "x" ]]; then
 
-  echo "[$(date)] Have SSH session using command: [docker $CONNECTION_STRING /bin/bash -c ${SSH_ORIGINAL_COMMAND})] for [${USER}] For from [${API_REQUEST_URL}]." >> /var/log/sshd.log
+  echo "[$(date)] Have SSH session using command: [kubectl exec -n $CONNECTION_STRING -ti -- ${SSH_ORIGINAL_COMMAND})] for [${USER}] from [${API_REQUEST_URL}]." >> /var/log/sshd.log
 
-  /usr/local/bin/kubectl exec ${_SERVICE} -ti -- "${SSH_ORIGINAL_COMMAND}"
+  ##/usr/local/bin/kubectl exec ${_SERVICE} -ti -- "${SSH_ORIGINAL_COMMAND}"
+  /usr/local/bin/kubectl exec -n $CONNECTION_STRING -ti -- "${SSH_ORIGINAL_COMMAND}" >> /var/log/sshd.log
 fi;
 
 ## Terminal, pipe into container.

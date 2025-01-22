@@ -1,3 +1,6 @@
+### 0.6.2
+* added changes to controller.ssh.entrypoint. Fixes for exec command
+
 ### 0.6.1
 * added changes to fix startup warnings
 

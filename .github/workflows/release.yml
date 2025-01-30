@@ -1,0 +1,50 @@
+name: Release
+
+on:
+  push:
+    # branches:
+    #   - "master"
+
+jobs:
+  docker-release:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3.8.0
+        with:
+          driver: docker-container
+
+      - name: Get Tag from package.json
+        id: version
+        run: echo "TAG=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: "usabilitydynamics"
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and Push Docker Image
+        id: docker_push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64, linux/arm64
+          push: true
+          sbom: true
+          provenance: true
+          tags: |
+            usabilitydynamics/docker-sftp:${{ steps.version.outputs.TAG }}
+            usabilitydynamics/docker-sftp:latest
+
+      - name: Log out from Docker Hub
+        run: docker logout

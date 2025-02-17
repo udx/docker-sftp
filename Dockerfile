@@ -1,4 +1,4 @@
-FROM node:23.5-alpine
+FROM node:23.8-alpine
 ENV KUBECTL_VERSION=1.32.0
 ENV NODE_ENV=production
 ENV SERVICE_ENABLE_SSHD=true

@@ -1,27 +1,26 @@
-#!/bin/sh
+#!/bin/bash
 
 # generate fresh rsa key
 if [[ ! -f "/etc/ssh/ssh_host_rsa_key" ]]; then
 	ssh-keygen -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
   chmod 0600 /etc/ssh/ssh_host_rsa_key
 fi
-
 # generate fresh dsa key
 if [[ ! -f "/etc/ssh/ssh_host_dsa_key" ]]; then
 	ssh-keygen -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa
   chmod 0600 /etc/ssh/ssh_host_dsa_key
 fi
-
+# generate fresh ecdsa key
 if [[ -f "/etc/ssh/ssh_host_dsa_key" ]]; then
   chmod 0600 /etc/ssh/ssh_host_ecdsa_key
 fi;
 
 if [[ "${KUBERNETES_CLUSTER_CERTIFICATE}" != "" ]]; then
-  echo "Writing Kubernetes certificate to [/home/node/.kube/kuberentes-ca.crt]";
-  cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > /home/node/.kube/kuberentes-ca.crt
+  echo "Writing Kubernetes certificate to [/home/${USER}/.kube/kuberentes-ca.crt]";
+  cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > /home/${USER}/.kube/kuberentes-ca.crt
 fi;
 
-if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
+if [[ -f /home/${USER}/.kube/kuberentes-ca.crt ]]; then
   echo "Setting up Kubernetes [$KUBERNETES_CLUSTER_NAME] cluster with [$KUBERNETES_CLUSTER_NAMESPACE] namespace.";
 
   kubectl config set-cluster ${KUBERNETES_CLUSTER_NAME} \
@@ -38,9 +37,9 @@ if [[ -f /home/node/.kube/kuberentes-ca.crt ]]; then
 
   kubectl config use-context ${KUBERNETES_CLUSTER_NAMESPACE}
 
-  cp /root/.kube/config /home/node/.kube/config
+  # cp /root/.kube/config /home/node/.kube/config
 
-  chown -R node:node /home/node/.kube
+  # chown -R node:node /home/node/.kube
 
 fi;
 
@@ -51,5 +50,12 @@ npm install google-gax
 
 npm install
 
-## Command pass-through.
-exec "$@"
+# ## Command pass-through.
+# exec "$@"
+worker service start sshd
+worker service start rabbit-ssh-server
+
+worker service list
+
+worker service restart sshd
+worker service restart rabbit-ssh-server

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Create users
 touch /var/log/sshd.log
 chmod 777 /var/log/sshd.log

@@ -14,6 +14,7 @@ The Docker SFTP/SSH Gateway is designed as a secure bridge between users and Kub
 - **SFTP Support**: Internal SFTP subsystem enabled
 
 #### Key Files:
+
 - `/etc/ssh/sshd_config`: SSH daemon configuration
 - `/bin/controller.ssh.entrypoint.sh`: Connection handler
 - `/etc/ssh/authorized_keys.d/`: Dynamic key storage
@@ -23,6 +24,7 @@ The Docker SFTP/SSH Gateway is designed as a secure bridge between users and Kub
 The API server provides internal services for pod management and authentication.
 
 #### Endpoints:
+
 - `/_cat/connection-string/:user`: Get pod connection details
 - `/users`: List available users
 - `/apps`: List available applications
@@ -30,6 +32,7 @@ The API server provides internal services for pod management and authentication.
 - `/flushFirebaseContainers`: Maintenance endpoint
 
 #### Key Files:
+
 - `/bin/server.js`: Main API implementation
 - `/lib/utility.js`: Helper functions
 
@@ -38,12 +41,14 @@ The API server provides internal services for pod management and authentication.
 Handles SSH key synchronization and access control.
 
 #### Features:
+
 - GitHub collaborator synchronization
 - Role-based access control
 - Key rotation and updates
 - Slack notifications
 
 #### Key Files:
+
 - `/bin/controller.keys.js`: Key management logic
 - `/static/templates/*.mustache`: Password file templates
 
@@ -52,6 +57,7 @@ Handles SSH key synchronization and access control.
 Uses Firebase for maintaining container state and configuration.
 
 #### Features:
+
 - Real-time container tracking
 - State persistence
 - Automatic cleanup
@@ -69,6 +75,7 @@ Uses Firebase for maintaining container state and configuration.
 ### Authorization Levels
 
 1. **Production Access**
+
    - Limited to admin roles
    - Stricter security controls
    - Additional validation
@@ -97,12 +104,14 @@ Uses Firebase for maintaining container state and configuration.
 ## Monitoring and Maintenance
 
 ### Health Checks
+
 - API server status
 - Pod connectivity
 - Firebase state
 - SSH daemon health
 
 ### Notifications
+
 - Key updates
 - Access attempts
 - System events
@@ -111,6 +120,7 @@ Uses Firebase for maintaining container state and configuration.
 ## Deployment
 
 ### Container Setup
+
 - Ubuntu Linux base
 - Node.js runtime
 - Worker service system (supervisord-based)
@@ -118,6 +128,7 @@ Uses Firebase for maintaining container state and configuration.
 - Kubernetes tools (kubectl, gcloud)
 
 ### Kubernetes Integration
+
 - Service account configuration
 - RBAC policies
 - Network policies

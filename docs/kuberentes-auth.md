@@ -1,9 +1,11 @@
 # Kubernetes Authentication Setup
 
 ## Overview
+
 This guide explains how to set up Kubernetes authentication for the SFTP gateway using a service account.
 
 ## Prerequisites
+
 - `kubectl` installed and configured
 - Access to create service accounts and role bindings
 - `jq` command-line tool installed
@@ -11,6 +13,7 @@ This guide explains how to set up Kubernetes authentication for the SFTP gateway
 ## Setup Steps
 
 ### 1. Create Service Account
+
 ```bash
 # Create service account
 kubectl create sa docker-ssh -n default
@@ -20,6 +23,7 @@ KUBERNETES_CLUSTER_USER_SECRET=$(kubectl get sa -n default docker-ssh -o json | 
 ```
 
 ### 2. Extract Credentials
+
 ```bash
 # Get cluster certificate
 kubectl get secret -n default $KUBERNETES_CLUSTER_USER_SECRET -o json | \
@@ -38,6 +42,7 @@ KUBERNETES_CLUSTER_ENDPOINT=$(kubectl config view -o jsonpath="{.clusters[?(@.na
 ```
 
 ### 3. Verify Service Account
+
 ```bash
 # Check service account
 kubectl -n default get serviceaccount docker-ssh
@@ -49,6 +54,7 @@ kubectl -n default describe secret $KUBERNETES_CLUSTER_USER_SECRET
 ```
 
 ### 4. Configure RBAC
+
 ```bash
 # Create admin role binding
 kubectl -n default create rolebinding docker-ssh-admin \
@@ -60,13 +66,12 @@ kubectl -n default get rolebinding docker-ssh-admin
 ```
 
 ## Environment Variables
+
 See [Environment Variables](environment.md#kubernetes-configuration) for required Kubernetes configuration.
 
 ## Security Considerations
+
 - Store the certificate and token securely
 - Use minimal required permissions
 - Consider using namespaced role bindings
 - Regularly rotate credentials
-
-
-

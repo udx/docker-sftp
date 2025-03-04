@@ -3,6 +3,7 @@
 ## SSH Client Configuration
 
 ### Basic Setup
+
 Add this to your `~/.ssh/config`:
 
 ```ssh-config
@@ -32,6 +33,7 @@ Host www-myapp-com-dev
 ```
 
 ### Configuration Options Explained
+
 - `HostName`: The SSH server address
 - `User`: Your pod-specific username
 - `IdentityFile`: Your GitHub SSH key
@@ -45,6 +47,7 @@ Host www-myapp-com-dev
 ## Usage Examples
 
 ### Basic SSH Connection
+
 ```bash
 # Connect to production pod
 ssh www-myapp-com
@@ -60,6 +63,7 @@ ssh [pod-name]@ssh.rabbit.ci "ls -la"
 ```
 
 ### File Transfer
+
 ```bash
 # Interactive SFTP session
 sftp www-myapp-com-dev
@@ -74,9 +78,11 @@ scp [pod-name]@ssh.rabbit.ci:/remote/file local-path/
 ## Administrative Tasks
 
 ### User Management
+
 Users are automatically created and managed based on GitHub permissions. See [User Management](user-management.md) for details.
 
 ### Key Management
+
 ```bash
 # Sync GitHub keys
 node controller.keys.js sync
@@ -88,6 +94,7 @@ node controller.keys.js list
 ## Troubleshooting
 
 ### Health Check
+
 ```bash
 # Check service status
 worker service list
@@ -98,7 +105,9 @@ worker service logs rabbit-ssh-server
 ```
 
 ### Common Issues
+
 1. Check SSH logs:
+
    ```bash
    tail -f /var/log/sshd.log
    ```

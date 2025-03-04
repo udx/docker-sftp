@@ -1,6 +1,7 @@
 # API Reference
 
 ## Base URL
+
 The API server runs on port 8080 by default (configurable via `NODE_PORT`).
 
 ## Endpoints
@@ -8,12 +9,15 @@ The API server runs on port 8080 by default (configurable via `NODE_PORT`).
 ### Connection Management
 
 #### GET `/_cat/connection-string/:user`
+
 Get pod connection details for a user.
 
 **Parameters:**
+
 - `:user` - Username/pod identifier
 
 **Response:**
+
 ```json
 {
   "connectionString": "string",
@@ -25,9 +29,11 @@ Get pod connection details for a user.
 ### User Management
 
 #### GET `/users`
+
 List available users.
 
 **Response:**
+
 ```json
 {
   "users": ["user1", "user2"]
@@ -37,9 +43,11 @@ List available users.
 ### Application Management
 
 #### GET `/apps`
+
 List available applications.
 
 **Response:**
+
 ```json
 {
   "apps": ["app1", "app2"]
@@ -49,12 +57,15 @@ List available applications.
 ### Pod Management
 
 #### GET `/v1/pods`
+
 List Kubernetes pods.
 
 **Query Parameters:**
+
 - `namespace` (optional) - Filter by namespace
 
 **Response:**
+
 ```json
 {
   "pods": [
@@ -70,9 +81,11 @@ List Kubernetes pods.
 ### Maintenance
 
 #### DELETE `/flushFirebaseContainers`
+
 Maintenance endpoint to clean up Firebase container state. Use this to resolve memory issues or clean up stale data.
 
 **Response:**
+
 ```json
 {
   "ok": true,
@@ -82,6 +95,7 @@ Maintenance endpoint to clean up Firebase container state. Use this to resolve m
 ```
 
 **Error Response:**
+
 ```json
 {
   "ok": false,
@@ -91,10 +105,12 @@ Maintenance endpoint to clean up Firebase container state. Use this to resolve m
 ```
 
 **Notes:**
+
 - Requires admin access
 - Operation is logged for audit purposes
 - Triggers automatic container re-sync
 - Use with caution in production
 
 ## Authentication
+
 All API endpoints require appropriate authentication headers based on the configuration.

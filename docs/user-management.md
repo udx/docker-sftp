@@ -1,6 +1,7 @@
 # User Management
 
 ## Overview
+
 The SSH/SFTP gateway uses GitHub-based authentication and authorization. Users are managed through GitHub collaborator permissions and SSH keys.
 
 ## Authentication Flow
@@ -13,10 +14,13 @@ The SSH/SFTP gateway uses GitHub-based authentication and authorization. Users a
 ## GitHub Integration
 
 ### Environment Setup
+
 See [Environment Variables](environment.md#github-configuration) for required GitHub configuration.
 
 ### Role-Based Access
+
 Access levels are determined by GitHub repository roles:
+
 - `admin`: Full access to all features
 - `maintain`: Access to development resources
 - `write`: Limited access to development resources
@@ -24,13 +28,16 @@ Access levels are determined by GitHub repository roles:
 ## Key Management
 
 ### Key Synchronization
+
 The system automatically:
+
 - Syncs with GitHub collaborator SSH keys
 - Updates authorized_keys files
 - Handles key rotation
 - Manages access permissions
 
 ### Manual Key Operations
+
 ```bash
 # Sync GitHub keys
 node controller.keys.js sync
@@ -47,6 +54,7 @@ ls -la /etc/ssh/authorized_keys.d/
 Users are automatically created and managed through GitHub integration:
 
 1. When a collaborator is added to the repository:
+
    - System detects their GitHub role
    - Creates necessary system user
    - Syncs their SSH keys
@@ -57,6 +65,7 @@ Users are automatically created and managed through GitHub integration:
    - Automatic key synchronization
 
 ### User Directory Structure
+
 ```
 /home/[username]/
 ├── .ssh/
@@ -69,11 +78,13 @@ Users are automatically created and managed through GitHub integration:
 ## Security Considerations
 
 ### Key Storage
+
 - Keys are stored in `/etc/ssh/authorized_keys.d/`
 - Proper permissions (600) are enforced
 - Regular key rotation is recommended
 
 ### Access Control
+
 - No password authentication allowed
 - SSH key-based authentication only
 - Role-based access tied to GitHub permissions
@@ -82,7 +93,9 @@ Users are automatically created and managed through GitHub integration:
 ## Troubleshooting
 
 ### Common Issues
+
 1. "Permission denied (publickey)"
+
    - Check GitHub SSH key setup
    - Verify repository permissions
    - Ensure key sync is working
@@ -93,6 +106,7 @@ Users are automatically created and managed through GitHub integration:
    - Check user exists in system
 
 ### Logging
+
 ```bash
 # View SSH logs
 tail -f /var/log/sshd.log

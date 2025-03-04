@@ -1,149 +1,125 @@
-# Docker SFTP/SSH Gateway for Kubernetes
+# 🔒 Docker SFTP/SSH Gateway for Kubernetes
 
-A secure SSH/SFTP gateway that provides direct access to Kubernetes pods using GitHub authentication and permissions.
+Secure SSH/SFTP gateway providing direct access to Kubernetes pods using GitHub authentication and permissions.
 
-## Features
+## ✨ Features
 
 - 🔐 GitHub-based authentication using SSH keys
 - 🚀 Direct SSH/SFTP access to Kubernetes pods
 - 👥 Role-based access control tied to GitHub permissions
-- 🔄 Real-time key synchronization
+- 🔄 Real-time key synchronization with Firebase
 - 📊 Container state management
 - 🔍 Detailed access logging
 
-## Quick Start
+## 🚀 Quick Start
 
 ```bash
 # Connect to a pod
 ssh [pod-name]@ssh.rabbit.ci
+
+# With specific namespace
+ssh [namespace].[pod-name]@ssh.rabbit.ci
+
+# File transfer
+scp local-file [pod-name]@ssh.rabbit.ci:/remote/path/
 ```
 
-## Architecture
+## 🛠 Architecture
 
-### Core Components
+The gateway consists of three main components:
+- **SSH Gateway**: Handles connections and GitHub authentication
+- **API Server**: Manages pods and container state
+- **Key Management**: Handles GitHub key synchronization
 
-1. **SSH Gateway**
-   - Handles SSH/SFTP connections
-   - Authenticates using GitHub SSH keys
-   - Routes connections to appropriate pods
+For detailed architecture and security model, see [Architecture Details](docs/architecture.md).
 
-2. **API Server**
-   - Manages pod connections
-   - Handles container state
-   - Provides health endpoints
+## ⚙️ Configuration
 
-3. **Key Management**
-   - Syncs with GitHub collaborators
-   - Manages access permissions
-   - Updates authorized_keys
+The service requires configuration for three main components:
 
-### Security
-
-- GitHub-based authentication
-- Role-based access control
-- No password authentication
-- Kubernetes service account integration
-
-## Configuration
-
-### Required Environment Variables
-
-#### Kubernetes Configuration
-| Variable | Description |
-|----------|-------------|
-| `KUBERNETES_CLUSTER_ENDPOINT` | Kubernetes API endpoint |
-| `KUBERNETES_CLUSTER_NAME` | Cluster name |
-| `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name |
-| `KUBERNETES_CLUSTER_USER_TOKEN` | Kubernetes auth token |
-
-#### GitHub Configuration
-| Variable | Description |
-|----------|-------------|
-| `ALLOW_SSH_ACCESS_ROLES` | GitHub roles allowed to access |
-| `ACCESS_TOKEN` | GitHub access token |
-
-#### Firebase Configuration
-| Variable | Description |
-|----------|-------------|
-| `FIREBASE_PROJECT_ID` | Firebase project ID |
-| `FIREBASE_PRIVATE_KEY` | Firebase service account key |
-| `FIREBASE_CLIENT_EMAIL` | Service account email |
-
-See [Environment Variables](docs/environment.md) for full list.
-
-## Usage
-
-### SSH Access
+### 1. Kubernetes Access
 ```bash
-# Direct shell access
-ssh www-myapp-com
+# Required for pod access
+KUBERNETES_CLUSTER_ENDPOINT=https://your-cluster:6443
+KUBERNETES_CLUSTER_NAME=prod-cluster
+KUBERNETES_CLUSTER_CERTIFICATE=<cluster-ca-cert>
+```
 
-# Run specific command
+### 2. GitHub Authentication
+```bash
+# Required for SSH key management
+ACCESS_TOKEN=<github-token>
+ALLOW_SSH_ACCESS_ROLES=admin,maintain,write
+```
+
+### 3. Firebase Integration
+```bash
+# Required for container state
+FIREBASE_PROJECT_ID=your-project
+FIREBASE_PRIVATE_KEY=<service-account-key>
+```
+
+See [Environment Variables](docs/environment.md) for the complete configuration guide.
+
+## 👍 Usage
+
+Connect to pods using standard SSH/SFTP tools:
+```bash
+# SSH access
 ssh www-myapp-com "ls -la"
-```
-
-### SFTP Access
-```bash
-# Interactive SFTP session
-sftp www-myapp-com
 
 # File transfer
 scp local-file www-myapp-com:/remote/path/
 ```
 
-## Logging and Debugging
+For detailed usage examples and client setup, see [Client Guide](docs/client-guide.md).
 
-Key log locations:
-- SSH/SFTP sessions: `/var/log/sshd.log`
-  - Contains connection attempts
-  - SFTP path resolutions
-  - User session details
-- Service logs: `worker service logs`
-  - API server activity
-  - Key synchronization events
-  - General process health
-- Container logs: `kubectl logs <pod-name>`
-  - Container-level events
-  - System messages
-  - Authentication details
+## 🔍 Debugging
 
-Quick debug commands:
+### Quick Health Check
 ```bash
-# View SSH session logs
-tail -f /var/log/sshd.log
-
-# View service status
+# Check service status
 worker service list
 
-# View specific service logs
-worker service logs sshd             # SSH daemon
-worker service logs rabbit-ssh-server  # API server
-worker service logs k8s-setup       # Kubernetes setup
-worker service logs firebase-consume # Firebase watcher
+# View SSH logs
+tail -f /var/log/sshd.log
 ```
 
-## Documentation
+For detailed troubleshooting steps, log locations, and common issues, see our [Troubleshooting Guide](docs/troubleshooting.md).
+
+## 📚 Documentation
 
 ### Core Documentation
 - [Architecture Details](docs/architecture.md) - System components and design
-- [Environment Variables](docs/environment.md) - Configuration options and required variables
+- [Environment Variables](docs/environment.md) - Configuration options
 - [Client Guide](docs/client-guide.md) - SSH/SFTP setup and usage
 
 ### Integration Guides
-- [Kubernetes Authentication](docs/kuberentes-auth.md) - Setting up Kubernetes service account
-- [Firebase Integration](docs/firebase-integration.md) - Real-time container state management
+- [Kubernetes Authentication](docs/kuberentes-auth.md) - Service account setup
+- [Firebase Integration](docs/firebase-integration.md) - Container state management
 
 ### Development
-- [API Reference](docs/api-reference.md) - REST API endpoints and usage
-- [User Management](docs/user-management.md) - Managing access and permissions
+- [API Reference](docs/api-reference.md) - REST API endpoints
+- [User Management](docs/user-management.md) - Access and permissions
 
 ### Support
 - [Troubleshooting](docs/troubleshooting.md) - Common issues and debugging
 
-## Contributing
+## 🤝 Contributing
 
-See [CONTRIBUTING.md](docs/contributing.md) for development guidelines.
+### Development Setup
+1. Fork the repository
+2. Create a feature branch
+3. Submit a Pull Request
 
-## License
+### Bug Reports & Feature Requests
+- Use GitHub Issues for bug reports and feature requests
+- Include detailed steps to reproduce bugs
+- Follow the issue template guidelines
+
+### Security Reports
+For security issues, please email security@udx.io instead of using GitHub Issues.
+
+## 📄 License
 
 This project is proprietary software. All rights reserved.

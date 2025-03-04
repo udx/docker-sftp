@@ -105,6 +105,29 @@ worker service list
 worker service logs <service-name>
 ```
 
+## Maintenance Operations
+
+### Container Data Cleanup
+If you encounter memory issues or need to clean up stale container data:
+
+```bash
+# Flush container data (requires admin access)
+curl -X DELETE http://localhost:8080/flushFirebaseContainers
+
+# Example response:
+{
+    "ok": true,
+    "message": "Successfully flushed container data",
+    "removedCount": 42
+}
+```
+
+This operation:
+- Removes all container data from Firebase
+- Triggers automatic container re-sync
+- Resolves memory-related issues
+- Logs all operations for audit
+
 ## Required Information for Support
 1. Pod name and namespace
 2. SSH client version

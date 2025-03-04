@@ -44,23 +44,26 @@ ls -la /etc/ssh/authorized_keys.d/
 
 ## User Creation
 
-### Create New User
-```bash
-# Basic user creation
-./create.user.sh [username]
+Users are automatically created and managed through GitHub integration:
 
-# With specific permissions
-ALLOW_SSH_ACCESS_ROLES="admin,write" ./create.user.sh [username]
-```
+1. When a collaborator is added to the repository:
+   - System detects their GitHub role
+   - Creates necessary system user
+   - Syncs their SSH keys
+
+2. User permissions are managed by:
+   - GitHub repository roles
+   - `ALLOW_SSH_ACCESS_ROLES` setting
+   - Automatic key synchronization
 
 ### User Directory Structure
 ```
 /home/[username]/
 ├── .ssh/
-│   └── authorized_keys
+│   └── authorized_keys  # Auto-updated from GitHub
 └── .config/
     └── ssh/
-        └── config
+        └── config       # System-managed
 ```
 
 ## Security Considerations

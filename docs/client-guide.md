@@ -74,13 +74,7 @@ scp [pod-name]@ssh.rabbit.ci:/remote/file local-path/
 ## Administrative Tasks
 
 ### User Management
-```bash
-# Create a new user
-./create.user.sh [username]
-
-# Create user with specific permissions
-ALLOW_SSH_ACCESS_ROLES="admin,write" ./create.user.sh [username]
-```
+Users are automatically created and managed based on GitHub permissions. See [User Management](user-management.md) for details.
 
 ### Key Management
 ```bash

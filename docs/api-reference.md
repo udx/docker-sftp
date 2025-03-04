@@ -69,16 +69,32 @@ List Kubernetes pods.
 
 ### Maintenance
 
-#### POST `/flushFirebaseContainers`
-Maintenance endpoint to clean up Firebase container state.
+#### DELETE `/flushFirebaseContainers`
+Maintenance endpoint to clean up Firebase container state. Use this to resolve memory issues or clean up stale data.
 
 **Response:**
 ```json
 {
-  "status": "success|error",
-  "message": "string"
+  "ok": true,
+  "message": "Successfully flushed container data",
+  "removedCount": 42
 }
 ```
+
+**Error Response:**
+```json
+{
+  "ok": false,
+  "message": "Failed to flush containers",
+  "error": "Error details"
+}
+```
+
+**Notes:**
+- Requires admin access
+- Operation is logged for audit purposes
+- Triggers automatic container re-sync
+- Use with caution in production
 
 ## Authentication
 All API endpoints require appropriate authentication headers based on the configuration.

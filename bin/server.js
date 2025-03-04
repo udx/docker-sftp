@@ -127,24 +127,50 @@ function getPods(req, res) {
 }
 
 /**
- * Remove old containers. This is a hack in case we run out of memory again.
+ * Flush all container data from Firebase.
+ * This is used to clean up stale container data and resolve memory issues.
  *
- * curl -XDELETE localhost:8080/flushFirebaseContainers
- *
+ * @api {delete} /flushFirebaseContainers Flush container data
+ * @apiName FlushContainers
+ * @apiGroup Maintenance
+ * @apiSuccess {Boolean} ok Operation status
+ * @apiSuccess {String} message Operation details
+ * @apiSuccess {Number} removedCount Number of containers removed
  */
 function flushFirebaseContainers(req, res) {
+    console.log('[Maintenance] Container flush requested from:', req.ip);
 
     var _containerCollection = utility.getCollection('container', '', function(error, data) {
+        if (error) {
+            console.error('[Maintenance] Failed to get container collection:', error);
+            return res.status(500).send({
+                ok: false,
+                message: 'Failed to access container data',
+                error: error.message
+            });
+        }
 
-        _containerCollection.remove();
+        const containerCount = _.size(data);
+        console.log(`[Maintenance] Found ${containerCount} containers to flush`);
 
-        res.send({
-            ok: false,
-            message: "Flushing containers not fully implemented, come find me."
+        _containerCollection.remove(function(removeError) {
+            if (removeError) {
+                console.error('[Maintenance] Failed to flush containers:', removeError);
+                return res.status(500).send({
+                    ok: false,
+                    message: 'Failed to flush containers',
+                    error: removeError.message
+                });
+            }
+
+            console.log(`[Maintenance] Successfully flushed ${containerCount} containers`);
+            res.send({
+                ok: true,
+                message: 'Successfully flushed container data',
+                removedCount: containerCount
+            });
         });
     });
-
-
 }
 
 function appEndpoint(req, res) {

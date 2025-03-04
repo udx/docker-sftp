@@ -20,6 +20,17 @@
 | `ACCESS_TOKEN` | GitHub access token | Yes |
 | `ALLOW_SSH_ACCESS_ROLES` | Allowed GitHub roles (e.g., "admin,maintain,write") | Yes |
 
+## Firebase Configuration
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `FIREBASE_PROJECT_ID` | Firebase project ID | Yes |
+| `FIREBASE_PRIVATE_KEY_ID` | Private key ID | Yes |
+| `FIREBASE_PRIVATE_KEY` | Private key (with newlines) | Yes |
+| `FIREBASE_CLIENT_EMAIL` | Service account email | Yes |
+| `FIREBASE_CLIENT_ID` | Client ID | Yes |
+| `FIREBASE_CLIENT_CERT_URL` | Client cert URL | Yes |
+
 ## Server Configuration
 
 | Variable | Description | Required |

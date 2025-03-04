@@ -8,7 +8,7 @@ The Docker SFTP/SSH Gateway is designed as a secure bridge between users and Kub
 
 ### 1. SSH Gateway (SSHD)
 
-- **Process Management**: Runs under PM2 for reliability
+- **Process Management**: Runs under worker service system for reliability
 - **Authentication**: Uses GitHub SSH keys
 - **Configuration**: Custom `sshd_config` with ForceCommand
 - **SFTP Support**: Internal SFTP subsystem enabled
@@ -111,10 +111,11 @@ Uses Firebase for maintaining container state and configuration.
 ## Deployment
 
 ### Container Setup
-- Alpine Linux base
+- Ubuntu Linux base
 - Node.js runtime
-- PM2 process manager
+- Worker service system (supervisord-based)
 - OpenSSH server
+- Kubernetes tools (kubectl, gcloud)
 
 ### Kubernetes Integration
 - Service account configuration

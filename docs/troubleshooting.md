@@ -39,13 +39,16 @@ Error from server (NotFound): pods "www-myapp-com" not found
   # Example log entry:
   # [2025-01-07 19:42:27] SFTP connection attempt from [192.168.1.100] for user [www-myapp-com] to pod [production/www-myapp-com-a1b2c3]
   ```
-- Process logs:
+- Service logs:
   ```bash
-  # View all logs
-  pm2 logs
+  # View all services and their status
+  worker service list
   
-  # View specific service
-  pm2 logs sshd
+  # View specific service logs
+  worker service logs sshd            # SSH daemon logs
+  worker service logs rabbit-ssh-server  # API server logs
+  worker service logs k8s-setup      # Kubernetes setup logs
+  worker service logs firebase-consume  # Firebase watcher logs
   ```
 
 ### What's in the Logs
@@ -73,9 +76,46 @@ ls -la /etc/ssh/authorized_keys.d/
 sshd -T | grep -E 'passwordauthentication|permitrootlogin|subsystem'
 ```
 
+## Service Issues
+
+### 1. k8s-setup Service Failing
+```
+k8s-setup BACKOFF Exited too quickly
+```
+**Solution**:
+- Check required Kubernetes environment variables are set:
+  - KUBERNETES_CLUSTER_NAME
+  - KUBERNETES_CLUSTER_ENDPOINT
+  - KUBERNETES_CLUSTER_CERTIFICATE
+  - Other variables listed in environment.md
+- Verify service account permissions
+
+### 2. firebase-consume Service Failing
+```
+firebase-consume BACKOFF Exited too quickly
+```
+**Solution**:
+- Check required Firebase environment variables are set:
+  - FIREBASE_PROJECT_ID
+  - FIREBASE_PRIVATE_KEY
+  - Other variables listed in environment.md
+- Verify Firebase service account permissions
+- Check Firebase project access
+
+### 3. Service Status Check
+To check the status and logs of any service:
+```bash
+# Check all services
+worker service list
+
+# View specific service logs
+worker service logs <service-name>
+```
+
 ## Required Information for Support
 1. Pod name and namespace
 2. SSH client version
 3. Contents of /var/log/sshd.log
 4. Client IP address
 5. GitHub username
+6. Output of `worker service list`

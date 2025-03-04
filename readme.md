@@ -48,13 +48,26 @@ ssh [pod-name]@ssh.rabbit.ci
 
 ### Required Environment Variables
 
+#### Kubernetes Configuration
 | Variable | Description |
 |----------|-------------|
 | `KUBERNETES_CLUSTER_ENDPOINT` | Kubernetes API endpoint |
 | `KUBERNETES_CLUSTER_NAME` | Cluster name |
 | `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name |
 | `KUBERNETES_CLUSTER_USER_TOKEN` | Kubernetes auth token |
+
+#### GitHub Configuration
+| Variable | Description |
+|----------|-------------|
 | `ALLOW_SSH_ACCESS_ROLES` | GitHub roles allowed to access |
+| `ACCESS_TOKEN` | GitHub access token |
+
+#### Firebase Configuration
+| Variable | Description |
+|----------|-------------|
+| `FIREBASE_PROJECT_ID` | Firebase project ID |
+| `FIREBASE_PRIVATE_KEY` | Firebase service account key |
+| `FIREBASE_CLIENT_EMAIL` | Service account email |
 
 See [Environment Variables](docs/environment.md) for full list.
 
@@ -85,7 +98,7 @@ Key log locations:
   - Contains connection attempts
   - SFTP path resolutions
   - User session details
-- Process logs: `pm2 logs`
+- Service logs: `worker service logs`
   - API server activity
   - Key synchronization events
   - General process health
@@ -99,12 +112,14 @@ Quick debug commands:
 # View SSH session logs
 tail -f /var/log/sshd.log
 
-# View API and process logs
-pm2 logs
+# View service status
+worker service list
 
 # View specific service logs
-pm2 logs sshd        # SSH daemon
-pm2 logs api         # API server
+worker service logs sshd             # SSH daemon
+worker service logs rabbit-ssh-server  # API server
+worker service logs k8s-setup       # Kubernetes setup
+worker service logs firebase-consume # Firebase watcher
 ```
 
 ## Documentation

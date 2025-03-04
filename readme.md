@@ -4,120 +4,151 @@ Secure SSH/SFTP gateway providing direct access to Kubernetes pods using GitHub 
 
 ## ✨ Features
 
+### Core Features
 - 🔐 GitHub-based authentication using SSH keys
 - 🚀 Direct SSH/SFTP access to Kubernetes pods
 - 👥 Role-based access control tied to GitHub permissions
-- 🔄 Real-time key synchronization with Firebase
-- 📊 Container state management
 - 🔍 Detailed access logging
+
+### Additional Features
+- 📊 Container state management via Firebase
+- 🔄 Real-time state synchronization
+- 🧹 Automatic cleanup of terminated containers
 
 ## 🚀 Quick Start
 
+### 1. Deploy Gateway
 ```bash
-# Connect to a pod
-ssh [pod-name]@ssh.rabbit.ci
+# Deploy locally with Docker
+docker run -d \
+  --name sftp-gateway \
+  -p 2222:22 \
+  # Required: Kubernetes access
+  -e KUBERNETES_CLUSTER_ENDPOINT=https://your-cluster:6443 \
+  -e KUBERNETES_CLUSTER_NAME=prod-cluster \
+  # Required: GitHub authentication
+  -e ACCESS_TOKEN=<github-token> \
+  -e ALLOW_SSH_ACCESS_ROLES="admin,maintain,write" \
+  udx/docker-sftp
 
-# With specific namespace
-ssh [namespace].[pod-name]@ssh.rabbit.ci
-
-# File transfer
-scp local-file [pod-name]@ssh.rabbit.ci:/remote/path/
+# Verify deployment
+docker ps | grep sftp-gateway
+curl http://localhost:8080/users
 ```
 
-## 🛠 Architecture
+Your gateway address will be:
+- Local testing: `localhost` (like above)
+- Production: Your server's hostname/IP (e.g., `sftp.company.com`)
 
-The gateway consists of three main components:
-- **SSH Gateway**: Handles connections and GitHub authentication
-- **API Server**: Manages pods and container state
-- **Key Management**: Handles GitHub key synchronization
+See [Configuration](#%EF%B8%8F-configuration) for optional features.
 
-For detailed architecture and security model, see [Architecture Details](docs/architecture.md).
+### 2. Configure Access
+```bash
+# Add to ~/.ssh/config
+Host pod-example
+    # For local testing use localhost
+    HostName localhost     
+    # Port you exposed in docker run (-p 2222:22)
+    Port 2222             
+    # The pod you want to access
+    User example-pod      
+    # Your GitHub SSH key
+    IdentityFile ~/.ssh/github_rsa
+```
+
+### 3. Start Using
+```bash
+# Direct pod access
+ssh pod-example
+
+# File transfer
+scp local-file pod-example:/remote/path/
+```
+
+See [Client Guide](docs/client-guide.md) for detailed usage examples.
 
 ## ⚙️ Configuration
 
-The service requires configuration for three main components:
+The gateway needs these environment variables to run:
 
-### 1. Kubernetes Access
+### Required for Basic Setup
+
 ```bash
-# Required for pod access
+# Connect to your Kubernetes cluster
 KUBERNETES_CLUSTER_ENDPOINT=https://your-cluster:6443
 KUBERNETES_CLUSTER_NAME=prod-cluster
-KUBERNETES_CLUSTER_CERTIFICATE=<cluster-ca-cert>
+
+# Enable GitHub-based authentication
+ACCESS_TOKEN=<github-token>              # GitHub personal access token
+ALLOW_SSH_ACCESS_ROLES=admin,maintain     # Which GitHub roles can access
 ```
 
-### 2. GitHub Authentication
+### Additional Capabilities
+
 ```bash
-# Required for SSH key management
-ACCESS_TOKEN=<github-token>
-ALLOW_SSH_ACCESS_ROLES=admin,maintain,write
+# Enable container state tracking (optional)
+FIREBASE_PROJECT_ID=your-project         # Track container lifecycle
+FIREBASE_PRIVATE_KEY=<service-account>   # Firebase authentication
 ```
 
-### 3. Firebase Integration
-```bash
-# Required for container state
-FIREBASE_PROJECT_ID=your-project
-FIREBASE_PRIVATE_KEY=<service-account-key>
-```
-
-See [Environment Variables](docs/environment.md) for the complete configuration guide.
+For production setup, see:
+- [Environment Variables](docs/environment.md) - Complete configuration guide
+- [Kubernetes Authentication](docs/kuberentes-auth.md) - Service account setup
 
 ## 👍 Usage
 
-Connect to pods using standard SSH/SFTP tools:
+### SSH Access
 ```bash
-# SSH access
-ssh www-myapp-com "ls -la"
+# Interactive shell
+ssh pod-name@localhost        # Local testing
+ssh pod-name@sftp.company.com # Production example
 
-# File transfer
-scp local-file www-myapp-com:/remote/path/
+# Run commands
+ssh pod-name@localhost "ls -la"
+
+# Access specific namespace
+ssh namespace.pod-name@localhost
 ```
 
-For detailed usage examples and client setup, see [Client Guide](docs/client-guide.md).
-
-## 🔍 Debugging
-
-### Quick Health Check
+### File Transfer
 ```bash
-# Check service status
-worker service list
+# Upload files
+scp local-file pod-name@localhost:/path/
 
-# View SSH logs
-tail -f /var/log/sshd.log
+# Download files
+scp pod-name@localhost:/path/file ./
+
+# Interactive SFTP
+sftp pod-name@localhost
 ```
 
-For detailed troubleshooting steps, log locations, and common issues, see our [Troubleshooting Guide](docs/troubleshooting.md).
+For production deployment and advanced features, see:
+- [Kubernetes Setup](docs/kuberentes-auth.md)
+- [Environment Variables](docs/environment.md)
+- [Client Guide](docs/client-guide.md)
 
 ## 📚 Documentation
 
-### Core Documentation
-- [Architecture Details](docs/architecture.md) - System components and design
-- [Environment Variables](docs/environment.md) - Configuration options
-- [Client Guide](docs/client-guide.md) - SSH/SFTP setup and usage
-
-### Integration Guides
-- [Kubernetes Authentication](docs/kuberentes-auth.md) - Service account setup
-- [Firebase Integration](docs/firebase-integration.md) - Container state management
-
-### Development
-- [API Reference](docs/api-reference.md) - REST API endpoints
-- [User Management](docs/user-management.md) - Access and permissions
-
-### Support
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and debugging
+- [Client Guide](docs/client-guide.md) - Usage examples and SSH configuration
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
+- [Architecture Details](docs/architecture.md) - System design and components
 
 ## 🤝 Contributing
 
 ### Development Setup
+
 1. Fork the repository
 2. Create a feature branch
 3. Submit a Pull Request
 
 ### Bug Reports & Feature Requests
+
 - Use GitHub Issues for bug reports and feature requests
 - Include detailed steps to reproduce bugs
 - Follow the issue template guidelines
 
 ### Security Reports
+
 For security issues, please email security@udx.io instead of using GitHub Issues.
 
 ## 📄 License

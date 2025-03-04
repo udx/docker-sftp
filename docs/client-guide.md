@@ -7,10 +7,13 @@
 Add this to your `~/.ssh/config`:
 
 ```ssh-config
-# Production environment
-Host www-myapp-com
-    HostName ssh.rabbit.ci
-    User www-myapp-com-production-pod-a1b2c3
+# Example SSH configuration
+Host pod-example
+    # Your deployed SFTP gateway address (e.g., sftp.company.com)
+    HostName YOUR_GATEWAY_ADDRESS
+    # Pod name from your cluster
+    User example-pod-name
+    # Your GitHub SSH key
     IdentityFile ~/.ssh/github_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -19,10 +22,10 @@ Host www-myapp-com
     ServerAliveInterval 15
     ServerAliveCountMax 3
 
-# Development environment
-Host www-myapp-com-dev
-    HostName ssh.rabbit.ci
-    User www-myapp-com-development-pod-x1y2z3
+# Multiple environments example
+Host pod-example-dev
+    HostName YOUR_GATEWAY_ADDRESS
+    User example-pod-name-dev
     IdentityFile ~/.ssh/github_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -34,11 +37,11 @@ Host www-myapp-com-dev
 
 ### Configuration Options Explained
 
-- `HostName`: The SSH server address
-- `User`: Your pod-specific username
-- `IdentityFile`: Your GitHub SSH key
-- `StrictHostKeyChecking no`: Skip host verification
-- `UserKnownHostsFile /dev/null`: Don't store host keys
+- `HostName`: Your deployed SFTP gateway address (the host where you deployed the container)
+- `User`: The Kubernetes pod name you want to connect to
+- `IdentityFile`: Path to your GitHub SSH key (must be added to your GitHub account)
+- `StrictHostKeyChecking no`: Skip host verification (useful for dynamic pod environments)
+- `UserKnownHostsFile /dev/null`: Don't store host keys (recommended for dynamic environments)
 - `RequestTTY force`: Ensure proper terminal allocation
 - `ConnectTimeout 10`: Connection timeout in seconds
 - `ServerAliveInterval 15`: Keep connection alive
@@ -49,30 +52,30 @@ Host www-myapp-com-dev
 ### Basic SSH Connection
 
 ```bash
-# Connect to production pod
-ssh www-myapp-com
+# Using SSH config
+ssh pod-example
 
-# Connect to development pod
-ssh www-myapp-com-dev
+# Direct connection
+ssh pod-name@YOUR_GATEWAY_ADDRESS
 
 # With specific namespace
-ssh [namespace].[pod-name]@ssh.rabbit.ci
+ssh namespace.pod-name@YOUR_GATEWAY_ADDRESS
 
 # Run specific command
-ssh [pod-name]@ssh.rabbit.ci "ls -la"
+ssh pod-name@YOUR_GATEWAY_ADDRESS "ls -la"
 ```
 
 ### File Transfer
 
 ```bash
 # Interactive SFTP session
-sftp www-myapp-com-dev
+sftp pod-example
 
 # Upload file
-scp local-file [pod-name]@ssh.rabbit.ci:/remote/path/
+scp local-file pod-name@YOUR_GATEWAY_ADDRESS:/remote/path/
 
 # Download file
-scp [pod-name]@ssh.rabbit.ci:/remote/file local-path/
+scp pod-name@YOUR_GATEWAY_ADDRESS:/remote/file local-path/
 ```
 
 ## Administrative Tasks

@@ -83,11 +83,7 @@ sshd -T | grep -E 'passwordauthentication|permitrootlogin|subsystem'
 k8s-setup BACKOFF Exited too quickly
 ```
 **Solution**:
-- Check required Kubernetes environment variables are set:
-  - KUBERNETES_CLUSTER_NAME
-  - KUBERNETES_CLUSTER_ENDPOINT
-  - KUBERNETES_CLUSTER_CERTIFICATE
-  - Other variables listed in environment.md
+- Check required Kubernetes environment variables are set (see [Environment Variables](environment.md#kubernetes-configuration))
 - Verify service account permissions
 
 ### 2. firebase-consume Service Failing
@@ -95,10 +91,7 @@ k8s-setup BACKOFF Exited too quickly
 firebase-consume BACKOFF Exited too quickly
 ```
 **Solution**:
-- Check required Firebase environment variables are set:
-  - FIREBASE_PROJECT_ID
-  - FIREBASE_PRIVATE_KEY
-  - Other variables listed in environment.md
+- Check required Firebase environment variables are set (see [Environment Variables](environment.md#firebase-configuration))
 - Verify Firebase service account permissions
 - Check Firebase project access
 

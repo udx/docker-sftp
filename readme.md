@@ -124,12 +124,21 @@ worker service logs firebase-consume # Firebase watcher
 
 ## Documentation
 
-- [Architecture Details](docs/architecture.md)
-- [Security Model](docs/security.md)
-- [Kubernetes Integration](docs/kubernetes.md)
-- [Client Configuration](docs/client-configuration.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [API Reference](docs/api.md)
+### Core Documentation
+- [Architecture Details](docs/architecture.md) - System components and design
+- [Environment Variables](docs/environment.md) - Configuration options and required variables
+- [Client Guide](docs/client-guide.md) - SSH/SFTP setup and usage
+
+### Integration Guides
+- [Kubernetes Authentication](docs/kuberentes-auth.md) - Setting up Kubernetes service account
+- [Firebase Integration](docs/firebase-integration.md) - Real-time container state management
+
+### Development
+- [API Reference](docs/api-reference.md) - REST API endpoints and usage
+- [User Management](docs/user-management.md) - Managing access and permissions
+
+### Support
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and debugging
 
 ## Contributing
 

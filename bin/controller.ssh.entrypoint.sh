@@ -7,10 +7,14 @@ export _SERVICE=${USER};
 export CONNECTION_STRING=$(echo ${ENV_VARS} | cut -d ';' -f 1)
 export USER_LOGIN=$(echo ${ENV_VARS} | cut -d ';' -f 2)
 
-echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+if [ -z "${SSH_ORIGINAL_COMMAND}" ]; then
+  echo "[$(date)] SSH_ORIGINAL_COMMAND is empty. Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+else
+  echo "[$(date)] Have a session for [${USER_LOGIN}] : ${USER}, ${SSH_ORIGINAL_COMMAND}, ${SSH_CLIENT}, ${SSH_CONNECTION} and [${CONNECTION_STRING}] command." >> /var/log/sshd.log
+fi
 
 ## SFTP handling with Alpine-specific paths
-if [[ ${SSH_ORIGINAL_COMMAND} == "internal-sftp" ]] || [[ ${SSH_ORIGINAL_COMMAND} == "/usr/lib/ssh/sftp-server" ]]; then
+if [[ "${SSH_ORIGINAL_COMMAND}" == "internal-sftp" ]] || [[ "${SSH_ORIGINAL_COMMAND}" == "/usr/lib/ssh/sftp-server" ]]; then
   echo "[$(date)] SFTP connection attempt from [${SSH_CLIENT}] for user [${USER}] to pod [${CONNECTION_STRING}]" >> /var/log/sshd.log
 
   # Check container OS type for better error reporting
@@ -43,9 +47,19 @@ fi
 ## Specific Command, pipe into container.
 if [[ "x${SSH_ORIGINAL_COMMAND}" != "x" ]]; then
 
-  echo "[$(date)] Have SSH session using command: [docker $CONNECTION_STRING /bin/bash -c ${SSH_ORIGINAL_COMMAND})] for [${USER}] For from [${API_REQUEST_URL}]." >> /var/log/sshd.log
+  if [ -z "${API_REQUEST_URL}" ]; then
+    echo "[$(date)] Have SSH session using command: [kubectl exec -n $CONNECTION_STRING -ti -- ${SSH_ORIGINAL_COMMAND})] for [${USER}] from [${SSH_CLIENT}]." >> /var/log/sshd.log
+  else
+    echo "[$(date)] Have SSH session using command: [kubectl exec -n $CONNECTION_STRING -ti -- ${SSH_ORIGINAL_COMMAND})] for [${USER}] from [${API_REQUEST_URL}]." >> /var/log/sshd.log
+  fi
 
-  /usr/local/bin/kubectl exec ${_SERVICE} -ti -- "${SSH_ORIGINAL_COMMAND}"
+  ##/usr/local/bin/kubectl exec ${_SERVICE} -ti -- "${SSH_ORIGINAL_COMMAND}"
+  __commad="/usr/local/bin/kubectl exec -n $CONNECTION_STRING -i -- $SSH_ORIGINAL_COMMAND"
+  
+  echo $__commad >> /var/log/sshd.log
+
+  $__commad;
+
 fi;
 
 ## Terminal, pipe into container.

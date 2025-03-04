@@ -4,10 +4,27 @@
  * @type {admin}
  */
 //var newrelic = require('newrelic')
-var admin = require("firebase-admin/lib/index");
+var admin = require("firebase-admin");
 var _ = require( 'lodash' );
 
 exports.changeQueue = [];
+
+// Check required environment variables
+const requiredEnvVars = [
+  'FIREBASE_PROJECT_ID',
+  'FIREBASE_PRIVATE_KEY_ID',
+  'FIREBASE_PRIVATE_KEY',
+  'FIREBASE_CLIENT_EMAIL',
+  'FIREBASE_CLIENT_ID',
+  'FIREBASE_CLIENT_CERT_URL'
+];
+
+for (const envVar of requiredEnvVars) {
+  if (!process.env[envVar]) {
+    console.log(`Required environment variable ${envVar} not set, exiting`);
+    process.exit(0);
+  }
+}
 
 var firebaseConfig = {
   "type": "service_account",

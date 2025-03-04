@@ -38,7 +38,11 @@ RUN mkdir -p \
     /home/${USER}/.kube \
     ${APP_HOME} \
     /root/.ssh \
-    ${WORKER_CONFIG_DIR}/services.d
+    ${WORKER_CONFIG_DIR}/services.d \
+    && touch /home/${USER}/.kube/config \
+    && chown -R ${USER}:${USER} /home/${USER}/.kube \
+    && chmod 700 /home/${USER}/.kube \
+    && chmod 600 /home/${USER}/.kube/config
 
 # Copy package files first for better caching
 COPY --chown=${USER}:${USER} package*.json ${APP_HOME}/
@@ -55,6 +59,7 @@ COPY --chown=${USER}:${USER} etc/configs/worker/services.yaml $HOME/.config/work
 # Generate SSH host keys and set up permissions
 RUN ssh-keygen -A \
     && chmod +x ${APP_HOME}/bin/controller.ssh.entrypoint.sh \
+    && chmod +x ${APP_HOME}/bin/setup-kubernetes.sh \
     && touch /var/log/sshd.log \
     && chown ${USER}:${USER} /var/log/sshd.log \
     && chown ${USER}:${USER} /etc/ssh/authorized_keys.d \

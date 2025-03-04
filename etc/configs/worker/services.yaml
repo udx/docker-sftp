@@ -2,6 +2,12 @@
 kind: workerService
 version: udx.io/worker-v1/service
 services:
+  - name: "k8s-setup"
+    autostart: "true"
+    autorestart: "false"
+    command: "/opt/sources/rabbitci/rabbit-ssh/bin/setup-kubernetes.sh"
+    startretries: "1"
+
   - name: "rabbit-ssh-server"
     autostart: "true"
     autorestart: "true"

@@ -8,18 +8,15 @@ USER root
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    wget \
-    curl \
-    gnupg2 \
-    apt-transport-https \
-    lsb-release \
-    ca-certificates \
-    libssl-dev \
-    libffi-dev \
-    file \
-    openssl \
-    openssh-server \
-    openssh-client \
+    wget=1.24.5-2ubuntu1 \
+    gnupg2=2.4.4-2ubuntu22 \
+    apt-transport-https=2.9.31ubuntu1 \
+    libssl-dev=3.4.1-1ubuntu1 \
+    libffi-dev=3.4.7-1 \
+    file=1:5.45-3build1 \
+    openssl=3.4.1-1ubuntu1 \
+    openssh-server=1:9.9p1-3ubuntu3 \
+    openssh-client=1:9.9p1-3ubuntu3 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

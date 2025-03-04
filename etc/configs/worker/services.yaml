@@ -3,22 +3,20 @@ kind: workerService
 version: udx.io/worker-v1/service
 services:
   - name: "k8s-setup"
-    autostart: "true"
-    autorestart: "false"
+    autostart: true
+    autorestart: false
     command: "/opt/sources/rabbitci/rabbit-ssh/bin/setup-kubernetes.sh"
-    startretries: "1"
 
   - name: "rabbit-ssh-server"
-    autostart: "true"
-    autorestart: "true"
+    autostart: true
+    autorestart: true
     command: "node bin/server.js"
-    startretries: "5"
     envs:
       - "NODE_ENV=production"
+
   - name: "sshd"
-    autostart: "true"
-    autorestart: "true"
+    autostart: true
+    autorestart: true
     command: "/usr/sbin/sshd -D"
-    startretries: "5"
     envs:
       - "SSHD_PORT=22"

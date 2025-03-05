@@ -1,101 +1,56 @@
-/**
- * node opt/firebase.consume.js
- *
- * @type {admin}
- */
-//var newrelic = require('newrelic')
-var admin = require("firebase-admin");
-var _ = require( 'lodash' );
-
-exports.changeQueue = [];
+const admin = require("firebase-admin");
+const _ = require('lodash');
 
 // Check required environment variables
-const requiredEnvVars = [
-  'FIREBASE_PROJECT_ID',
-  'FIREBASE_PRIVATE_KEY_ID',
-  'FIREBASE_PRIVATE_KEY',
-  'FIREBASE_CLIENT_EMAIL',
-  'FIREBASE_CLIENT_ID',
-  'FIREBASE_CLIENT_CERT_URL'
-];
-
-for (const envVar of requiredEnvVars) {
-  if (!process.env[envVar]) {
-    console.log(`Required environment variable ${envVar} not set, exiting`);
-    process.exit(0);
-  }
+if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+  console.log('Required environment variable GOOGLE_APPLICATION_CREDENTIALS not set');
+  process.exit(1);
 }
 
-var firebaseConfig = {
-  "type": "service_account",
-  "project_id": process.env.FIREBASE_PROJECT_ID,
-  "private_key_id": process.env.FIREBASE_PRIVATE_KEY_ID,
-  "private_key": process.env.FIREBASE_PRIVATE_KEY.split('\\n' ).join( '\n' ),
-  "client_email": process.env.FIREBASE_CLIENT_EMAIL,
-  "client_id": process.env.FIREBASE_CLIENT_ID,
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://accounts.google.com/o/oauth2/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": process.env.FIREBASE_CLIENT_CERT_URL
-};
+if (!process.env.FIREBASE_DATABASE_URL) {
+  console.log('Required environment variable FIREBASE_DATABASE_URL not set');
+  process.exit(1);
+}
 
-admin.initializeApp({
-  credential: admin.credential.cert(firebaseConfig),
-  databaseURL: 'https://rabbit-v2.firebaseio.com'
+// Initialize Firebase
+try {
+  const firebaseConfig = require(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  admin.initializeApp({
+    credential: admin.credential.cert(firebaseConfig),
+    databaseURL: process.env.FIREBASE_DATABASE_URL
+  });
+} catch (error) {
+  console.log(`Error initializing Firebase: ${error.message}`);
+  process.exit(1);
+}
+
+// Track changes in deployment collection
+const deploymentCollection = admin.database().ref('deployment');
+const changeQueue = [];
+
+// Initial data load
+deploymentCollection.once('value', (snapshot) => {
+  const count = _.size(snapshot.val());
+  console.log(`Initial data loaded with ${count} documents`);
+  if (count > 0) {
+    updateKeys(snapshot);
+  }
 });
 
-var deploymentCollection = admin.database().ref('deployment');
+// Watch for changes
+deploymentCollection.on('child_changed', (data) => {
+  console.log(`Change detected with ${_.size(data.val())} items`);
+  changeQueue.push(data);
+});
 
-// once initial data is loaded.
-deploymentCollection.once('value', haveInitialData );
-
-function haveInitialData( snapshot ) {
-  console.log('haveInitialData - Have initial data with [%d] documents.', _.size( snapshot.val() ) );
-
-  //console.log(require('util').inspect(snapshot.toJSON(), {showHidden: false, depth: 2, colors: true}));
-  //process.exit();
-  updateKeys( snapshot );
-
-}
-
-// do not use child_added or it'll iterate over every single one
-deploymentCollection.on('child_changed', addtToChangeQueue );
-
-function addtToChangeQueue( data ) {
-  console.log('addtToChangeQueue', _.size( data.val( ) ) );
-
-  exports.changeQueue.push( data );
-}
-
-/**
- * Ran on initial load as well.
- *
- * @param data
- */
-
-/**
- * If have items in changeQueue, run once first payload from first item.
- */
-function maybeUpdateKeys() {
-  console.log( 'maybeUpdateKeys - ', _.size( exports.changeQueue ) );
-
-
-  if( _.size( exports.changeQueue ) > 0 ) {
-    console.log( 'maybeUpdateKeys - have keys' );
-    updateKeys(_.first(exports.changeQueue));
-    exports.changeQueue = [];
-
-  } else {
-    console.log( 'maybeUpdateKeys - skip' );
+// Process queued changes
+setInterval(() => {
+  const queueSize = _.size(changeQueue);
+  if (queueSize > 0) {
+    console.log(`Processing ${queueSize} queued changes`);
+    updateKeys(_.first(changeQueue));
+    changeQueue.length = 0; // Clear queue
   }
-
-}
-
-// Check every 30s
-setInterval(maybeUpdateKeys,30000);
-
-function deploymnetRemoved(data) {
-  // console.log('child_removed', require('util').inspect(data.val(), {showHidden: false, depth: 2, colors: true}));
-};
+}, 30000);
 
 

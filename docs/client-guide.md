@@ -94,28 +94,6 @@ node controller.keys.js sync
 node controller.keys.js list
 ```
 
-## Troubleshooting
+## Troubleshooting Guide
 
-### Health Check
-
-```bash
-# Check service status
-worker service list
-
-# View service logs
-worker service logs sshd
-worker service logs rabbit-ssh-server
-```
-
-### Common Issues
-
-1. Check SSH logs:
-
-   ```bash
-   tail -f /var/log/sshd.log
-   ```
-
-2. Verify key permissions:
-   ```bash
-   ls -la /etc/ssh/authorized_keys.d/
-   ```
+For connection issues, logs, security checks, and service health, see [complete troubleshooting documentation](troubleshooting.md).

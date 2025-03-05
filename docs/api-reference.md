@@ -1,68 +1,29 @@
 # API Reference
 
-## Base URL
+The SFTP Gateway API provides endpoints for managing SSH connections, users, and Kubernetes pods.
 
-The API server runs on port 8080 by default (configurable via `NODE_PORT`).
+## Overview
 
-## Endpoints
+- **Base URL**: `http://localhost:8080` (configurable via `NODE_PORT`)
+- **Default Format**: All responses are in JSON
+- **Authentication**: See [Authentication](#authentication) section
 
-### Connection Management
+## Core Endpoints
 
-#### GET `/_cat/connection-string/:user`
+### Pod Access
 
-Get pod connection details for a user.
+#### `GET /v1/pods`
+
+List all accessible Kubernetes pods.
+
+```bash
+# Example
+curl -H "x-rabbit-internal-token: $TOKEN" http://localhost:8080/v1/pods
+```
 
 **Parameters:**
 
-- `:user` - Username/pod identifier
-
-**Response:**
-
-```json
-{
-  "connectionString": "string",
-  "pod": "string",
-  "namespace": "string"
-}
-```
-
-### User Management
-
-#### GET `/users`
-
-List available users.
-
-**Response:**
-
-```json
-{
-  "users": ["user1", "user2"]
-}
-```
-
-### Application Management
-
-#### GET `/apps`
-
-List available applications.
-
-**Response:**
-
-```json
-{
-  "apps": ["app1", "app2"]
-}
-```
-
-### Pod Management
-
-#### GET `/v1/pods`
-
-List Kubernetes pods.
-
-**Query Parameters:**
-
-- `namespace` (optional) - Filter by namespace
+- `namespace` (query, optional) - Filter by namespace
 
 **Response:**
 
@@ -70,19 +31,95 @@ List Kubernetes pods.
 {
   "pods": [
     {
-      "name": "string",
-      "namespace": "string",
-      "status": "string"
+      "name": "web-app-prod",
+      "namespace": "default",
+      "status": "Running"
     }
   ]
 }
 ```
 
-### Maintenance
+### User Management
 
-#### DELETE `/flushFirebaseContainers`
+#### `GET /users`
 
-Maintenance endpoint to clean up Firebase container state. Use this to resolve memory issues or clean up stale data.
+List all users with SSH access.
+
+```bash
+# Example
+curl http://localhost:8080/users
+```
+
+**Response:**
+
+```json
+{
+  "users": [
+    {
+      "name": "dev-user",
+      "pods": ["web-app-dev"],
+      "permissions": ["admin"]
+    }
+  ]
+}
+```
+
+#### `GET /_cat/connection-string/:user`
+
+Get SSH connection details for a user.
+
+```bash
+# Example
+curl http://localhost:8080/_cat/connection-string/dev-user
+```
+
+**Response:**
+
+```json
+{
+  "connectionString": "ssh dev-user@sftp.company.com",
+  "pod": "web-app-dev",
+  "namespace": "default"
+}
+```
+
+### Application Management
+
+#### `GET /apps`
+
+List all managed applications.
+
+```bash
+# Example
+curl http://localhost:8080/apps
+```
+
+**Response:**
+
+```json
+{
+  "apps": [
+    {
+      "name": "web-app",
+      "pods": ["web-app-dev", "web-app-prod"],
+      "users": ["dev-user"]
+    }
+  ]
+}
+```
+
+### System Maintenance
+
+#### `DELETE /flushFirebaseContainers`
+
+Clean up stale container data from Firebase.
+
+⚠️ **Admin only. Use with caution in production.**
+
+```bash
+# Example
+curl -X DELETE http://localhost:8080/flushFirebaseContainers
+```
 
 **Response:**
 
@@ -94,23 +131,11 @@ Maintenance endpoint to clean up Firebase container state. Use this to resolve m
 }
 ```
 
-**Error Response:**
+This operation:
 
-```json
-{
-  "ok": false,
-  "message": "Failed to flush containers",
-  "error": "Error details"
-}
-```
-
-**Notes:**
-
-- Requires admin access
-- Operation is logged for audit purposes
+- Removes stale container records
 - Triggers automatic container re-sync
-- Use with caution in production
+- Logs all changes for audit
+- Helps resolve memory issues
 
-## Authentication
 
-All API endpoints require appropriate authentication headers based on the configuration.

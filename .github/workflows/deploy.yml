@@ -1,11 +1,21 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-
-# GitHub recommends pinning actions to a commit SHA.
-# To get a newer version, you will need to update the SHA.
-# You can also reference a tag or branch, but the action may change without warning.
+# Build and deploy the SFTP Gateway to Google Kubernetes Engine (GKE)
+#
+# Required GitHub Secrets:
+# - Kubernetes Configuration:
+#   KUBERNETES_CLUSTER_ENDPOINT: API server address
+#   KUBERNETES_CLUSTER_NAMESPACE: Target namespace
+#   KUBERNETES_CLUSTER_USER_TOKEN: Service account token
+#
+# - Application Configuration:
+#   ACCESS_TOKEN: GitHub token for authentication
+#   SLACK_NOTIFICACTION_URL: Slack webhook URL
+#   SLACK_NOTIFICACTION_CHANNEL: Slack channel name
+#
+# - GCP Configuration:
+#   GKE_PROJECT: GCP project ID
+#   GKE_SA_KEY: Service account key for GCP
+#
+# Note: This workflow uses third-party actions that are pinned to specific versions for security.
 
 name: Build, Release and Deploy to GKE
 
@@ -171,25 +181,24 @@ jobs:
         chmod u+x ./kustomize
     # Deploy secret variables
     - run: |
+        # Required Kubernetes configuration
         sed -i.bak "s|CLUSTER_NAME_VALUE|${{ vars.GKE_CLUSTER }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" ci/deployment-v2.yml
         sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-restart-cronjob.yml
         sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_SERVICEACCOUNT_VALUE|${{ secrets.KUBERNETES_CLUSTER_SERVICEACCOUNT }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_CERTIFICATE_VALUE|${{ secrets.KUBERNETES_CLUSTER_CERTIFICATE }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_USER_SECRET_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_SECRET }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_CONTEXT_VALUE|${{ secrets.KUBERNETES_CLUSTER_CONTEXT }}|g" ci/deployment-v2.yml
+        
+        # Also update namespace in cronjob
+        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-restart-cronjob.yml
+        
+        # Application configuration
         sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" ci/deployment-v2.yml
         sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" ci/deployment-v2.yml
         sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" ci/deployment-v2.yml
+        
+        # Image and deployment configuration
         sed -i.bak "s|IMAGE_VERSION|${{ steps.version.outputs.TAG }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/service.yml
-        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/deployment-v2.yml
-        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/deployment-restart-cronjob.yml
-        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/service.yml
-        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/deployment-v2.yml
-        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/deployment-restart-cronjob.yml
+        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/service.yml ci/deployment-v2.yml ci/deployment-restart-cronjob.yml
+        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/service.yml ci/deployment-v2.yml ci/deployment-restart-cronjob.yml
         sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" ci/deployment-v2.yml
         sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" ci/deployment-v2.yml
     # Deploy the Docker image to the GKE cluster

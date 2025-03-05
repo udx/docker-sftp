@@ -8,38 +8,49 @@ log() {
 
 log "Starting Kubernetes setup"
 
-# Check required variables
-if [[ -z "${KUBERNETES_CLUSTER_NAME}" ]]; then
-    log "KUBERNETES_CLUSTER_NAME not set, skipping setup"
-    exit 0
-fi
-
+# Required environment variables
 if [[ -z "${KUBERNETES_CLUSTER_ENDPOINT}" ]]; then
-    log "KUBERNETES_CLUSTER_ENDPOINT not set, skipping setup"
-    exit 0
+    log "KUBERNETES_CLUSTER_ENDPOINT not set, cannot continue"
+    exit 1
 fi
 
-# Only proceed if Kubernetes certificate is provided
-if [[ "${KUBERNETES_CLUSTER_CERTIFICATE}" != "" ]]; then
-  echo "Writing Kubernetes certificate to [/home/udx/.kube/kuberentes-ca.crt]"
-  cat /var/run/secrets/kubernetes.io/serviceaccount/ca.crt > /home/udx/.kube/kuberentes-ca.crt
+if [[ -z "${KUBERNETES_CLUSTER_USER_TOKEN}" ]]; then
+    log "KUBERNETES_CLUSTER_USER_TOKEN not set, cannot continue"
+    exit 1
 fi
 
-# Only proceed if certificate exists
-if [[ -f /home/udx/.kube/kuberentes-ca.crt ]]; then
-  echo "Setting up Kubernetes [$KUBERNETES_CLUSTER_NAME] cluster with [$KUBERNETES_CLUSTER_NAMESPACE] namespace."
+# Set defaults
+KUBERNETES_CLUSTER_NAME=${KUBERNETES_CLUSTER_NAME:-"cluster-${RANDOM}"}
+KUBERNETES_CLUSTER_SERVICEACCOUNT=${KUBERNETES_CLUSTER_SERVICEACCOUNT:-"default"}
 
-  kubectl config set-cluster ${KUBERNETES_CLUSTER_NAME} \
-    --embed-certs=true \
-    --server=${KUBERNETES_CLUSTER_ENDPOINT} \
-    --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+# Setup kubectl config
+log "Configuring kubectl"
 
-  kubectl config set-context ${KUBERNETES_CLUSTER_NAMESPACE} \
-    --namespace=${KUBERNETES_CLUSTER_NAMESPACE} \
+# Handle certificate
+CERT_PATH="/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+if [[ -f "${CERT_PATH}" ]]; then
+    log "Using in-cluster certificate"
+    kubectl config set-cluster ${KUBERNETES_CLUSTER_NAME} \
+        --embed-certs=true \
+        --server=${KUBERNETES_CLUSTER_ENDPOINT} \
+        --certificate-authority=${CERT_PATH}
+else
+    log "Using insecure-skip-tls-verify"
+    kubectl config set-cluster ${KUBERNETES_CLUSTER_NAME} \
+        --server=${KUBERNETES_CLUSTER_ENDPOINT} \
+        --insecure-skip-tls-verify=true
+fi
+
+# Set credentials
+kubectl config set-credentials ${KUBERNETES_CLUSTER_SERVICEACCOUNT} \
+    --token=${KUBERNETES_CLUSTER_USER_TOKEN}
+
+# Set context
+kubectl config set-context ${KUBERNETES_CLUSTER_NAME} \
     --cluster=${KUBERNETES_CLUSTER_NAME} \
     --user=${KUBERNETES_CLUSTER_SERVICEACCOUNT}
 
-  kubectl config set-credentials ${KUBERNETES_CLUSTER_SERVICEACCOUNT} --token=${KUBERNETES_CLUSTER_USER_TOKEN}
+# Use context
+kubectl config use-context ${KUBERNETES_CLUSTER_NAME}
 
-  kubectl config use-context ${KUBERNETES_CLUSTER_NAMESPACE}
-fi
+log "Setup complete"

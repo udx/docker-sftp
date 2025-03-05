@@ -27,7 +27,7 @@ services:
   # Firebase deployment watcher
   - name: "firebase-consume"
     autostart: true
-    autorestart: true
+    autorestart: false
     command: "node bin/firebase.consume.js"
     envs:
       - "NODE_ENV=production"

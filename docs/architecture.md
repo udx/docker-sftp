@@ -23,13 +23,13 @@ The Docker SFTP/SSH Gateway is designed as a secure bridge between users and Kub
 
 The API server provides internal services for pod management and authentication.
 
-#### Endpoints:
+The API server exposes endpoints for:
+- Pod connection management
+- User and application listing
+- Kubernetes pod operations
+- System maintenance
 
-- `/_cat/connection-string/:user`: Get pod connection details
-- `/users`: List available users
-- `/apps`: List available applications
-- `/v1/pods`: Kubernetes pod management
-- `/flushFirebaseContainers`: Maintenance endpoint
+See [API Reference](api-reference.md) for detailed endpoint documentation.
 
 #### Key Files:
 

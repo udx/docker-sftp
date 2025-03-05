@@ -4,153 +4,81 @@ Secure SSH/SFTP gateway providing direct access to Kubernetes pods using GitHub 
 
 ## ✨ Features
 
-### Core Features
 - 🔐 GitHub-based authentication using SSH keys
 - 🚀 Direct SSH/SFTP access to Kubernetes pods
 - 👥 Role-based access control tied to GitHub permissions
-- 🔍 Detailed access logging
-
-### Additional Features
 - 📊 Container state management via Firebase
 - 🔄 Real-time state synchronization
 - 🧹 Automatic cleanup of terminated containers
+- 🔍 Detailed access logging
 
 ## 🚀 Quick Start
 
-### 1. Deploy Gateway
+### Prerequisites
+
+1. Access to a Kubernetes cluster with `kubectl` configured
+2. GitHub token with repo access permissions
+
+### Local Development
+
+Run with Docker for local testing:
+
 ```bash
-# Deploy locally with Docker
+# Get cluster credentials
+KUBE_ENDPOINT=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+KUBE_TOKEN=$(kubectl get secret $(kubectl get sa default -n default -o jsonpath='{.secrets[0].name}') \
+  -o jsonpath='{.data.token}' | base64 -d)
+
+# Run container
 docker run -d \
   --name sftp-gateway \
   -p 2222:22 \
-  # Required: Kubernetes access
-  -e KUBERNETES_CLUSTER_ENDPOINT=https://your-cluster:6443 \
-  -e KUBERNETES_CLUSTER_NAME=prod-cluster \
-  # Required: GitHub authentication
-  -e ACCESS_TOKEN=<github-token> \
-  -e ALLOW_SSH_ACCESS_ROLES="admin,maintain,write" \
+  -e KUBERNETES_CLUSTER_ENDPOINT=$KUBE_ENDPOINT \
+  -e KUBERNETES_CLUSTER_USER_TOKEN=$KUBE_TOKEN \
+  -e ACCESS_TOKEN=$GITHUB_TOKEN \
   udx/docker-sftp
-
-# Verify deployment
-docker ps | grep sftp-gateway
-curl http://localhost:8080/users
 ```
 
-Your gateway address will be:
-- Local testing: `localhost` (like above)
-- Production: Your server's hostname/IP (e.g., `sftp.company.com`)
+For production deployment, see [Deployment Guide](docs/deployment.md).
 
-See [Configuration](#%EF%B8%8F-configuration) for optional features.
+See [Environment Variables](docs/environment.md) for auth setup and [Deployment Guide](docs/deployment.md) for production deployment.
 
-### 2. Configure Access
-```bash
-# Add to ~/.ssh/config
-Host pod-example
-    # For local testing use localhost
-    HostName localhost     
-    # Port you exposed in docker run (-p 2222:22)
-    Port 2222             
-    # The pod you want to access
-    User example-pod      
-    # Your GitHub SSH key
-    IdentityFile ~/.ssh/github_rsa
-```
+### 2. Connect to Pods
 
-### 3. Start Using
-```bash
-# Direct pod access
-ssh pod-example
-
-# File transfer
-scp local-file pod-example:/remote/path/
-```
-
-See [Client Guide](docs/client-guide.md) for detailed usage examples.
-
-## ⚙️ Configuration
-
-The gateway needs these environment variables to run:
-
-### Required for Basic Setup
-
-```bash
-# Connect to your Kubernetes cluster
-KUBERNETES_CLUSTER_ENDPOINT=https://your-cluster:6443
-KUBERNETES_CLUSTER_NAME=prod-cluster
-
-# Enable GitHub-based authentication
-ACCESS_TOKEN=<github-token>              # GitHub personal access token
-ALLOW_SSH_ACCESS_ROLES=admin,maintain     # Which GitHub roles can access
-```
-
-### Additional Capabilities
-
-```bash
-# Enable container state tracking (optional)
-FIREBASE_PROJECT_ID=your-project         # Track container lifecycle
-FIREBASE_PRIVATE_KEY=<service-account>   # Firebase authentication
-```
-
-For production setup, see:
-- [Environment Variables](docs/environment.md) - Complete configuration guide
-- [Kubernetes Authentication](docs/kuberentes-auth.md) - Service account setup
-
-## 👍 Usage
-
-### SSH Access
 ```bash
 # Interactive shell
-ssh pod-name@localhost        # Local testing
-ssh pod-name@sftp.company.com # Production example
+ssh pod-myapp@sftp.company.com
 
-# Run commands
-ssh pod-name@localhost "ls -la"
-
-# Access specific namespace
-ssh namespace.pod-name@localhost
+# Transfer files
+scp file pod-myapp@sftp.company.com:/path/
 ```
 
-### File Transfer
-```bash
-# Upload files
-scp local-file pod-name@localhost:/path/
-
-# Download files
-scp pod-name@localhost:/path/file ./
-
-# Interactive SFTP
-sftp pod-name@localhost
-```
-
-For production deployment and advanced features, see:
-- [Kubernetes Setup](docs/kuberentes-auth.md)
-- [Environment Variables](docs/environment.md)
-- [Client Guide](docs/client-guide.md)
+See [Client Guide](docs/client-guide.md) for SSH config and advanced usage.
 
 ## 📚 Documentation
 
-- [Client Guide](docs/client-guide.md) - Usage examples and SSH configuration
-- [Troubleshooting](docs/troubleshooting.md) - Common issues and solutions
-- [Architecture Details](docs/architecture.md) - System design and components
+### Core Concepts
+
+- [Architecture](docs/architecture.md) - System design and components
+- [API Reference](docs/api-reference.md) - HTTP API endpoints
+
+### Setup & Configuration
+
+- [Deployment Guide](docs/deployment.md) - Deployment options and setup
+- [Environment Variables](docs/environment.md) - Configuration reference
+- [User Management](docs/user-management.md) - Access control
+
+### Help
+
+- [Client Guide](docs/client-guide.md) - Usage examples
+- [Troubleshooting](docs/troubleshooting.md) - Common issues
 
 ## 🤝 Contributing
 
-### Development Setup
-
-1. Fork the repository
-2. Create a feature branch
-3. Submit a Pull Request
-
-### Bug Reports & Feature Requests
-
-- Use GitHub Issues for bug reports and feature requests
-- Include detailed steps to reproduce bugs
-- Follow the issue template guidelines
-
-### Security Reports
-
-For security issues, please email security@udx.io instead of using GitHub Issues.
+- **Bug Reports & Features**: Use GitHub Issues
+- **Security Reports**: Email security@udx.io
+- **Pull Requests**: Fork and submit PRs
 
 ## 📄 License
 
-This project is proprietary software. All rights reserved.
+Proprietary software. All rights reserved.

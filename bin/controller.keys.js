@@ -163,8 +163,7 @@ module.exports.updateKeys = function updateKeys(options, taskCallback) {
                     method: "get",
                     url: 'https://api.github.com/repos/' + data._id + '/collaborators',
                     headers: {
-                        'Authorization': 'token ' + _token,
-                        'User-Agent': 'wpCloud/Controller'
+                        'Authorization': 'token ' + _token
                     }
                 };
 

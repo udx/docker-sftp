@@ -2,16 +2,18 @@
 
 ## Kubernetes Configuration
 
-| Variable                            | Description               | Required |
-| ----------------------------------- | ------------------------- | -------- |
-| `KUBERNETES_CLUSTER_ENDPOINT`       | Kubernetes API endpoint   | Yes      |
-| `KUBERNETES_CLUSTER_NAME`           | Name of the cluster       | Yes      |
-| `KUBERNETES_CLUSTER_NAMESPACE`      | Namespace for deployments | Yes      |
-| `KUBERNETES_CLUSTER_USER_TOKEN`     | Authentication token      | Yes      |
-| `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name      | Yes      |
-| `KUBERNETES_CLUSTER_CERTIFICATE`    | Cluster certificate       | Yes      |
-| `KUBERNETES_CLUSTER_USER_SECRET`    | User secret for auth      | Yes      |
-| `KUBERNETES_CLUSTER_CONTEXT`        | Kubernetes context        | Yes      |
+Variables for connecting to your Kubernetes cluster:
+
+| Variable                            | Description                                    | Required | Default         |
+| ----------------------------------- | ---------------------------------------------- | -------- | --------------- |
+| `KUBERNETES_CLUSTER_ENDPOINT`       | API server address (e.g. https://your-cluster) | Yes      | -               |
+| `KUBERNETES_CLUSTER_USER_TOKEN`     | Service account token for authentication       | Yes      | -               |
+| `KUBERNETES_CLUSTER_NAME`           | Name for kubectl cluster context               | No       | Auto-generated¹ |
+| `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name for kubectl config        | No       | "default"       |
+
+¹ When not set, generates a random name like "cluster-12345"
+
+See [Deployment Guide](deployment.md) for instructions on setting up service accounts and getting credentials.
 
 ## GitHub Configuration
 
@@ -22,14 +24,48 @@
 
 ## Firebase Configuration
 
-| Variable                   | Description                 | Required |
-| -------------------------- | --------------------------- | -------- |
-| `FIREBASE_PROJECT_ID`      | Firebase project ID         | Yes      |
-| `FIREBASE_PRIVATE_KEY_ID`  | Private key ID              | Yes      |
-| `FIREBASE_PRIVATE_KEY`     | Private key (with newlines) | Yes      |
-| `FIREBASE_CLIENT_EMAIL`    | Service account email       | Yes      |
-| `FIREBASE_CLIENT_ID`       | Client ID                   | Yes      |
-| `FIREBASE_CLIENT_CERT_URL` | Client cert URL             | Yes      |
+The system uses Firebase Realtime Database to maintain container state and enable real-time tracking. This allows for:
+
+- Automatic cleanup of terminated containers
+- Real-time state synchronization
+- Container lifecycle management
+
+### Required Variables
+
+Firebase credentials are loaded from a service account JSON file:
+
+| Variable                         | Description                                                          | Required |
+| -------------------------------- | -------------------------------------------------------------------- | -------- |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file downloaded from Firebase console   | Yes      |
+| `FIREBASE_DATABASE_URL`          | Firebase Realtime Database URL (e.g. https://your-db.firebaseio.com) | Yes      |
+
+### Setup Instructions
+
+1. Go to Firebase Console > Project Settings > Service Accounts
+2. Click "Generate New Private Key" to download the JSON file
+3. Set `GOOGLE_APPLICATION_CREDENTIALS` to the path of this file
+4. Set `FIREBASE_DATABASE_URL` to your database URL
+
+### Data Structure
+
+The service maintains the following collections:
+
+```json
+{
+  "deployment": {
+    "[pod-id]": {
+      "status": "active|terminated",
+      "lastSeen": "timestamp",
+      "metadata": {
+        "namespace": "string",
+        "name": "string"
+      }
+    }
+  }
+}
+```
+
+See [Architecture Details](architecture.md#state-management) for more information about state management.
 
 ## Server Configuration
 
@@ -37,27 +73,7 @@
 | ----------- | ------------------------------- | -------- |
 | `NODE_PORT` | API server port (default: 8080) | No       |
 
-## Health Checks
-
-The service includes built-in health monitoring:
-
-```yaml
-livenessProbe:
-  tcpSocket:
-    port: ssh
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 2
-
-readinessProbe:
-  tcpSocket:
-    port: ssh
-  initialDelaySeconds: 10
-  periodSeconds: 10
-  timeoutSeconds: 3
-  failureThreshold: 2
-```
+For Kubernetes deployment configuration, including health checks and resource limits, see [Kubernetes Deployment](kubernetes-deployment.md).
 
 ## Deployment Labels
 

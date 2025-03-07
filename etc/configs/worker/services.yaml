@@ -12,7 +12,7 @@ services:
   - name: "rabbit-ssh-server"
     autostart: true
     autorestart: true
-    command: "node bin/server.js"
+    command: "node lib/server.js"
     envs:
       - "NODE_ENV=production"
 
@@ -28,6 +28,6 @@ services:
   - name: "firebase-consume"
     autostart: true
     autorestart: false
-    command: "node bin/firebase.consume.js"
+    command: "node lib/firebase.consume.js"
     envs:
       - "NODE_ENV=production"

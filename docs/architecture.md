@@ -49,7 +49,7 @@ Handles SSH key synchronization and access control.
 
 #### Key Files:
 
-- `/bin/controller.keys.js`: Key management logic
+- `/lib/controller.keys.js`: Key management logic
 - `/static/templates/*.mustache`: Password file templates
 
 ### 4. State Management

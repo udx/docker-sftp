@@ -9,8 +9,7 @@
         "test": "echo \"Error: no test specified\" && exit 1"
     },
     "bin": {
-        "controller.keys": "bin/controller.keys.js",
-        "rabbit.ssh": "bin/rabbit.ssh.cli.js"
+        "controller.keys": "lib/controller.keys.js"
     },
     "repository": {
         "type": "git",

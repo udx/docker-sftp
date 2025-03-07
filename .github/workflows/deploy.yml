@@ -51,7 +51,8 @@ jobs:
       security-events: write
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
     # fetch Tag from package.json version
     - name: Get Tag from package.json
@@ -96,7 +97,8 @@ jobs:
           core.setOutput('description', description.join('\n') );
 
     # Setup gcloud CLI
-    - id: 'auth'
+    - name: Authenticate with Google Cloud
+      id: 'auth'
       uses: 'google-github-actions/auth@v2'
       with:
         credentials_json: '${{ secrets.GKE_SA_KEY }}'
@@ -109,11 +111,12 @@ jobs:
 
     # Configure Docker to use the gcloud command-line tool as a credential
     # helper for authentication
-    - run: |-
+    - name: Configure Docker authentication for Artifact Registry
+      run: |-
         gcloud --quiet auth configure-docker $AR_LOCATION-docker.pkg.dev
 
     # Build the Docker image
-    - name: Build
+    - name: Build Docker image
       run: |-
         docker build \
           --tag "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}" \
@@ -122,7 +125,7 @@ jobs:
           .
           
     # Push the Docker image to Google Container Registry
-    - name: Publish
+    - name: Push Docker image to Artifact Registry
       run: |-
         docker push "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
 
@@ -168,7 +171,8 @@ jobs:
           ./sbom.spdx.json
 
     # Get the GKE credentials so we can deploy to the cluster
-    - uses: google-github-actions/get-gke-credentials@v2
+    - name: Get GKE cluster credentials
+      uses: google-github-actions/get-gke-credentials@v2
       with:
         cluster_name: ${{ env.GKE_CLUSTER }}
         location: ${{ env.GKE_REGION }}
@@ -180,29 +184,31 @@ jobs:
         curl -sfLo kustomize https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv5.3.0/kustomize_v5.3.0_linux_amd64.tar.gz
         chmod u+x ./kustomize
     # Deploy secret variables
-    - run: |
+    - name: Configure deployment variables and secrets
+      run: |
         # Required Kubernetes configuration
-        sed -i.bak "s|CLUSTER_NAME_VALUE|${{ vars.GKE_CLUSTER }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|CLUSTER_NAME_VALUE|${{ vars.GKE_CLUSTER }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" cd/configs/kubernetes/deployment.yml
         
         # Also update namespace in cronjob
-        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" ci/deployment-restart-cronjob.yml
+        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" cd/configs/kubernetes/deployment-restart-cronjob.yml
         
         # Application configuration
-        sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" ci/deployment-v2.yml
+        sed -i.bak "s|ACCESS_TOKEN_VALUE|${{ secrets.ACCESS_TOKEN }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" cd/configs/kubernetes/deployment.yml
         
         # Image and deployment configuration
-        sed -i.bak "s|IMAGE_VERSION|${{ steps.version.outputs.TAG }}|g" ci/deployment-v2.yml
-        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" ci/service.yml ci/deployment-v2.yml ci/deployment-restart-cronjob.yml
-        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" ci/service.yml ci/deployment-v2.yml ci/deployment-restart-cronjob.yml
-        sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" ci/deployment-v2.yml
-        sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" ci/deployment-v2.yml
+        sed -i.bak "s|IMAGE_VERSION|${{ steps.version.outputs.TAG }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|GITHUB_ORG|$GITHUB_REPOSITORY_OWNER|g" cd/configs/kubernetes/service.yml cd/configs/kubernetes/deployment.yml cd/configs/kubernetes/deployment-restart-cronjob.yml
+        sed -i.bak "s|GITHUB_BRANCH|$GITHUB_REF_NAME|g" cd/configs/kubernetes/service.yml cd/configs/kubernetes/deployment.yml cd/configs/kubernetes/deployment-restart-cronjob.yml
+        sed -i.bak "s|PROJECT_ID|$PROJECT_ID|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|AR_LOCATION|$AR_LOCATION|g" cd/configs/kubernetes/deployment.yml
     # Deploy the Docker image to the GKE cluster
-    - run: |
-        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/service.yml && \
-        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/deployment-v2.yml && \
-        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f ci/deployment-restart-cronjob.yml
+    - name: Deploy Kubernetes resources (service, deployment, and cronjob)
+      run: |
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f cd/configs/kubernetes/service.yml && \
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f cd/configs/kubernetes/deployment.yml && \
+        kubectl apply -n ${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }} -f cd/configs/kubernetes/deployment-restart-cronjob.yml

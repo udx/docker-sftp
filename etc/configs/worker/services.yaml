@@ -9,12 +9,13 @@ services:
     command: "bin/setup-kubernetes.sh"
 
   # Main SSH server service
-  - name: "rabbit-ssh-server"
+  - name: "ssh-server"
     autostart: true
     autorestart: true
     command: "node lib/server.js"
     envs:
       - "NODE_ENV=production"
+      - "NODE_PORT=8080"
 
   # SSHD daemon
   - name: "sshd"
@@ -22,7 +23,7 @@ services:
     autorestart: true
     command: "/usr/sbin/sshd -D"
     envs:
-      - "SSHD_PORT=22"
+      - "SSHD_PORT=2222"
 
   # Firebase deployment watcher
   - name: "firebase-consume"

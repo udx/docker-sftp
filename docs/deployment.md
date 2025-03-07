@@ -1,40 +1,112 @@
 # Deployment Guide
 
-This guide covers how to deploy and configure the SFTP Gateway.
+This guide covers deployment steps for the SFTP Gateway. For architecture details, see [Architecture Details](architecture.md).
 
 ## Prerequisites
 
-1. Access to a Kubernetes cluster with `kubectl` configured
+Before deploying, ensure you have:
+
+1. Kubernetes cluster access with `kubectl` configured
 2. GitHub token with repo access permissions
+3. Network access to required services
 
-## Local Development
+See [Architecture Details](architecture.md#prerequisites) for detailed requirements.
 
-For local testing, run with Docker:
+## Deployment Steps
+
+### 1. Configure Environment
+
+Set up required environment variables:
 
 ```bash
-# Get cluster credentials
-KUBE_ENDPOINT=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-KUBE_TOKEN=$(kubectl get secret $(kubectl get sa default -n default -o jsonpath='{.secrets[0].name}') \
-  -o jsonpath='{.data.token}' | base64 -d)
+# Required for all deployments
+export GITHUB_TOKEN="your-github-token"
 
-# Run container
+# For local deployment only
+export KUBE_ENDPOINT=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
+export KUBE_TOKEN=$(kubectl get secret $(kubectl get sa default -n default -o jsonpath='{.secrets[0].name}') \
+  -o jsonpath='{.data.token}' | base64 -d)
+```
+
+See [Environment Variables](environment.md) for all configuration options.
+
+### 2. Choose Deployment Mode
+
+#### Option A: Local Development
+
+Run as a Docker container:
+
+```bash
 docker run -d \
   --name sftp-gateway \
   -p 2222:22 \
+  -e KUBERNETES_CLUSTER_NAME=my-cluster \
   -e KUBERNETES_CLUSTER_ENDPOINT=$KUBE_ENDPOINT \
   -e KUBERNETES_CLUSTER_USER_TOKEN=$KUBE_TOKEN \
   -e ACCESS_TOKEN=$GITHUB_TOKEN \
   udx/docker-sftp
 ```
 
-## Kubernetes Deployment
+#### Option B: Kubernetes Deployment
 
-### 1. Create Service Account
-
-Create a service account with necessary permissions:
+1. Create service account:
 
 ```bash
-# Set namespace for deployment
+# Set namespace
+NAMESPACE=kube-system  # Or your preferred namespace
+
+# Create service account and grant permissions
+kubectl create serviceaccount sftp-gateway -n $NAMESPACE
+kubectl create rolebinding sftp-gateway-admin -n $NAMESPACE \
+  --clusterrole=admin \
+  --serviceaccount=$NAMESPACE:sftp-gateway
+```
+
+2. Store credentials:
+
+```bash
+# Get service account token
+SA_TOKEN=$(kubectl get secret $(kubectl get sa sftp-gateway -n $NAMESPACE -o jsonpath='{.secrets[0].name}') \
+  -n $NAMESPACE -o jsonpath='{.data.token}' | base64 -d)
+
+# Store tokens in secret
+kubectl create secret generic sftp-secrets -n $NAMESPACE \
+  --from-literal=github-token=$GITHUB_TOKEN
+```
+
+3. Deploy service:
+
+```bash
+# Create deployment
+kubectl apply -f deployment.yml
+
+# Verify
+kubectl get pods -n $NAMESPACE -l app=sftp-gateway
+kubectl get service -n $NAMESPACE sftp-gateway
+```
+
+See [deployment.yml](../ci/deployment-v2.yml) for the full configuration.
+
+### 3. Verify Deployment
+
+Test SSH access:
+
+```bash
+# Get service address
+SSH_HOST=$(kubectl get service -n $NAMESPACE sftp-gateway -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+# Test connection
+ssh -p 22 pod-myapp@$SSH_HOST
+```
+
+See [Client Guide](client-guide.md) for usage instructions.
+
+### Next Steps
+
+- [Configure Environment Variables](environment.md)
+- [Manage User Access](user-management.md)
+- [Troubleshooting Guide](troubleshooting.md)
+
 NAMESPACE=kube-system  # Or your preferred namespace
 
 # Create service account

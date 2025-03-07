@@ -6,7 +6,7 @@ services:
   - name: "k8s-setup"
     autostart: true
     autorestart: false
-    command: "/opt/sources/rabbitci/rabbit-ssh/bin/setup-kubernetes.sh"
+    command: "bin/setup-kubernetes.sh"
 
   # Main SSH server service
   - name: "rabbit-ssh-server"

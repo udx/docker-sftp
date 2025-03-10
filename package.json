@@ -1,6 +1,6 @@
 {
     "name": "docker-sftp",
-    "version": "0.7",
+    "version": "1.0.0",
     "description": "SSH tunnels to Kubernetes containers",
     "main": "bin/server.js",
     "scripts": {

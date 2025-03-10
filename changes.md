@@ -1,4 +1,4 @@
-### 0.7
+### 1.0.0
 * Migrated image to be based on `usabilitydynamics/udx-worker-nodejs:0.11.0`
 * Improved build to pre-configure environment
 * Moved entrypoint logic to services

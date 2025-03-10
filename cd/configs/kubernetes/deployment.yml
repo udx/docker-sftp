@@ -46,10 +46,12 @@ spec:
               value: https://CLUSTER_ENDPOINT_VALUE
             - name: KUBERNETES_CLUSTER_NAME
               value: CLUSTER_NAME_VALUE
-            - name: KUBERNETES_CLUSTER_NAMESPACE
-              value: CLUSTER_NAMESPACE_VALUE
+            - name: KUBERNETES_CLUSTER_SERVICEACCOUNT
+              value: CLUSTER_SERVICEACCOUNT_VALUE              
             - name: KUBERNETES_CLUSTER_USER_TOKEN
               value: CLUSTER_USER_TOKEN_VALUE
+            - name: KUBERNETES_CLUSTER_CERTIFICATE
+              value: CLUSTER_CERTIFICATE_VALUE              
             # Application configuration
             - name: NODE_PORT
               value: "8080"

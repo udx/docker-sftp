@@ -1,9 +1,12 @@
 # Build and deploy the SFTP Gateway to Google Kubernetes Engine (GKE)
 #
 # Required GitHub Secrets:
+#  
 # - Kubernetes Configuration:
 #   KUBERNETES_CLUSTER_ENDPOINT: API server address
 #   KUBERNETES_CLUSTER_NAMESPACE: Target namespace
+#   KUBERNETES_CLUSTER_CERTIFICATE: Cluster certificate
+#   KUBERNETES_CLUSTER_SERVICEACCOUNT: Service account name
 #   KUBERNETES_CLUSTER_USER_TOKEN: Service account token
 #
 # - Application Configuration:
@@ -189,8 +192,9 @@ jobs:
         # Required Kubernetes configuration
         sed -i.bak "s|CLUSTER_NAME_VALUE|${{ vars.GKE_CLUSTER }}|g" cd/configs/kubernetes/deployment.yml
         sed -i.bak "s|CLUSTER_ENDPOINT_VALUE|${{ secrets.KUBERNETES_CLUSTER_ENDPOINT }}|g" cd/configs/kubernetes/deployment.yml
-        sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|CLUSTER_SERVICEACCOUNT_VALUE|${{ secrets.KUBERNETES_CLUSTER_SERVICEACCOUNT }}|g" cd/configs/kubernetes/deployment.yml
         sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" cd/configs/kubernetes/deployment.yml
+        sed -i.bak "s|CLUSTER_CERTIFICATE_VALUE|${{ secrets.KUBERNETES_CLUSTER_CERTIFICATE }}|g" cd/configs/kubernetes/deployment.yml
         
         # Also update namespace in cronjob
         sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" cd/configs/kubernetes/deployment-restart-cronjob.yml

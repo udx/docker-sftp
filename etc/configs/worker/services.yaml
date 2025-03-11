@@ -1,0 +1,32 @@
+---
+kind: workerService
+version: udx.io/worker-v1/service
+services:
+  # Initial setup service
+  - name: "k8s-setup"
+    autostart: true
+    autorestart: false
+    command: "bin/setup-kubernetes.sh"
+
+  # Main SSH server service
+  - name: "ssh-server"
+    autostart: true
+    autorestart: true
+    command: "node lib/server.js"
+    envs:
+      - "NODE_ENV=production"
+      - "NODE_PORT=8080"
+
+  # SSHD daemon
+  - name: "sshd"
+    autostart: true
+    autorestart: true
+    command: "authbind --deep /usr/sbin/sshd -D -f /etc/ssh/sshd_config -e"
+
+  # Firebase deployment watcher
+  - name: "firebase-consume"
+    autostart: true
+    autorestart: false
+    command: "node lib/firebase.consume.js"
+    envs:
+      - "NODE_ENV=production"

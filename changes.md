@@ -1,3 +1,13 @@
+### 0.7.0
+* Migrated image to be based on `usabilitydynamics/udx-worker-nodejs:0.11.0`
+* Improved build to pre-configure environment
+* Moved entrypoint logic to services
+* Added services config manifest
+* Cleaned up pm2 configs
+* Moved js scripts to `/lib`
+* Updated docs
+* Repo cleanup
+
 ### 0.6.2
 * added changes to controller.ssh.entrypoint. Fixes for exec command
 

@@ -28,7 +28,6 @@ spec:
       serviceAccountName: "CLUSTER_SERVICEACCOUNT_VALUE"
       containers:
         - name: sftp
-          #image: gcr.io/$PROJECT_ID/$IMAGE:$GITHUB_SHA
           image: "AR_LOCATION-docker.pkg.dev/PROJECT_ID/docker-sftp/GITHUB_BRANCH:IMAGE_VERSION"
           imagePullPolicy: Always
           ports:
@@ -42,30 +41,26 @@ spec:
               cpu: 200m
               memory: 212Mi
           env:
+            # Required Kubernetes configuration
             - name: KUBERNETES_CLUSTER_ENDPOINT
               value: https://CLUSTER_ENDPOINT_VALUE
-            - name: NODE_PORT
-              value: "8080"
-            - name: KUBERNETES_CLUSTER_NAMESPACE
-              value: CLUSTER_NAMESPACE_VALUE
+            - name: KUBERNETES_CLUSTER_NAME
+              value: CLUSTER_NAME_VALUE
+            - name: KUBERNETES_CLUSTER_SERVICEACCOUNT
+              value: CLUSTER_SERVICEACCOUNT_VALUE              
             - name: KUBERNETES_CLUSTER_USER_TOKEN
               value: CLUSTER_USER_TOKEN_VALUE
+            - name: KUBERNETES_CLUSTER_CERTIFICATE
+              value: CLUSTER_CERTIFICATE_VALUE              
+            # Application configuration
+            - name: NODE_PORT
+              value: "8080"
+            - name: ACCESS_TOKEN
+              value: ACCESS_TOKEN_VALUE
             - name: SLACK_NOTIFICACTION_URL
               value: SLACK_NOTIFICACTION_URL_VALUE
             - name: SLACK_NOTIFICACTION_CHANNEL
               value: SLACK_NOTIFICACTION_CHANNEL_VALUE
-            - name: KUBERNETES_CLUSTER_NAME
-              value: CLUSTER_NAME_VALUE
-            - name: KUBERNETES_CLUSTER_SERVICEACCOUNT
-              value: CLUSTER_SERVICEACCOUNT_VALUE
-            - name: KUBERNETES_CLUSTER_CERTIFICATE
-              value: CLUSTER_CERTIFICATE_VALUE
-            - name: KUBERNETES_CLUSTER_USER_SECRET
-              value: CLUSTER_USER_SECRET_VALUE
-            - name: KUBERNETES_CLUSTER_CONTEXT
-              value: CLUSTER_CONTEXT_VALUE
-            - name: ACCESS_TOKEN
-              value: ACCESS_TOKEN_VALUE
           livenessProbe:
             tcpSocket:
               port: ssh

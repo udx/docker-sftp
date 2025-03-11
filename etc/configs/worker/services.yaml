@@ -10,6 +10,7 @@ services:
 
   # Main SSH server service
   - name: "ssh-server"
+    ignore: true
     autostart: true
     autorestart: true
     command: "node lib/server.js"

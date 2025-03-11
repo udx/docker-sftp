@@ -25,7 +25,7 @@ spec:
       annotations:
         container.apparmor.security.beta.kubernetes.io/sftp: runtime/default
     spec:
-      # Use default service account with required permissions
+      serviceAccountName: "CLUSTER_SERVICEACCOUNT_VALUE"
       containers:
         - name: sftp
           image: "AR_LOCATION-docker.pkg.dev/PROJECT_ID/docker-sftp/GITHUB_BRANCH:IMAGE_VERSION"

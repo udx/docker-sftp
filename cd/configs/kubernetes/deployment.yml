@@ -30,12 +30,14 @@ spec:
         - name: sftp
           image: "AR_LOCATION-docker.pkg.dev/PROJECT_ID/docker-sftp/GITHUB_BRANCH:IMAGE_VERSION"
           imagePullPolicy: Always
-          securityContext:
-            appArmorProfile:
-              type: RuntimeDefault
           ports:
             - name: ssh
               containerPort: 22
+          securityContext:
+            runAsUser: 500
+            capabilities:
+              add:
+                - NET_BIND_SERVICE
           resources: 
             limits:
               cpu: '2'

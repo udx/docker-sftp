@@ -126,15 +126,18 @@ jobs:
       run: |-
         gcloud --quiet auth configure-docker $AR_LOCATION-docker.pkg.dev
 
-    # Set Docker tag based on branch
-    - name: Set Docker tag
-      id: docker_tag
+    # Set Docker tag and k8s resource names
+    - name: Set deployment variables
+      id: deployment_vars
       run: |
         if [ "${{ github.ref_name }}" = "master" ]; then
           echo "DOCKER_TAG=${{ steps.version.outputs.TAG }}" >> $GITHUB_ENV
+          echo "K8S_RESOURCE_SUFFIX=master" >> $GITHUB_ENV
         else
-          BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
+          # Convert branch name to lowercase and ensure it starts with a letter for k8s naming
+          BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | sed -E 's/^[^a-z]*//')
           echo "DOCKER_TAG=${BRANCH_NAME}" >> $GITHUB_ENV
+          echo "K8S_RESOURCE_SUFFIX=${BRANCH_NAME}" >> $GITHUB_ENV
         fi
 
     # Build the Docker image
@@ -214,6 +217,13 @@ jobs:
         sed -i.bak "s|CLUSTER_SERVICEACCOUNT_VALUE|${{ secrets.KUBERNETES_CLUSTER_SERVICEACCOUNT }}|g" cd/configs/kubernetes/deployment.yml
         sed -i.bak "s|CLUSTER_USER_TOKEN_VALUE|${{ secrets.KUBERNETES_CLUSTER_USER_TOKEN }}|g" cd/configs/kubernetes/deployment.yml
         sed -i.bak "s|CLUSTER_CERTIFICATE_VALUE|${{ secrets.KUBERNETES_CLUSTER_CERTIFICATE }}|g" cd/configs/kubernetes/deployment.yml
+        
+        # Update service and deployment names to be k8s compliant
+        for file in cd/configs/kubernetes/*.yml; do
+          sed -i.bak "s|GITHUB_ORG-sftp-GITHUB_BRANCH|udx-sftp-${{ env.K8S_RESOURCE_SUFFIX }}|g" "$file"
+          sed -i.bak "s|GITHUB_ORG|udx|g" "$file"
+          sed -i.bak "s|GITHUB_BRANCH|${{ env.K8S_RESOURCE_SUFFIX }}|g" "$file"
+        done
         
         # Also update namespace in cronjob
         sed -i.bak "s|CLUSTER_NAMESPACE_VALUE|${{ secrets.KUBERNETES_CLUSTER_NAMESPACE }}|g" cd/configs/kubernetes/deployment-restart-cronjob.yml

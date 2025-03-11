@@ -22,8 +22,6 @@ services:
     autostart: true
     autorestart: true
     command: "/usr/sbin/sshd -D -f /etc/ssh/sshd_config -e"
-    envs:
-      - "SSHD_PORT=2222"
 
   # Firebase deployment watcher
   - name: "firebase-consume"

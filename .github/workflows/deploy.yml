@@ -28,6 +28,7 @@ on:
       - master
       - latest
       - develop-*
+      - UDXI-420
 
 env:
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}

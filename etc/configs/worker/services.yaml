@@ -21,7 +21,7 @@ services:
   - name: "sshd"
     autostart: true
     autorestart: true
-    command: "/usr/sbin/sshd -D -f /etc/ssh/sshd_config -e"
+    command: "authbind --deep /usr/sbin/sshd -D -f /etc/ssh/sshd_config -e"
 
   # Firebase deployment watcher
   - name: "firebase-consume"

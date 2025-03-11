@@ -8,6 +8,7 @@ USER root
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
+    authbind=2.2.0ubuntu1 \
     wget=1.24.5-2ubuntu1 \
     gnupg2=2.4.4-2ubuntu22 \
     apt-transport-https=2.9.31ubuntu3 \
@@ -76,6 +77,11 @@ RUN ssh-keygen -A \
         /etc/ssh/ \
         ${APP_HOME} \
         ${WORKER_CONFIG_DIR}/services.d
+
+# Allow user to bind to port 22 (for authbind)
+RUN touch /etc/authbind/byport/22 \
+    && chmod 755 /etc/authbind/byport/22 \
+    && chown ${USER}:${USER} /etc/authbind/byport/22
 
 # Set default umask to ensure new files have correct permissions
 RUN echo "umask 0077" >> /home/${USER}/.profile

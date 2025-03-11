@@ -40,6 +40,7 @@ Run as a Docker container:
 docker run -d \
   --name sftp-gateway \
   -p 2222:22 \
+  -p 8080:8080 \
   -e KUBERNETES_CLUSTER_NAME=my-cluster \
   -e KUBERNETES_CLUSTER_ENDPOINT=$KUBE_ENDPOINT \
   -e KUBERNETES_CLUSTER_USER_TOKEN=$KUBE_TOKEN \

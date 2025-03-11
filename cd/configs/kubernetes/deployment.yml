@@ -62,16 +62,18 @@ spec:
             - name: SLACK_NOTIFICACTION_CHANNEL
               value: SLACK_NOTIFICACTION_CHANNEL_VALUE
           livenessProbe:
-            exec:
-              command:
-              - ls
-              - /
+            tcpSocket:
+              port: ssh
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1
           readinessProbe:
-            exec:
-              command:
-              - ls
-              - /
+            tcpSocket:
+              port: ssh
             initialDelaySeconds: 10
             periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1

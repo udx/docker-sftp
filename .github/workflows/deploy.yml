@@ -28,7 +28,6 @@ on:
       - master
       - latest
       - develop-*
-      - UDXI-420
 
 env:
   # GCP and GKE configuration

@@ -10,7 +10,7 @@ USER root
 RUN apt-get update && apt-get install -y \
     wget=1.24.5-2ubuntu1 \
     gnupg2=2.4.4-2ubuntu22 \
-    apt-transport-https=2.9.31ubuntu1 \
+    apt-transport-https=2.9.31ubuntu3 \
     libssl-dev=3.4.1-1ubuntu1 \
     libffi-dev=3.4.7-1 \
     file=1:5.45-3build1 \

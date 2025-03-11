@@ -62,8 +62,13 @@ RUN ssh-keygen -A \
     && chmod +x ${APP_HOME}/bin/setup-kubernetes.sh \
     && touch /var/log/sshd.log \
     && chown ${USER}:${USER} /var/log/sshd.log \
-    && chown ${USER}:${USER} /etc/ssh/authorized_keys.d \
-    && chmod 700 /etc/ssh/authorized_keys.d \
+    && chown -R ${USER}:${USER} /etc/ssh/authorized_keys.d \
+    && chmod 755 /etc/ssh/authorized_keys.d \
+    && touch /etc/ssh/authorized_keys.d/.keep \
+    && chmod 600 /etc/ssh/authorized_keys.d/.keep \
+    && chown ${USER}:${USER} /etc/ssh/authorized_keys.d/.keep \
+    && chown ${USER}:${USER} /etc/passwd \
+    && chmod 600 /etc/passwd \
     && chown -R ${USER}:${USER} \
         /home/${USER} \
         /usr/local/bin/kubectl \
@@ -71,6 +76,9 @@ RUN ssh-keygen -A \
         /etc/ssh/ \
         ${APP_HOME} \
         ${WORKER_CONFIG_DIR}/services.d
+
+# Set default umask to ensure new files have correct permissions
+RUN echo "umask 0077" >> /home/${USER}/.profile
 
 USER ${USER}
 

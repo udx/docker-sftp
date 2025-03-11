@@ -31,15 +31,22 @@ on:
       - UDXI-420
 
 env:
+  # GCP and GKE configuration
   PROJECT_ID: ${{ secrets.GKE_PROJECT }}
-  GKE_CLUSTER: ${{ vars.GKE_CLUSTER }}    # Add your cluster name here.
-  GKE_REGION: ${{ vars.GKE_REGION }}   # Add your cluster zone here.
-  DEPLOYMENT_NAME: ${{ secrets.DEPLOYMENT_NAME }} # Add your deployment name here.
+  GKE_CLUSTER: ${{ vars.GKE_CLUSTER }}
+  GKE_REGION: ${{ vars.GKE_REGION }}
+  
+  # Deployment configuration
+  DEPLOYMENT_NAME: ${{ secrets.DEPLOYMENT_NAME }}
+  
+  # Notification configuration
   SLACK_NOTIFICACTION_URL: ${{ secrets.SLACK_NOTIFICACTION_URL }}
   SLACK_NOTIFICACTION_CHANNEL: ${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}
+  
+  # Artifact Registry configuration
   AR_LOCATION: ${{ vars.AR_LOCATION }}
   AR_REPOSITORY: ${{ vars.AR_REPOSITORY }}
-  IMAGE_NAME: ${{vars.AR_LOCATION}}-docker.pkg.dev/${{secrets.GKE_PROJECT}}/${{vars.AR_REPOSITORY}}/${{github.ref_name}}
+  IMAGE_NAME: ${{vars.AR_LOCATION}}-docker.pkg.dev/${{secrets.GKE_PROJECT}}/${{vars.AR_REPOSITORY}}/sftp
 
 jobs:
   setup-build-publish-deploy:
@@ -119,11 +126,22 @@ jobs:
       run: |-
         gcloud --quiet auth configure-docker $AR_LOCATION-docker.pkg.dev
 
+    # Set Docker tag based on branch
+    - name: Set Docker tag
+      id: docker_tag
+      run: |
+        if [ "${{ github.ref_name }}" = "master" ]; then
+          echo "DOCKER_TAG=${{ steps.version.outputs.TAG }}" >> $GITHUB_ENV
+        else
+          BRANCH_NAME=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]')
+          echo "DOCKER_TAG=${BRANCH_NAME}" >> $GITHUB_ENV
+        fi
+
     # Build the Docker image
     - name: Build Docker image
       run: |-
         docker build \
-          --tag "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}" \
+          --tag "${{env.IMAGE_NAME}}:${{ env.DOCKER_TAG }}" \
           --build-arg GITHUB_SHA="$GITHUB_SHA" \
           --build-arg GITHUB_REF="$GITHUB_REF" \
           .
@@ -131,14 +149,14 @@ jobs:
     # Push the Docker image to Google Container Registry
     - name: Push Docker image to Artifact Registry
       run: |-
-        docker push "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
+        docker push "${{env.IMAGE_NAME}}:${{ env.DOCKER_TAG }}"
 
     # Scan Docker image for vulnerabilities
     - name: Scan Docker Image using Trivy
       if: github.ref_name == 'master'
       uses: aquasecurity/trivy-action@master
       with:
-        image-ref: "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
+        image-ref: "${{env.IMAGE_NAME}}:${{ env.DOCKER_TAG }}"
         exit-code: '0'
         timeout: '60m0s'
         format: 'sarif'
@@ -157,7 +175,7 @@ jobs:
       id: sbom
       uses: anchore/sbom-action@v0
       with:
-        image: "${{env.IMAGE_NAME}}:${{ steps.version.outputs.TAG }}"
+        image: "${{env.IMAGE_NAME}}:${{ env.DOCKER_TAG }}"
         output-file: sbom.spdx.json
         format: spdx-json
 

@@ -214,10 +214,10 @@ jobs:
           sed -i.bak "s|SLACK_NOTIFICACTION_URL_VALUE|${{ secrets.SLACK_NOTIFICACTION_URL }}|g" cd/configs/kubernetes/deployment.yml
           sed -i.bak "s|SLACK_NOTIFICACTION_CHANNEL_VALUE|${{ secrets.SLACK_NOTIFICACTION_CHANNEL }}|g" cd/configs/kubernetes/deployment.yml
 
-          # Update image configuration with lowercase branch name
+          # Update image configuration with lowercase values
           sed -i.bak "s|AR_LOCATION|${{ vars.AR_LOCATION }}|g" cd/configs/kubernetes/deployment.yml
           sed -i.bak "s|PROJECT_ID|${{ secrets.GKE_PROJECT }}|g" cd/configs/kubernetes/deployment.yml
-          sed -i.bak "s|docker-sftp/GITHUB_BRANCH|${{ vars.AR_REPOSITORY }}/${{ env.BRANCH_NAME }}|g" cd/configs/kubernetes/deployment.yml
+          sed -i.bak "s|GITHUB_BRANCH|${{ env.BRANCH_NAME }}|g" cd/configs/kubernetes/deployment.yml
           sed -i.bak "s|IMAGE_VERSION|${{ steps.version.outputs.TAG }}|g" cd/configs/kubernetes/deployment.yml
 
       # Deploy the Docker image to the GKE cluster

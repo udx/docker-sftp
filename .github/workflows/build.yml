@@ -57,5 +57,5 @@ jobs:
           severity: "CRITICAL"
           timeout: "10m0s"
           format: "table"
-          scan-type: "vuln"
-          vuln-type: "os,library"
+          scan-type: "image"
+          scanners: "vuln"

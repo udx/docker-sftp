@@ -57,3 +57,4 @@ jobs:
           severity: "CRITICAL"
           timeout: "10m0s"
           format: "table"
+          trivyignores: ".trivyignore.yaml"

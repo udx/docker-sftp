@@ -1,0 +1,3 @@
+# Ignore false positive for Firebase initialization in utility.js
+# The code properly uses environment variables for sensitive credentials
+secret-gcp-service-account@lib/utility.js

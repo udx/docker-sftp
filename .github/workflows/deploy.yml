@@ -153,6 +153,7 @@ jobs:
           timeout: "60m0s"
           format: "sarif"
           output: "trivy-results.sarif"
+          trivyignores: ".trivyignore.yaml"
 
       # Upload Trivy scan results to GitHub Security tab
       - name: Upload Trivy scan results to GitHub Security tab

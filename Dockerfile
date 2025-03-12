@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y \
     authbind=2.2.0ubuntu1 \
     wget=1.24.5-2ubuntu1 \
     gnupg2=2.4.4-2ubuntu22 \
-    apt-transport-https=2.9.31ubuntu3 \
+    apt-transport-https=2.9.32ubuntu1 \
     libssl-dev=3.4.1-1ubuntu1 \
     libffi-dev=3.4.7-1 \
     file=1:5.45-3build1 \

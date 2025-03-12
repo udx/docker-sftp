@@ -1,6 +1,7 @@
 ### 0.7.1
-* `axios` → `^1.8.3`
-* `firebase-admin` → `^13.2.0`
+* Docker `apt-transport-https` → `2.9.32ubuntu1`
+* NPM `axios` → `^1.8.3`
+* NPM `firebase-admin` → `^13.2.0`
 * Fixed package versions alignment
 
 ### 0.7.0

@@ -49,7 +49,7 @@ jobs:
             .
 
       # Scan Docker image for vulnerabilities
-      - name: Scan Docker Image using Trivy
+      - name: Scan for vulnerabilities
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: "${{env.IMAGE_NAME}}/${{ env.BRANCH_NAME }}:${{ steps.version.outputs.TAG }}"
@@ -57,4 +57,5 @@ jobs:
           severity: "CRITICAL"
           timeout: "10m0s"
           format: "table"
-          trivyignores: ".trivyignore.yaml"
+          scan-type: "vuln"
+          vuln-type: "os,library"

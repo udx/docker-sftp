@@ -1,3 +1,8 @@
+### 0.7.1
+* `axios` → `^1.8.3`
+* `firebase-admin` → `^13.2.0`
+* Fixed package versions alignment
+
 ### 0.7.0
 * Migrated image to be based on `usabilitydynamics/udx-worker-nodejs:0.11.0`
 * Improved build to pre-configure environment

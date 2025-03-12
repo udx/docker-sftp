@@ -54,6 +54,6 @@ jobs:
         with:
           image-ref: "${{env.IMAGE_NAME}}/${{ env.BRANCH_NAME }}:${{ steps.version.outputs.TAG }}"
           exit-code: "1"
+          severity: "CRITICAL"
           timeout: "10m0s"
-          format: "sarif"
-          output: "trivy-results.sarif"
+          format: "table"

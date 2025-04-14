@@ -1,4 +1,4 @@
-FROM usabilitydynamics/udx-worker-nodejs:0.11.0
+FROM usabilitydynamics/udx-worker-nodejs:0.12.0
 
 ENV KUBECTL_VERSION=1.32.0 \
     NODE_ENV=production \

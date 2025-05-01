@@ -1,3 +1,18 @@
+### 0.7.2
+* Upgraded base image to `usabilitydynamics/udx-worker-nodejs:0.12.0` (from `0.11.0`)
+* Updated Docker packages:
+  * `apt-transport-https` → `3.0.0` (from `2.9.32ubuntu1`)
+  * `gnupg2` → `2.4.4-2ubuntu23` (from `2.4.4-2ubuntu22`)
+  * `libssl-dev` → `3.4.1-1ubuntu3` (from `3.4.1-1ubuntu1`)
+  * `openssl` → `3.4.1-1ubuntu3` (from `3.4.1-1ubuntu1`)
+  * `openssh-server` → `1:9.9p1-3ubuntu3.1` (from `1:9.9p1-3ubuntu3`)
+  * `openssh-client` → `1:9.9p1-3ubuntu3.1` (from `1:9.9p1-3ubuntu3`)
+* Updated NPM packages:
+  * `axios` → `^1.9.0` (from `^1.8.3`)
+  * `firebase-admin` → `^13.3.0` (from `^13.2.0`)
+  * `google-gax` → `^4.6.0` (new dependency)
+  * `express` → `^5.1.0` (new dependency)
+
 ### 0.7.1
 * Docker `apt-transport-https` → `2.9.32ubuntu1`
 * NPM `axios` → `^1.8.3`

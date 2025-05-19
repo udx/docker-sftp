@@ -24,7 +24,7 @@
     "dependencies": {
         "async": "^3.2.6",
         "axios": "^1.9.0",
-        "debug": "^4.4.0",
+        "debug": "^4.4.1",
         "dot-object": "^2.1.5",
         "express": "^5.1.0",
         "firebase-admin": "^13.3.0",

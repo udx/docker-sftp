@@ -1,5 +1,8 @@
 name: Fork Sync
 
+permissions:
+  contents: read
+
 on:
   schedule:
     - cron: '0 0 * * *'  # Run daily at midnight UTC

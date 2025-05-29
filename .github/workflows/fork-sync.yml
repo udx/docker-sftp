@@ -1,0 +1,14 @@
+name: Fork Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Run daily at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  sync-fork:
+    if: ${{ github.repository != 'udx/docker-sftp' }}
+    uses: udx/gh-workflows/.github/workflows/fork-sync.yml@master
+    secrets:
+      gh_token: ${{ secrets.GH_TOKEN }}
+      slack_webhook: ${{ secrets.SLACK_WEBHOOK_URL }}

@@ -1,3 +1,6 @@
+## 0.7.3
+* Upgraded base image to `usabilitydynamics/udx-worker-nodejs:0.13.0` (from `0.12.0`)
+
 ### 0.7.2
 * Upgraded base image to `usabilitydynamics/udx-worker-nodejs:0.12.0` (from `0.11.0`)
 * Updated Docker packages:

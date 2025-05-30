@@ -7,7 +7,7 @@ ENV KUBECTL_VERSION=1.32.0 \
 USER root
 
 # Install system dependencies
-RUN apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     authbind=2.2.0ubuntu1 \
     wget=1.24.5-2ubuntu1 \
     gnupg2=2.4.4-2ubuntu23 \

@@ -1,3 +1,10 @@
+### 0.7.4
+* Update npm packages
+  * `debug` → `^4.4.1` (from `^4.4.0`)
+  * `firebase-admin` → `^13.4.0` (from `^13.2.0`)
+  * `google-gax` → `^4.6.1` (from `^4.6.0`)
+* Set `--no-install-recommends` for `apt-get install` to reduce image size and fix build
+
 ### 0.7.3
 * Upgraded base image to `usabilitydynamics/udx-worker-nodejs:0.13.0` (from `0.12.0`)
 

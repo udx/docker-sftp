@@ -1,3 +1,7 @@
+### 0.7.5
+* Update NodeJS packages
+* Updated parent image Worker NodeJS to version 0.14.0
+
 ### 0.7.4
 * Update npm packages
   * `debug` → `^4.4.1` (from `^4.4.0`)

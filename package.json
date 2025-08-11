@@ -28,7 +28,7 @@
         "dot-object": "^2.1.5",
         "express": "^5.1.0",
         "firebase-admin": "^13.4.0",
-        "google-gax": "^5.0.1",
+        "google-gax": "^5.0.3",
         "lodash": "^4.17.21",
         "md5": "^2.3.0",
         "mustache": "^4.2.0"

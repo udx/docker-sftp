@@ -62,7 +62,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # fetch Tag from package.json version
       - name: Get Tag from package.json

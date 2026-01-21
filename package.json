@@ -29,7 +29,7 @@
         "express": "^5.2.1",
         "firebase-admin": "^13.6.0",
         "google-gax": "^5.0.6",
-        "lodash": "^4.17.21",
+        "lodash": "^4.17.23",
         "md5": "^2.3.0",
         "mustache": "^4.2.0"
     }

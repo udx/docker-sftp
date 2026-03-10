@@ -1,36 +1,36 @@
 {
-    "name": "docker-sftp",
-    "version": "0.8.0",
-    "description": "SSH tunnels to Kubernetes containers",
-    "main": "bin/server.js",
-    "scripts": {
-        "dev-start": "worker service restart rabbit-ssh-server",
-        "start": "worker service restart sshd && worker service restart rabbit-ssh-server",
-        "test": "echo \"Error: no test specified\" && exit 1"
-    },
-    "bin": {
-        "controller.keys": "lib/controller.keys.js"
-    },
-    "repository": {
-        "type": "git",
-        "url": "git+https://github.com/udx/docker-sftp.git"
-    },
-    "author": "",
-    "license": "ISC",
-    "bugs": {
-        "url": "https://github.com/udx/docker-sftp/issues"
-    },
-    "homepage": "https://github.com/udx/docker-sftp#readme",
-    "dependencies": {
-        "async": "^3.2.6",
-        "axios": "^1.13.2",
-        "debug": "^4.4.3",
-        "dot-object": "^2.1.5",
-        "express": "^5.2.1",
-        "firebase-admin": "^13.6.0",
-        "google-gax": "^5.0.6",
-        "lodash": "^4.17.21",
-        "md5": "^2.3.0",
-        "mustache": "^4.2.0"
-    }
+  "name": "docker-sftp",
+  "version": "0.9.0",
+  "description": "SSH tunnels to Kubernetes containers",
+  "main": "bin/server.js",
+  "scripts": {
+    "dev-start": "worker service restart rabbit-ssh-server",
+    "start": "worker service restart sshd && worker service restart rabbit-ssh-server",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "controller.keys": "lib/controller.keys.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/udx/docker-sftp.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/udx/docker-sftp/issues"
+  },
+  "homepage": "https://github.com/udx/docker-sftp#readme",
+  "dependencies": {
+    "async": "^3.2.6",
+    "axios": "^1.13.2",
+    "debug": "^4.4.3",
+    "dot-object": "^2.1.5",
+    "express": "^5.2.1",
+    "firebase-admin": "^13.6.0",
+    "google-gax": "^5.0.6",
+    "lodash": "^4.17.21",
+    "md5": "^2.3.0",
+    "mustache": "^4.2.0"
+  }
 }

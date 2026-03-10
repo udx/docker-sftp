@@ -1,0 +1,31 @@
+---
+name: Docker Operations
+
+"on":
+  push:
+  workflow_dispatch:
+
+jobs:
+  docker_ops:
+    permissions:
+      id-token: write
+      contents: write
+      security-events: write
+      actions: read
+
+    uses: udx/reusable-workflows/.github/workflows/docker-ops.yml@master
+    with:
+      image_name: docker-sftp
+      release_branch: latest
+      docker_login: ${{ vars.DOCKER_LOGIN }}
+      docker_org: ${{ vars.DOCKER_ORG }}
+      docker_repo: ${{ vars.DOCKER_REPO }}
+      gcp_region: ${{ vars.GCP_REGION }}
+      gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
+      gcp_repo: ${{ vars.GCP_REPO }}
+      gcp_workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      gcp_service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      enable_security_upload: ${{ github.repository == 'udx/docker-sftp' }}
+
+    secrets:
+      docker_token: ${{ secrets.DOCKER_TOKEN }}

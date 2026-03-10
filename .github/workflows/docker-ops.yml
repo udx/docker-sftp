@@ -18,8 +18,8 @@ jobs:
       image_name: docker-sftp
       release_branch: master
       docker_login: ${{ vars.DOCKER_LOGIN }}
-      docker_org: ${{ vars.DOCKER_ORG }}
-      docker_repo: ${{ vars.DOCKER_REPO }}
+      # docker_org: ${{ vars.DOCKER_ORG }}
+      # docker_repo: ${{ vars.DOCKER_REPO }}
       gcp_region: ${{ vars.GCP_REGION }}
       gcp_project_id: ${{ vars.GCP_PROJECT_ID }}
       gcp_repo: ${{ vars.GCP_REPO }}

@@ -1,3 +1,16 @@
+### 0.10.0
+* Upgrade to `axios:1.13.6`
+* Upgrade to `firebase-admin:13.7.0`
+* Upgrade to `lodash:4.17.23`
+
+
+### 0.9.0
+* Upgrade to `udx-worker-nodejs:0.30.0`
+* Upgrade `libssl-dev=3.5.3-1ubuntu3`
+* Upgrade `openssl=3.5.3-1ubuntu3`
+* Added Makefile
+* Migrated build and release to docker-ops workflow
+
 ### 0.8.0
 * Fixed critical bug in the SSH key generation logic where the first container's configuration was being hardcoded and incorrectly applied to all containers. The fix restructures the loop order to iterate over containers first, then users, ensuring each container gets its correct configuration.
 * Updated parent image Worker NodeJS to version 0.24.0

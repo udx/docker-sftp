@@ -3,12 +3,6 @@ name: Docker Operations
 
 "on":
   push:
-    paths:
-      - ".github/workflows/docker-ops.yml"
-      - "Dockerfile"
-      - "ci/**"
-      - "src/**"
-      - LICENSE
   workflow_dispatch:
 
 jobs:

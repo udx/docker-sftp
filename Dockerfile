@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev=3.5.2-1build1 \
     file=1:5.46-5build1 \
     openssl=3.5.3-1ubuntu3 \
-    openssh-server=1:10.0p1-5ubuntu5 \
-    openssh-client=1:10.0p1-5ubuntu5 \
+    openssh-server=1:10.0p1-5ubuntu5.1 \
+    openssh-client=1:10.0p1-5ubuntu5.1 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

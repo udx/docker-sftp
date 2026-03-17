@@ -1,10 +1,16 @@
+### 0.11.0
+
+* Upgrade `openssh-server` to `1:10.0p1-5ubuntu5.1`
+* Upgrade `openssh-client` to `1:10.0p1-5ubuntu5.1`
+
 ### 0.10.0
+
 * Upgrade to `axios:1.13.6`
 * Upgrade to `firebase-admin:13.7.0`
 * Upgrade to `lodash:4.17.23`
 
-
 ### 0.9.0
+
 * Upgrade to `udx-worker-nodejs:0.30.0`
 * Upgrade `libssl-dev=3.5.3-1ubuntu3`
 * Upgrade `openssl=3.5.3-1ubuntu3`
@@ -12,16 +18,19 @@
 * Migrated build and release to docker-ops workflow
 
 ### 0.8.0
+
 * Fixed critical bug in the SSH key generation logic where the first container's configuration was being hardcoded and incorrectly applied to all containers. The fix restructures the loop order to iterate over containers first, then users, ensuring each container gets its correct configuration.
 * Updated parent image Worker NodeJS to version 0.24.0
 * Updated system packages
 * Updated NodeJS packages
 
 ### 0.7.5
+
 * Update NodeJS packages
 * Updated parent image Worker NodeJS to version 0.14.0
 
 ### 0.7.4
+
 * Update npm packages
   * `debug` → `^4.4.1` (from `^4.4.0`)
   * `firebase-admin` → `^13.4.0` (from `^13.2.0`)
@@ -29,9 +38,11 @@
 * Set `--no-install-recommends` for `apt-get install` to reduce image size and fix build
 
 ### 0.7.3
+
 * Upgraded base image to `usabilitydynamics/udx-worker-nodejs:0.13.0` (from `0.12.0`)
 
 ### 0.7.2
+
 * Upgraded base image to `usabilitydynamics/udx-worker-nodejs:0.12.0` (from `0.11.0`)
 * Updated Docker packages:
   * `apt-transport-https` → `3.0.0` (from `2.9.32ubuntu1`)
@@ -47,12 +58,14 @@
   * `express` → `^5.1.0` (new dependency)
 
 ### 0.7.1
+
 * Docker `apt-transport-https` → `2.9.32ubuntu1`
 * NPM `axios` → `^1.8.3`
 * NPM `firebase-admin` → `^13.2.0`
 * Fixed package versions alignment
 
 ### 0.7.0
+
 * Migrated image to be based on `usabilitydynamics/udx-worker-nodejs:0.11.0`
 * Improved build to pre-configure environment
 * Moved entrypoint logic to services
@@ -63,53 +76,66 @@
 * Repo cleanup
 
 ### 0.6.2
+
 * added changes to controller.ssh.entrypoint. Fixes for exec command
 
 ### 0.6.1
+
 * added changes to fix startup warnings
 
 ### 0.6.0
+
 * updated kubectl to 1.32.0
 * changed kubectl package source
 
 ### 0.5.5
+
 * OS updates
 * Updated node modules. Updated Alpine to node:23.5-alpine
 * Improved SSH/SFTP handling and documentation
 * Improved SSH config and add logging documentation
 
 ### 0.5.4
+
 * Updated openssh to 9.9p1
 
 ### 0.5.3
+
 * Updated node modules. Updated Alpine to node:23.4-alpine
 
 ### 0.5.2
+
 * Update node modules. Update Alpine
 
 ### 0.5.1
+
 * OS updates
 * added config for a cronjob to scheduled container restart
 * set limits for k8s deploymets
 
 ### 0.5.0
+
 * Upgraded parent Docker Image to `node:22.7.0-alpine`
 * Improved `GitHub Action workflow` and removed sensitive data from Docker Image
 * Updated `axios` to `1.7.5`
 
 ### 0.4.0
+
 * Upgraded parent Docker image to `node:22`
 * Upgraded `kubectl` to `1.31.0`
 * Upgaded `OpenSSH` to `9.8`
 * Solved vulnerabilities in `npm` packages and OS
 
 ### 0.3.0
-* Fixed `JavaScript` errors 
+
+* Fixed `JavaScript` errors
 
 ### 0.2.9
+
 * Forwarded `sshd` logs to `container` logs
 
 ### 0.2.8
+
 * updated `NodeJS` version to `20`
 * updated `NodeJS Modules` to the latest versions
 * fixed issue with `SFTP` connection
@@ -119,43 +145,54 @@
 * added additional logging
 
 ### 0.2.7
+
 * updated curl to 8.5.0 because of vulnerability
 * access is allowed for the admin role in production
 
 ### 0.2.6
+
 * updated kubectl version
 * changed gcloud installation logic
 
 ### 0.2.5
+
 * upgraded node to 18
 * added gcloud
 * added gke-gcloud-auth-plugin
 * moved docker image from GCR to AR
 
 ### 0.2.4
+
 * Added an option to set roles by `ALLOW_SSH_ACCESS_ROLES` env. Set `admin`, `maintain`, `write` by default.
 * Added the action to create a GitHub release.
 
 ### 0.2.3
+
 * Prevent access to `production` containers.
 
 ### 0.2.2
+
 * Prevent access to users with roles: `Read`, `Triage` and `Write`. Provide access only for roles: `Maintain` and `Admin`.
 
 ### 0.2.1
+
 * Fixed getPods endpoint for getting pods from all namespaces
 
 ### 0.2.0
+
 * Updated Node to 14
 * Request module replaced by axios
 * Added deploy action for deploying k8s service and deployment to the cluster from GitHub
 * Updated kubectl to v1.23.0
 
 ### 0.1.4
+
 * Bugfix with permissions on .kube directory.
 
 ### 0.1.3
+
 * Improving permission fixes and making pm2 silent
 
 ### 0.1.2
+
 * Version bump.

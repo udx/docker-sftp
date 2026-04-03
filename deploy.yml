@@ -31,5 +31,6 @@ config:
     - "22:22"
 
   # Service account impersonation (requires gcloud auth on host)
+  # This is used to fetch secrets from GCP Secret Manager
   service_account:
-    email: "worker-site@rabbit-ci-dev.iam.gserviceaccount.com"
+    email: "docker-sftp@rabbit-ci-dev.iam.gserviceaccount.com"

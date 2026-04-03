@@ -1,3 +1,9 @@
+### 0.12.0
+
+* Updated parent image Worker NodeJS to version 0.31.0
+* Upgraded `kubectl` to `1.35.3`
+* Added examples for worker and kubernetes
+
 ### 0.11.0
 
 * Upgrade `openssh-server` to `1:10.0p1-5ubuntu5.1`

@@ -1,0 +1,24 @@
+# it's example of how to expose the sftp server to the internet
+# you need to replace GITHUB_ORG and GITHUB_BRANCH with your own values
+# and apply this file to your cluster
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ${GITHUB_ORG}-sftp-${GITHUB_BRANCH}
+  labels:
+    name: ${GITHUB_ORG}-sftp-${GITHUB_BRANCH}
+    git.name: docker-sftp
+    git.owner: ${GITHUB_ORG}
+    git.branch: ${GITHUB_BRANCH}
+spec:
+  type: LoadBalancer
+  ports:
+    - name: ssh
+      port: 22
+      targetPort: 22
+  selector:
+    name: ${GITHUB_ORG}-sftp-${GITHUB_BRANCH}
+    git.name: docker-sftp
+    git.branch: ${GITHUB_BRANCH}

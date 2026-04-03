@@ -1,0 +1,35 @@
+# npm install -g @udx/worker-deployment
+# worker config
+# worker run
+
+---
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  # Docker image to run
+  image: "usabilitydynamics/docker-sftp:latest"
+
+  # Environment variables
+  # Replace placeholders with your own values
+  env:
+    RABBIT_PROJECT_ID: ${RABBIT_PROJECT_ID_VALUE}
+    KUBERNETES_CLUSTER_NAME: ${KUBERNETES_CLUSTER_NAME_VALUE}
+    KUBERNETES_CLUSTER_SERVICEACCOUNT: ${KUBERNETES_CLUSTER_SERVICEACCOUNT_VALUE}
+    KUBERNETES_CLUSTER_ENDPOINT: ${KUBERNETES_CLUSTER_ENDPOINT_VALUE}
+    NODE_PORT: ${NODE_PORT_VALUE}
+    SLACK_NOTIFICACTION_URL: ${SLACK_NOTIFICACTION_URL_VALUE}
+    SLACK_NOTIFICACTION_CHANNEL: ${SLACK_NOTIFICACTION_CHANNEL_VALUE}
+
+  # Volume mounts
+  # Format: "host_path:container_path"
+  volumes:
+    - "./etc/configs/worker/services.yaml:/home/udx/.config/worker/services.yaml"
+    - "./examples/configs/worker/worker.yaml:/home/udx/.config/worker/worker.yaml"
+
+  # Ports to expose
+  ports:
+    - "22:22"
+
+  # Service account impersonation (requires gcloud auth on host)
+  service_account:
+    email: "worker-site@rabbit-ci-dev.iam.gserviceaccount.com"

@@ -1,0 +1,16 @@
+---
+kind: workerConfig
+version: udx.io/worker-v1/config
+config:
+  env:
+    PROJECT_ID: "google-cloud-project-id"
+    KUBERNETES_CLUSTER_NAME: "google-kubernetes-cluster-name"
+    KUBERNETES_CLUSTER_SERVICEACCOUNT: "google-kubernetes-service-account"
+    KUBERNETES_CLUSTER_ENDPOINT: "https://123.123.123.123"
+    NODE_PORT: "8080"
+    SLACK_NOTIFICACTION_URL: "https://hooks.slack.com/services/DUMMY/DUMMY/DUMMY"
+    SLACK_NOTIFICACTION_CHANNEL: "routine-channel"
+
+  secrets:
+    KUBERNETES_CLUSTER_USER_TOKEN: "gcp/${PROJECT_ID}/KUBERNETES_CLUSTER_USER_TOKEN"
+    ACCESS_TOKEN: "gcp/${PROJECT_ID}/GITHUB_TOKEN"

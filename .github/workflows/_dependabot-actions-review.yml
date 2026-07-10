@@ -58,6 +58,7 @@ jobs:
           dependabot_filter='
             .state == "OPEN" and
             .isDraft == false and
+            .baseRefName == "master" and
             (.author.login == "app/dependabot" or .author.login == "dependabot[bot]") and
             (
               (.headRefName | startswith("dependabot/docker/")) or

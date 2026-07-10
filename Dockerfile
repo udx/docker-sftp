@@ -12,12 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget=1.25.0-2ubuntu3 \
     gnupg2=2.4.8-2ubuntu2.1 \
     apt-transport-https=3.1.6ubuntu2 \
-    libssl-dev=3.5.3-1ubuntu2 \
+    libssl-dev=3.5.3-1ubuntu3.4 \
     libffi-dev=3.5.2-1build1 \
     file=1:5.46-5build1 \
-    openssl=3.5.3-1ubuntu2 \
-    openssh-server=1:10.0p1-5ubuntu5 \
-    openssh-client=1:10.0p1-5ubuntu5 \
+    openssl=3.5.3-1ubuntu3.4 \
+    openssh-server=1:10.0p1-5ubuntu5.4 \
+    openssh-client=1:10.0p1-5ubuntu5.4 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

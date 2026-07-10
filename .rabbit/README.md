@@ -2,9 +2,9 @@
 
 This directory owns Rabbit-facing repo context for `udx/docker-sftp`.
 
-`docker-sftp` is a runtime image repo. It publishes the SFTP/SSH gateway image
-used by Worker-based deployments, but it does not own tenant-specific Rabbit
-lifecycle manifests or environment config.
+`docker-sftp` is a manifest repo for a runtime image. It publishes the SFTP/SSH
+gateway image used by Worker-based deployments, but it does not own
+tenant-specific Rabbit lifecycle manifests or environment config.
 
 ## Entry Points
 

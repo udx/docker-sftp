@@ -1,3 +1,9 @@
+### 0.13.0
+
+* Updated parent image Worker NodeJS to version 0.33.0
+* Added Docker Ops-based Dependabot review automation
+* Fixed package lock root version alignment
+
 ### 0.12.0
 
 * Updated parent image Worker NodeJS to version 0.31.0

@@ -1,0 +1,368 @@
+---
+name: _udx-automation / docker ops dependency review
+
+"on":
+  schedule:
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "Optional Dependabot PR number to review"
+        required: false
+        type: string
+      dry_run:
+        description: "Print decisions without commenting or merging"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  actions: read
+  checks: read
+  contents: write
+  issues: write
+  pull-requests: write
+
+env:
+  HUMAN_REVIEWER: ${{ vars.DEPENDABOT_REVIEWER || 'fqjony' }}
+  MERGE_METHOD: squash
+  REPORT_PATH: dependabot-docker-ops-review-report.md
+
+jobs:
+  review:
+    if: github.repository == 'udx/docker-sftp'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          token: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
+
+      - name: Find Dependabot Docker Ops PRs
+        id: inventory
+        env:
+          GH_TOKEN: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        run: |
+          set -euo pipefail
+
+          dependabot_filter='
+            .state == "OPEN" and
+            .isDraft == false and
+            .baseRefName == "master" and
+            (.author.login == "app/dependabot" or .author.login == "dependabot[bot]") and
+            (
+              (.headRefName | startswith("dependabot/docker/")) or
+              (.headRefName | startswith("dependabot/npm_and_yarn/")) or
+              (.headRefName | startswith("dependabot/github_actions/"))
+            )
+          '
+
+          if [ -n "${PR_NUMBER:-}" ]; then
+            gh pr view "${PR_NUMBER}" \
+              --json number,title,url,headRefName,author,state,isDraft,baseRefName \
+              > raw-pr.json
+            jq "[.] | map(select(${dependabot_filter}))" raw-pr.json > prs.json
+          else
+            gh pr list \
+              --state open \
+              --json number,title,url,headRefName,author,state,isDraft,baseRefName \
+              --limit 100 > raw-prs.json
+            jq "[.[] | select(${dependabot_filter})]" raw-prs.json > prs.json
+          fi
+
+          pr_count="$(jq 'length' prs.json)"
+          echo "pr_count=${pr_count}" >> "${GITHUB_OUTPUT}"
+          echo "Inventory: found ${pr_count} non-draft Dependabot Docker Ops PR(s)."
+          jq -r '.[] | "- #\(.number) \(.title)"' prs.json || true
+
+      - name: Stop when there is nothing to review
+        if: steps.inventory.outputs.pr_count == '0'
+        run: echo "No non-draft Dependabot Docker Ops PRs found."
+
+      - name: Review Dependabot PRs
+        if: steps.inventory.outputs.pr_count != '0'
+        env:
+          AUTOMATION_GITHUB_TOKEN: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'true' }}
+          GH_TOKEN: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
+          HUMAN_REVIEWER: ${{ env.HUMAN_REVIEWER }}
+          MERGE_METHOD: ${{ env.MERGE_METHOD }}
+          REPORT_PATH: ${{ env.REPORT_PATH }}
+        run: |
+          set -euo pipefail
+
+          work_dir=".tmp/dependabot-docker-ops-review"
+          mkdir -p "${work_dir}"
+          : > "${work_dir}/decisions.md"
+          : > "${work_dir}/notes.md"
+
+          repo="${GITHUB_REPOSITORY}"
+          marker="<!-- udx-dependabot-docker-ops-review -->"
+
+          run_gh() {
+            GH_TOKEN="${AUTOMATION_GITHUB_TOKEN}" gh "$@"
+          }
+
+          existing_comment_id() {
+            local details_path="$1"
+            jq -r --arg marker "${marker}" '
+              .comments[]?
+              | select(.body | contains($marker))
+              | (try (.url | capture("issuecomment-(?<id>[0-9]+)$").id) catch empty)
+            ' "${details_path}" | head -n 1
+          }
+
+          write_comment() {
+            local number="$1"
+            local decision="$2"
+            local reason="$3"
+            local details_path="$4"
+            local comment_path="${work_dir}/pr-${number}-comment.md"
+            local existing_id
+
+            {
+              echo "${marker}"
+              echo
+              echo "${reason}"
+              echo
+              echo "_Decision: ${decision}._"
+            } > "${comment_path}"
+
+            existing_id="$(existing_comment_id "${details_path}")"
+
+            if [ "${DRY_RUN}" = "true" ]; then
+              if [ -n "${existing_id}" ]; then
+                echo "dry-run: would update comment on #${number}" >> "${work_dir}/notes.md"
+              else
+                echo "dry-run: would comment on #${number}" >> "${work_dir}/notes.md"
+              fi
+              return 0
+            fi
+
+            if [ -n "${existing_id}" ]; then
+              run_gh api \
+                -X PATCH \
+                "repos/${repo}/issues/comments/${existing_id}" \
+                -F "body=@${comment_path}" \
+                --silent
+            else
+              run_gh pr comment "${number}" --repo "${repo}" --body-file "${comment_path}"
+            fi
+          }
+
+          request_human_review() {
+            local number="$1"
+
+            if [ -z "${HUMAN_REVIEWER}" ]; then
+              return 0
+            fi
+
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "dry-run: would request @${HUMAN_REVIEWER} review on #${number}" >> "${work_dir}/notes.md"
+              return 0
+            fi
+
+            if run_gh api \
+              -X POST \
+              "repos/${repo}/pulls/${number}/requested_reviewers" \
+              -f "reviewers[]=${HUMAN_REVIEWER}" \
+              --silent; then
+              echo "#${number}: requested @${HUMAN_REVIEWER} review" >> "${work_dir}/notes.md"
+            else
+              echo "#${number}: failed to request @${HUMAN_REVIEWER} review" >> "${work_dir}/notes.md"
+            fi
+          }
+
+          approve_and_merge() {
+            local number="$1"
+            local merge_flag="--squash"
+
+            case "${MERGE_METHOD}" in
+              merge) merge_flag="--merge" ;;
+              rebase) merge_flag="--rebase" ;;
+            esac
+
+            if [ "${DRY_RUN}" = "true" ]; then
+              echo "dry-run: would approve #${number}" >> "${work_dir}/notes.md"
+              echo "dry-run: would merge or enable auto-merge for #${number}" >> "${work_dir}/notes.md"
+              return 0
+            fi
+
+            if run_gh pr review "${number}" --repo "${repo}" --approve \
+              --body "Approved by Docker Ops dependency review automation."; then
+              echo "#${number}: approved with automation token" >> "${work_dir}/notes.md"
+            else
+              echo "#${number}: failed to approve with automation token" >> "${work_dir}/notes.md"
+            fi
+
+            if run_gh pr merge "${number}" --repo "${repo}" "${merge_flag}" --auto; then
+              echo "#${number}: merged or enabled auto-merge with ${MERGE_METHOD}" >> "${work_dir}/notes.md"
+            elif run_gh pr merge "${number}" --repo "${repo}" "${merge_flag}"; then
+              echo "#${number}: merged with ${MERGE_METHOD}" >> "${work_dir}/notes.md"
+            else
+              echo "#${number}: safe, but GitHub did not allow merge with current protection" >> "${work_dir}/notes.md"
+            fi
+          }
+
+          markdown_escape() {
+            sed 's/\\/\\\\/g; s/|/\\|/g'
+          }
+
+          classify_status() {
+            local details_path="$1"
+
+            jq -e '
+              any(.statusCheckRollup[]?;
+                (.status != "COMPLETED") or
+                (
+                  (.conclusion // "") as $conclusion
+                  | (
+                    $conclusion == "SUCCESS" or
+                    $conclusion == "SKIPPED" or
+                    $conclusion == "NEUTRAL"
+                  ) | not
+                )
+              )
+            ' "${details_path}" >/dev/null && {
+              echo "needs validation|One or more checks are pending, failing, or inconclusive"
+              return
+            }
+
+            jq -e '
+              any(.statusCheckRollup[]?;
+                .name == "docker_ops / build-and-scan" and
+                .status == "COMPLETED" and
+                .conclusion == "SUCCESS"
+              )
+            ' "${details_path}" >/dev/null || {
+              echo "needs validation|Docker Ops docker_ops / build-and-scan has not succeeded"
+              return
+            }
+
+            echo "safe|Docker Ops build-and-scan succeeded and all reported checks are clean"
+          }
+
+          for number in $(jq -r '.[].number' prs.json); do
+            details_path="${work_dir}/pr-${number}.json"
+            run_gh pr view "${number}" --repo "${repo}" \
+              --json number,title,url,files,comments,statusCheckRollup \
+              > "${details_path}"
+
+            title="$(jq -r '.title' "${details_path}")"
+            url="$(jq -r '.url' "${details_path}")"
+            changed_files="$(jq -r '[.files[].path] | join(", ")' "${details_path}")"
+            result="$(classify_status "${details_path}")"
+            decision="${result%%|*}"
+            reason="${result#*|}"
+            report_reason="$(printf '%s' "${reason}" | markdown_escape)"
+            report_files="$(printf '%s' "${changed_files}" | markdown_escape)"
+
+            if [ "${decision}" = "safe" ]; then
+              body="Safe to merge: ${reason}. Changed files: ${changed_files}."
+              write_comment "${number}" "${decision}" "${body}" "${details_path}"
+              approve_and_merge "${number}"
+            else
+              body="Needs validation before merge: ${reason}. Changed files: ${changed_files}. @${HUMAN_REVIEWER}"
+              write_comment "${number}" "${decision}" "${body}" "${details_path}"
+              request_human_review "${number}"
+            fi
+
+            printf '| [#%s](%s) | %s | %s | %s |\n' \
+              "${number}" \
+              "${url}" \
+              "${decision}" \
+              "${report_reason}" \
+              "${report_files}" >> "${work_dir}/decisions.md"
+
+            echo "Review: #${number} ${decision}: ${title}"
+          done
+
+          {
+            echo "## Docker Ops dependency PR review"
+            echo
+            echo "| PR | Decision | Reason | Changed files |"
+            echo "| --- | --- | --- | --- |"
+            cat "${work_dir}/decisions.md"
+            echo
+            echo "Dry run: \`${DRY_RUN}\`"
+            echo "Merge method: \`${MERGE_METHOD}\`"
+            echo
+            echo "### Notes"
+            if [ -s "${work_dir}/notes.md" ]; then
+              sed 's/^/- /' "${work_dir}/notes.md"
+            else
+              echo "- None."
+            fi
+          } > "${REPORT_PATH}"
+
+          cat "${REPORT_PATH}"
+
+      - name: Guard review-only changes
+        if: steps.inventory.outputs.pr_count != '0'
+        run: |
+          set -euo pipefail
+
+          unexpected_changes="$(
+            git status --porcelain --untracked-files=all | while IFS= read -r line; do
+              status="${line:0:2}"
+              path="${line:3}"
+
+              if [ "${status}" = "??" ]; then
+                case "${path}" in
+                  prs.json|raw-pr.json|raw-prs.json|dependabot-docker-ops-review-report.md|.tmp/dependabot-docker-ops-review/*)
+                    continue
+                    ;;
+                esac
+              fi
+
+              printf '%s\n' "${line}"
+            done
+          )"
+          if [ -n "${unexpected_changes}" ]; then
+            echo "Review guard: unexpected workspace changes:" >&2
+            printf '%s\n' "${unexpected_changes}" >&2
+            exit 1
+          fi
+
+          echo "Review guard: workspace has only expected review artifacts"
+
+      - name: Upload review report
+        if: steps.inventory.outputs.pr_count != '0'
+        uses: actions/upload-artifact@v7
+        with:
+          name: dependabot-docker-ops-review-report
+          path: dependabot-docker-ops-review-report.md
+          if-no-files-found: ignore
+
+      - name: Write workflow summary
+        if: always()
+        env:
+          AUTOMATION_IDENTITY: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN && 'DEPENDABOT_REVIEWER_TOKEN' || 'GITHUB_TOKEN fallback' }}
+          PR_COUNT: ${{ steps.inventory.outputs.pr_count }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'true' }}
+          REPORT_PATH: ${{ env.REPORT_PATH }}
+        run: |
+          {
+            echo "## _udx-automation / docker ops dependency review"
+            echo
+            echo "- Dependabot Docker Ops PRs: \`${PR_COUNT:-0}\`"
+            echo "- Dry run: \`${DRY_RUN}\`"
+            echo "- Automation identity: \`${AUTOMATION_IDENTITY}\`"
+            if [ -f "${REPORT_PATH}" ]; then
+              echo
+              cat "${REPORT_PATH}"
+            else
+              echo
+              echo "No review report was produced."
+            fi
+          } >> "${GITHUB_STEP_SUMMARY}"

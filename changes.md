@@ -1,3 +1,12 @@
+### 0.13.0
+
+* Updated parent image Worker NodeJS to version 0.33.0
+* Aligned pinned OpenSSL and OpenSSH package versions with the new base image
+* Added Docker Ops-based Dependabot review automation
+* Made Dependabot review automation default to dry-run on schedule
+* Bundled pending Dependabot npm security updates into the release lockfile
+* Fixed `package-lock.json` root version alignment
+
 ### 0.12.0
 
 * Updated parent image Worker NodeJS to version 0.31.0

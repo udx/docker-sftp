@@ -12,7 +12,7 @@ test("Firebase Admin exposes the modular APIs used by the gateway", () => {
   assert.equal(typeof database.getDatabase, "function");
 });
 
-test("package and Firebase consumer entrypoints are loadable", () => {
+test("package entrypoint exists and Firebase consumer entrypoints are loadable", () => {
   const packageJson = require("../package.json");
   const packageEntry = path.resolve(__dirname, "..", packageJson.main);
   const firebaseConsumer = require("../lib/firebase.consume");

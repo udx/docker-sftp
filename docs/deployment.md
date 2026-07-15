@@ -73,7 +73,7 @@ kubectl create rolebinding sftp-gateway-admin -n $NAMESPACE \
 
 2. Configure the deployment:
 
-- Set `serviceAccountName` to the service account created above. Kubernetes mounts its token and CA certificate into the pod automatically.
+- Set `serviceAccountName` to the service account created above. Kubernetes mounts its token and CA certificate for in-cluster kubectl setup, but the gateway still consumes the explicit `KUBERNETES_CLUSTER_*` values shown in the deployment template. Populate those values for the target cluster; do not treat the service-account mount as a replacement for them.
 - Provide `ACCESS_TOKEN` and Firebase credentials through Kubernetes Secrets or your deployment system.
 - Set the image reference to the `0.14.0` release (or an immutable digest).
 - Review all settings in the [Environment Variables](environment.md) reference.

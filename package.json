@@ -2,7 +2,7 @@
   "name": "docker-sftp",
   "version": "0.14.0",
   "description": "SSH tunnels to Kubernetes containers",
-  "main": "bin/server.js",
+  "main": "lib/server.js",
   "scripts": {
     "dev-start": "worker service restart rabbit-ssh-server",
     "start": "worker service restart sshd && worker service restart rabbit-ssh-server",

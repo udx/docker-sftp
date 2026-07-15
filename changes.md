@@ -1,3 +1,13 @@
+### 0.14.0
+
+* Updated parent image Worker NodeJS to version 0.34.0
+* Upgraded `kubectl` to `1.36.2`
+* Made the kubectl download architecture-aware and checksum-verified
+* Updated production npm dependencies, including Firebase Admin 14
+* Migrated Firebase initialization and Realtime Database access to modular APIs
+* Removed the unused direct Google GAX dependency and optional Firebase services from the runtime install
+* Updated GitHub Actions checkout to version 7
+
 ### 0.13.0
 
 * Updated parent image Worker NodeJS to version 0.33.0

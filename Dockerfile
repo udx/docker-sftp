@@ -1,10 +1,12 @@
-FROM usabilitydynamics/udx-worker-nodejs:0.33.0
+FROM usabilitydynamics/udx-worker-nodejs:0.34.0
 
-ENV KUBECTL_VERSION=1.35.3 \
+ENV KUBECTL_VERSION=1.36.2 \
     NODE_ENV=production \
     APP_HOME=/opt/sources/rabbitci/rabbit-ssh
 
 USER root
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,9 +24,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Setup kubectl and timezone
-RUN curl -L https://dl.k8s.io/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+RUN ARCH="$(dpkg --print-architecture)" \
+    && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" \
+    && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl.sha256" \
+    && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum --check \
     && chmod +x /usr/local/bin/kubectl \
     && kubectl version --client \
+    && rm -f /tmp/kubectl.sha256 \
     && rm -rf /etc/ssh/* \
     && mkdir -p /etc/ssh/authorized_keys.d \
     && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
@@ -50,7 +56,7 @@ COPY --chown=${USER}:${USER} package*.json ${APP_HOME}/
 
 # Install dependencies
 WORKDIR ${APP_HOME}
-RUN npm install --production
+RUN npm ci --omit=dev --omit=optional
 
 # Copy remaining application files
 COPY --chown=${USER}:${USER} . ${APP_HOME}/

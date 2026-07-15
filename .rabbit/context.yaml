@@ -6,7 +6,7 @@ generator:
   tool: dev.kit
   repo: https://github.com/udx/dev.kit
   version: 0.20.1
-  generated_at: 2026-07-10T16:16:00Z
+  generated_at: 2026-07-15T06:37:31Z
   sources:
     homepage: https://udx.dev/kit
     repository: https://github.com/udx/dev.kit
@@ -58,15 +58,13 @@ dependencies:
     kind: reusable workflow
     resolved: true
     archetype: manifest-repo
-    description: Reusable GitHub Actions workflow templates for CI/CD
     used_by:
       - .github/workflows/docker-ops.yml
-  - repo: usabilitydynamics/udx-worker-nodejs:0.33.0
+  - repo: usabilitydynamics/udx-worker-nodejs:0.34.0
     kind: base image
     resolved: true
     source_repo: udx/worker-nodejs
     archetype: manifest-repo
-    description: UDX Worker for running NodeJS applications.
     used_by:
       - Dockerfile
   - repo: udx/worker
@@ -74,7 +72,6 @@ dependencies:
     resolved: true
     declared_as: udx.io/worker-v1/deploy
     archetype: manifest-repo
-    description: UDX Worker Docker image
     used_by:
       - deploy.yml
 

@@ -21,7 +21,7 @@ Secure SSH/SFTP gateway providing direct access to Kubernetes pods using GitHub 
 
 ### Development and Validation
 
-Local tooling requires Node.js 22 or newer, npm, and Docker.
+Local tooling requires Node.js 22.12 or newer, npm, and Docker.
 
 ```bash
 # Install the exact dependency versions from package-lock.json

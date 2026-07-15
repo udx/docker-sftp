@@ -33,7 +33,7 @@ See [API Reference](api-reference.md) for detailed endpoint documentation.
 
 #### Key Files:
 
-- `/bin/server.js`: Main API implementation
+- `/lib/server.js`: Main API implementation
 - `/lib/utility.js`: Helper functions
 
 ### 3. Key Management

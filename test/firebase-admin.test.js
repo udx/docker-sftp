@@ -20,4 +20,69 @@ test("package entrypoint exists and Firebase consumer entrypoints are loadable",
   assert.equal(fs.existsSync(packageEntry), true);
   assert.equal(typeof firebaseConsumer.start, "function");
   assert.equal(typeof firebaseConsumer.refreshKeys, "function");
+  assert.equal(typeof firebaseConsumer.setupListeners, "function");
+});
+
+test("Firebase initialization reports a missing private key clearly", () => {
+  const utility = require("../lib/utility");
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+
+  delete process.env.FIREBASE_PRIVATE_KEY;
+  try {
+    assert.throws(
+      () => utility.getFirebase(),
+      /FIREBASE_PRIVATE_KEY is required to initialize Firebase/
+    );
+  } finally {
+    if (privateKey === undefined) {
+      delete process.env.FIREBASE_PRIVATE_KEY;
+    } else {
+      process.env.FIREBASE_PRIVATE_KEY = privateKey;
+    }
+  }
+});
+
+test("Firebase consumer listens for added, changed, and removed deployments", () => {
+  const { setupListeners } = require("../lib/firebase.consume");
+  const events = [];
+  const collection = {
+    once: (_eventName, callback) => callback({ val: () => null }),
+    on: (eventName) => events.push(eventName),
+  };
+  const database = { ref: () => collection };
+
+  setupListeners(database, () => {});
+
+  assert.deepEqual(events, ["child_added", "child_changed", "child_removed"]);
+});
+
+test("Firebase consumer coalesces concurrent key refresh requests", () => {
+  const { refreshKeys } = require("../lib/firebase.consume");
+  const accessToken = process.env.ACCESS_TOKEN;
+  const callbacks = [];
+  let calls = 0;
+  const updateKeys = (_options, callback) => {
+    calls += 1;
+    callbacks.push(callback);
+  };
+
+  process.env.ACCESS_TOKEN = "test-token";
+  try {
+    refreshKeys(updateKeys);
+    refreshKeys(updateKeys);
+    refreshKeys(updateKeys);
+    assert.equal(calls, 1);
+
+    callbacks.shift()(null);
+    assert.equal(calls, 2);
+
+    callbacks.shift()(null);
+    assert.equal(callbacks.length, 0);
+  } finally {
+    if (accessToken === undefined) {
+      delete process.env.ACCESS_TOKEN;
+    } else {
+      process.env.ACCESS_TOKEN = accessToken;
+    }
+  }
 });

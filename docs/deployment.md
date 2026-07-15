@@ -63,6 +63,10 @@ Copy the manifests you need and replace their `${...}` placeholders with values 
 ```bash
 # Set your preferred namespace
 NAMESPACE=kube-system
+GITHUB_ORG=your-github-org
+GITHUB_BRANCH=your-release-branch
+RESOURCE_NAME="${GITHUB_ORG}-sftp-${GITHUB_BRANCH}"
+RESOURCE_SELECTOR="git.name=docker-sftp,git.owner=${GITHUB_ORG},git.branch=${GITHUB_BRANCH}"
 
 # Example only: tailor the role binding to your access policy
 kubectl create serviceaccount sftp-gateway -n $NAMESPACE
@@ -85,8 +89,9 @@ kubectl apply -n $NAMESPACE -f deployment.yml
 kubectl apply -n $NAMESPACE -f service.yml
 
 # Verify
-kubectl get pods -n $NAMESPACE -l git.name=docker-sftp
-kubectl get services -n $NAMESPACE -l git.name=docker-sftp
+kubectl get deployment -n $NAMESPACE "$RESOURCE_NAME"
+kubectl get pods -n $NAMESPACE -l "$RESOURCE_SELECTOR"
+kubectl get service -n $NAMESPACE "$RESOURCE_NAME"
 ```
 
 ### 3. Verify Deployment
@@ -95,8 +100,8 @@ Test SSH access:
 
 ```bash
 # Get service address
-SSH_HOST=$(kubectl get services -n $NAMESPACE -l git.name=docker-sftp \
-  -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')
+SSH_HOST=$(kubectl get service -n $NAMESPACE "$RESOURCE_NAME" \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}')
 
 # Test connection
 ssh -p 22 pod-myapp@$SSH_HOST

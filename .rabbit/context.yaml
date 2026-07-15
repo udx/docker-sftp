@@ -6,7 +6,7 @@ generator:
   tool: dev.kit
   repo: https://github.com/udx/dev.kit
   version: 0.20.1
-  generated_at: 2026-07-15T06:37:31Z
+  generated_at: 2026-07-15T10:29:34Z
   sources:
     homepage: https://udx.dev/kit
     repository: https://github.com/udx/dev.kit
@@ -27,7 +27,6 @@ refs:
   - ./changes.md
   - ./package.json
   - ./Makefile
-  - ./deploy.yml
   - ./.github/workflows
   - ./Dockerfile
   - ./docs
@@ -48,6 +47,20 @@ commands:
     run: npm start
     source: package.json
 
+# Gaps — Factors that are missing or only partially supported by current repo signals.
+# Note: Base the result on explicit factor rules, not free-form judgment.
+# Note: Include message and evidence so the status can be reviewed.
+# Note: Prefer traceable refs and missing signals over vague advice.
+
+gaps:
+  - factor: config
+    status: partial
+    message: Configuration is documented in docs/deployment.md, but the repo does not declare a canonical checked-in config contract yet.
+    repair_target: docs/deployment.md or .env.example
+    reference: docs/deployment.md
+    evidence:
+      - env vars documented in docs/deployment.md
+
 # Dependencies — Meaningful dependency-repo contracts such as reusable workflows, images, or versioned manifests this repo relies on.
 # Note: Capture execution-shaping behavior defined outside the current checkout.
 # Note: Avoid promoting standard package inventory or ordinary GitHub action refs into top-level context.
@@ -67,13 +80,6 @@ dependencies:
     archetype: manifest-repo
     used_by:
       - Dockerfile
-  - repo: udx/worker
-    kind: manifest contract (deploy)
-    resolved: true
-    declared_as: udx.io/worker-v1/deploy
-    archetype: manifest-repo
-    used_by:
-      - deploy.yml
 
 # Manifests — YAML files that define repo-specific workflow, deploy, or contract behavior.
 # Note: Include custom config/manifests that materially shape repo behavior or contract understanding.
@@ -88,13 +94,4 @@ manifests:
     used_by:
       - .rabbit/README.md
     evidence:
-      - path reference: .rabbit/README.md
-  - path: deploy.yml
-    kind: workerDeployConfig
-    declared_as: udx.io/worker-v1/deploy
-    source_repo: udx/worker
-    used_by:
-      - .rabbit/README.md
-    evidence:
-      - version: udx.io/worker-v1/deploy
       - path reference: .rabbit/README.md

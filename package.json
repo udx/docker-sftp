@@ -21,6 +21,9 @@
     "url": "https://github.com/udx/docker-sftp/issues"
   },
   "homepage": "https://github.com/udx/docker-sftp#readme",
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
     "async": "^3.2.6",
     "axios": "^1.18.1",

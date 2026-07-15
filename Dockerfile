@@ -24,7 +24,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Setup kubectl and timezone
-RUN ARCH="$(dpkg --print-architecture)" \
+RUN case "$(dpkg --print-architecture)" in \
+        amd64) ARCH="amd64" ;; \
+        arm64) ARCH="arm64" ;; \
+        armhf) ARCH="arm" ;; \
+        i386) ARCH="386" ;; \
+        ppc64el) ARCH="ppc64le" ;; \
+        s390x) ARCH="s390x" ;; \
+        *) echo "Unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac \
     && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" \
     && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl.sha256" \
     && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum --check \

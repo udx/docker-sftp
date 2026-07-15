@@ -19,7 +19,22 @@ Secure SSH/SFTP gateway providing direct access to Kubernetes pods using GitHub 
 1. Access to a Kubernetes cluster with `kubectl` configured
 2. GitHub token with repo access permissions
 
-### Local Development
+### Development and Validation
+
+Local tooling requires Node.js 22 or newer, npm, and Docker.
+
+```bash
+# Install the exact dependency versions from package-lock.json
+npm ci
+
+# Run JavaScript, shell, and Firebase Admin compatibility checks
+npm test
+
+# Build the image for the local platform
+make build
+```
+
+### Run Locally
 
 Run with Docker for local testing:
 
@@ -39,11 +54,9 @@ docker run -d \
   udx/docker-sftp
 ```
 
-For production deployment, see [Deployment Guide](docs/deployment.md).
-
 See [Environment Variables](docs/environment.md) for auth setup and [Deployment Guide](docs/deployment.md) for production deployment.
 
-### 2. Connect to Pods
+### Connect to Pods
 
 ```bash
 # Interactive shell

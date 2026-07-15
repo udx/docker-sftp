@@ -86,3 +86,45 @@ test("Firebase consumer coalesces concurrent key refresh requests", () => {
     }
   }
 });
+
+test("Firebase consumer reports a missing access token once per outage", () => {
+  const { refreshKeys } = require("../lib/firebase.consume");
+  const accessToken = process.env.ACCESS_TOKEN;
+  const consoleError = console.error;
+  const errors = [];
+
+  delete process.env.ACCESS_TOKEN;
+  console.error = (...args) => errors.push(args.join(" "));
+  try {
+    refreshKeys();
+    refreshKeys();
+    assert.equal(errors.length, 1);
+
+    process.env.ACCESS_TOKEN = "test-token";
+    refreshKeys((_options, callback) => callback(null));
+
+    delete process.env.ACCESS_TOKEN;
+    refreshKeys();
+    assert.equal(errors.length, 2);
+  } finally {
+    console.error = consoleError;
+    if (accessToken === undefined) {
+      delete process.env.ACCESS_TOKEN;
+    } else {
+      process.env.ACCESS_TOKEN = accessToken;
+    }
+  }
+});
+
+test("key updates return an error when the authorized_keys directory is missing", () => {
+  const utility = require("../lib/utility");
+  const keysPath = path.join(__dirname, "missing-authorized-keys");
+  let callbackError;
+
+  assert.equal(fs.existsSync(keysPath), false);
+  utility.updateKeys({ keysPath, accessToken: "test-token" }, (error) => {
+    callbackError = error;
+  });
+
+  assert.match(callbackError.message, /authorized_keys directory missing/);
+});

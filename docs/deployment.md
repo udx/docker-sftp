@@ -101,7 +101,11 @@ Test SSH access:
 ```bash
 # Get service address
 SSH_HOST=$(kubectl get service -n $NAMESPACE "$RESOURCE_NAME" \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}{.status.loadBalancer.ingress[0].hostname}')
+  -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+if [ -z "$SSH_HOST" ]; then
+  SSH_HOST=$(kubectl get service -n $NAMESPACE "$RESOURCE_NAME" \
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+fi
 
 # Test connection
 ssh -p 22 pod-myapp@$SSH_HOST

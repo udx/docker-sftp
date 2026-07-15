@@ -1,5 +1,7 @@
 # Environment Variables
 
+Copy [`.env.example`](../.env.example) to `.env` for a secret-free inventory of supported local settings. Replace its placeholders locally and never commit the populated file. Kubernetes deployments should inject the same values through Secrets or the deployment system.
+
 ## Kubernetes Configuration
 
 Variables for connecting to your Kubernetes cluster:
@@ -17,10 +19,10 @@ See [Deployment Guide](deployment.md) for instructions on setting up service acc
 
 ## GitHub Configuration
 
-| Variable                 | Description                                         | Required |
-| ------------------------ | --------------------------------------------------- | -------- |
-| `ACCESS_TOKEN`           | GitHub access token                                 | Yes      |
-| `ALLOW_SSH_ACCESS_ROLES` | Allowed GitHub roles (e.g., "admin,maintain,write") | Yes      |
+| Variable                 | Description          | Required | Default                |
+| ------------------------ | -------------------- | -------- | ---------------------- |
+| `ACCESS_TOKEN`           | GitHub access token  | Yes      | -                      |
+| `ALLOW_SSH_ACCESS_ROLES` | Allowed GitHub roles | No       | `admin,maintain,write` |
 
 ## Firebase Configuration
 

@@ -39,22 +39,18 @@ make build
 Run with Docker for local testing:
 
 ```bash
-# Get cluster credentials
-KUBE_ENDPOINT=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-KUBE_TOKEN=$(kubectl get secret $(kubectl get sa default -n default -o jsonpath='{.secrets[0].name}') \
-  -o jsonpath='{.data.token}' | base64 -d)
+# Create local configuration and replace its placeholder values
+cp .env.example .env
 
 # Run container
 docker run -d \
   --name sftp-gateway \
   -p 2222:22 \
-  -e KUBERNETES_CLUSTER_ENDPOINT=$KUBE_ENDPOINT \
-  -e KUBERNETES_CLUSTER_USER_TOKEN=$KUBE_TOKEN \
-  -e ACCESS_TOKEN=$GITHUB_TOKEN \
+  --env-file .env \
   udx/docker-sftp
 ```
 
-See [Environment Variables](docs/environment.md) for auth setup and [Deployment Guide](docs/deployment.md) for production deployment.
+Use [`.env.example`](.env.example) as the canonical local configuration contract. See [Environment Variables](docs/environment.md) for details and the [Deployment Guide](docs/deployment.md) for production deployment.
 
 ### Connect to Pods
 

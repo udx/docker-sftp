@@ -6,7 +6,7 @@
   "scripts": {
     "dev-start": "worker service restart rabbit-ssh-server",
     "start": "worker service restart sshd && worker service restart rabbit-ssh-server",
-    "test": "node --check lib/controller.keys.js && node --check lib/firebase.consume.js && node --check lib/server.js && node --check lib/utility.js && node -e \"const app = require('firebase-admin/app'); const database = require('firebase-admin/database'); if (!app.initializeApp || !app.cert || !database.getDatabase) process.exit(1)\" && bash -n bin/controller.ssh.entrypoint.sh && bash -n bin/setup-kubernetes.sh"
+    "test": "bash test/run.sh"
   },
   "bin": {
     "controller.keys": "lib/controller.keys.js"

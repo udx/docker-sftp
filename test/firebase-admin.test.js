@@ -130,6 +130,35 @@ test("Firebase consumer coalesces concurrent key refresh requests", () => {
   }
 });
 
+test("Firebase consumer recovers from a synchronous key-refresh failure", () => {
+  const { refreshKeys } = require("../lib/firebase.consume");
+  const accessToken = process.env.ACCESS_TOKEN;
+  const consoleError = console.error;
+  let calls = 0;
+
+  process.env.ACCESS_TOKEN = "test-token";
+  console.error = () => {};
+  try {
+    refreshKeys(() => {
+      calls += 1;
+      throw new Error("test failure");
+    });
+    refreshKeys((_options, callback) => {
+      calls += 1;
+      callback(null);
+    });
+
+    assert.equal(calls, 2);
+  } finally {
+    console.error = consoleError;
+    if (accessToken === undefined) {
+      delete process.env.ACCESS_TOKEN;
+    } else {
+      process.env.ACCESS_TOKEN = accessToken;
+    }
+  }
+});
+
 test("Firebase consumer reports a missing access token once per outage", () => {
   const { refreshKeys } = require("../lib/firebase.consume");
   const accessToken = process.env.ACCESS_TOKEN;

@@ -108,9 +108,10 @@ See [Architecture Details](architecture.md#state-management) for more informatio
 
 ## Server Configuration
 
-| Variable    | Description                     | Required |
-| ----------- | ------------------------------- | -------- |
-| `NODE_PORT` | API server port (default: 8080) | No       |
+| Variable                      | Description                                      | Required |
+| ----------------------------- | ------------------------------------------------ | -------- |
+| `NODE_PORT`                   | API server port (default: 8080)                  | No       |
+| `SSH_KEY_REFRESH_TIMEOUT_MS`  | Key-refresh timeout in milliseconds (default: 60000) | No       |
 
 The Worker always starts the Firebase consumer process. It initializes Firebase
 and listens for deployment changes only when both

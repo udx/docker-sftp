@@ -49,7 +49,7 @@ docker run -d \
   udx/docker-sftp
 ```
 
-See [Environment Variables](docs/environment.md) for the complete configuration reference and the [Deployment Guide](docs/deployment.md) for production deployment.
+The image ships with safe Worker defaults. See [Runtime Configuration](docs/environment.md) for the override and secret-injection model, and the [Deployment Guide](docs/deployment.md) for production deployment.
 
 ### Connect to Pods
 
@@ -73,7 +73,7 @@ See [Client Guide](docs/client-guide.md) for SSH config and advanced usage.
 ### Setup & Configuration
 
 - [Deployment Guide](docs/deployment.md) - Deployment options and setup
-- [Environment Variables](docs/environment.md) - Configuration reference
+- [Runtime Configuration](docs/environment.md) - Worker defaults, deployment overrides, and secrets
 - [User Management](docs/user-management.md) - Access control
 
 ### Help

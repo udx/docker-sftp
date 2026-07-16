@@ -1,16 +1,35 @@
 # Runtime Configuration
 
-Worker configuration is the primary runtime contract. The Worker base image
-provides `/etc/worker/worker.yaml`; a service configuration at
-`$HOME/.config/worker/worker.yaml` takes precedence. In that file, `config.env`
-defines default values and `config.secrets` defines secret-provider references.
-Values supplied by the deployment environment take precedence, so the same image
-configuration can be overridden for each deployment without rebuilding it.
+The image includes a [Worker configuration](../etc/configs/worker/worker.yaml)
+with safe defaults such as the service port, Kubernetes context name, and allowed
+GitHub roles. Most deployments should use those defaults and provide only the
+values that are specific to their environment.
 
-For local Docker runs, export sensitive values in the host shell and pass only
-the required variable names with `docker run --env`. Kubernetes deployments
-should provide overrides and sensitive values through Secrets or the deployment
-system. Never commit populated credentials to Worker configuration or manifests.
+Configuration is applied in this order:
+
+1. The image loads its defaults from
+   `$HOME/.config/worker/worker.yaml`.
+2. The deployment environment overrides any defaults that need to differ.
+3. Secrets such as `ACCESS_TOKEN` are injected by Docker, Kubernetes Secrets, or
+   the deployment system.
+
+You do not need to create another configuration file for a standard deployment.
+To change an image-wide default, update
+[`etc/configs/worker/worker.yaml`](../etc/configs/worker/worker.yaml) and rebuild
+the image. Never store credentials in that file or in deployment manifests.
+
+For a local Docker run, export the required secrets and cluster values in your
+host shell, then pass their names to `docker run`:
+
+```bash
+docker run -d \
+  --name sftp-gateway \
+  -p 2222:22 \
+  --env ACCESS_TOKEN \
+  --env KUBERNETES_CLUSTER_ENDPOINT \
+  --env KUBERNETES_CLUSTER_USER_TOKEN \
+  udx/docker-sftp
+```
 
 ## Kubernetes Configuration
 

@@ -7,6 +7,7 @@
 * Migrated Firebase initialization and Realtime Database access to modular APIs
 * Removed the unused direct Google GAX dependency and optional Firebase services from the runtime install
 * Removed the legacy `@udx/worker-deployment` CLI config in favor of the maintained Kubernetes manifests
+* Added a safe default Worker configuration that deployments can override
 * Updated GitHub Actions checkout to version 7
 
 ### 0.13.0

@@ -69,6 +69,7 @@ RUN npm ci --omit=dev --omit=optional
 # Copy remaining application files
 COPY --chown=${USER}:${USER} . ${APP_HOME}/
 COPY --chown=${USER}:${USER} static/etc/ssh/ /etc/ssh/
+COPY --chown=${USER}:${USER} etc/configs/worker/worker.yaml $HOME/.config/worker/worker.yaml
 COPY --chown=${USER}:${USER} etc/configs/worker/services.yaml $HOME/.config/worker/services.yaml
 
 # Generate SSH host keys and set up permissions

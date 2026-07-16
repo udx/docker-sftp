@@ -1,12 +1,16 @@
 # API Reference
 
-The SFTP Gateway API provides endpoints for managing SSH connections, users, and Kubernetes pods.
+The SFTP Gateway exposes a small internal HTTP API used by its SSH and key
+management processes. It is not an authenticated public API: deploy it on a
+private network and restrict access with Kubernetes NetworkPolicies, an ingress
+rule, or equivalent controls.
 
 ## Overview
 
 - **Base URL**: `http://localhost:8080` (configurable via `NODE_PORT`)
-- **Default Format**: All responses are in JSON
-- **Authentication**: See [Authentication](#authentication) section
+- **Response format**: Kubernetes responses are JSON; some utility endpoints
+  return plain text.
+- **Authentication**: The application does not enforce HTTP authentication.
 
 ## Core Endpoints
 
@@ -14,28 +18,23 @@ The SFTP Gateway API provides endpoints for managing SSH connections, users, and
 
 #### `GET /v1/pods`
 
-List all accessible Kubernetes pods.
+Proxy the Kubernetes `GET /api/v1/pods` response using the gateway's configured
+service-account token. The gateway does not implement query filtering; callers
+receive the Kubernetes API response unchanged.
 
 ```bash
 # Example
-curl -H "x-rabbit-internal-token: $TOKEN" http://localhost:8080/v1/pods
+curl http://localhost:8080/v1/pods
 ```
 
-**Parameters:**
+**Success response:** Kubernetes `PodList` JSON.
 
-- `namespace` (query, optional) - Filter by namespace
-
-**Response:**
+**Failure response:** HTTP 502 with:
 
 ```json
 {
-  "pods": [
-    {
-      "name": "web-app-prod",
-      "namespace": "default",
-      "status": "Running"
-    }
-  ]
+  "error": "Unable to retrieve Kubernetes pods",
+  "message": "…"
 }
 ```
 
@@ -43,7 +42,9 @@ curl -H "x-rabbit-internal-token: $TOKEN" http://localhost:8080/v1/pods
 
 #### `GET /users`
 
-List all users with SSH access.
+Return the in-memory SSH-user state as `{ "items": … }`. The exact item shape
+depends on the configured state source and may be absent before the first key
+refresh.
 
 ```bash
 # Example
@@ -54,19 +55,15 @@ curl http://localhost:8080/users
 
 ```json
 {
-  "users": [
-    {
-      "name": "dev-user",
-      "pods": ["web-app-dev"],
-      "permissions": ["admin"]
-    }
-  ]
+  "items": {}
 }
 ```
 
 #### `GET /_cat/connection-string/:user`
 
-Get SSH connection details for a user.
+Resolve an SSH-user label or pod name to the command fragment consumed by the
+forced SSH command. This is an internal integration endpoint, not a client
+connection string.
 
 ```bash
 # Example
@@ -75,19 +72,15 @@ curl http://localhost:8080/_cat/connection-string/dev-user
 
 **Response:**
 
-```json
-{
-  "connectionString": "ssh dev-user@sftp.company.com",
-  "pod": "web-app-dev",
-  "namespace": "default"
-}
+```text
+ -n default exec web-app-dev
 ```
 
 ### Application Management
 
 #### `GET /apps`
 
-List all managed applications.
+List the current in-memory application records.
 
 ```bash
 # Example
@@ -98,13 +91,7 @@ curl http://localhost:8080/apps
 
 ```json
 {
-  "apps": [
-    {
-      "name": "web-app",
-      "pods": ["web-app-dev", "web-app-prod"],
-      "users": ["dev-user"]
-    }
-  ]
+  "items": []
 }
 ```
 
@@ -114,7 +101,8 @@ curl http://localhost:8080/apps
 
 Clean up stale container data from Firebase.
 
-⚠️ **Admin only. Use with caution in production.**
+⚠️ This removes the entire Firebase `container` collection. The application
+does not authorize this endpoint; only expose it to trusted operators.
 
 ```bash
 # Example
@@ -137,5 +125,3 @@ This operation:
 - Triggers automatic container re-sync
 - Logs all changes for audit
 - Helps resolve memory issues
-
-

@@ -39,10 +39,8 @@ Variables for connecting to your Kubernetes cluster:
 | ----------------------------------- | ---------------------------------------------- | -------- | --------------- |
 | `KUBERNETES_CLUSTER_ENDPOINT`       | API server address (e.g. https://your-cluster) | Yes      | -               |
 | `KUBERNETES_CLUSTER_USER_TOKEN`     | Service account token for authentication       | Yes      | -               |
-| `KUBERNETES_CLUSTER_NAME`           | Name for kubectl cluster context               | No       | Auto-generated¹ |
+| `KUBERNETES_CLUSTER_NAME`           | Name for kubectl cluster context               | No       | `default`       |
 | `KUBERNETES_CLUSTER_SERVICEACCOUNT` | Service account name for kubectl config        | No       | "default"       |
-
-¹ When not set, generates a random name like "cluster-12345"
 
 See [Deployment Guide](deployment.md) for instructions on setting up service accounts and getting credentials.
 
@@ -63,12 +61,20 @@ The system uses Firebase Realtime Database to maintain container state and enabl
 
 ### Required Variables
 
-Firebase credentials are loaded from a service account JSON file:
+The Firebase consumer is configured with a service-account JSON file. The
+legacy server-side Firebase paths also read the individual `FIREBASE_*` service
+account values below, so provide those values when `SERVICE_ENABLE_FIREBASE=true`.
 
-| Variable                         | Description                                                          | Required |
-| -------------------------------- | -------------------------------------------------------------------- | -------- |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file downloaded from Firebase console   | Yes      |
-| `FIREBASE_DATABASE_URL`          | Firebase Realtime Database URL (e.g. https://your-db.firebaseio.com) | Yes      |
+| Variable                         | Description                                                          | Required for Firebase consumer |
+| -------------------------------- | -------------------------------------------------------------------- | ------------------------------ |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file downloaded from Firebase console   | Yes                            |
+| `FIREBASE_DATABASE_URL`          | Firebase Realtime Database URL (e.g. https://your-db.firebaseio.com) | Yes                            |
+| `FIREBASE_PROJECT_ID`             | Firebase service-account project ID                                 | Conditional |
+| `FIREBASE_PRIVATE_KEY`            | Firebase service-account private key                                | Conditional |
+| `FIREBASE_PRIVATE_KEY_ID`         | Firebase service-account private-key ID                             | Conditional |
+| `FIREBASE_CLIENT_EMAIL`           | Firebase service-account email                                      | Conditional |
+| `FIREBASE_CLIENT_ID`              | Firebase service-account client ID                                  | Conditional |
+| `FIREBASE_CLIENT_CERT_URL`        | Firebase service-account client certificate URL                     | Conditional |
 
 ### Setup Instructions
 
@@ -104,7 +110,12 @@ See [Architecture Details](architecture.md#state-management) for more informatio
 | ----------- | ------------------------------- | -------- |
 | `NODE_PORT` | API server port (default: 8080) | No       |
 
-For Kubernetes deployment configuration, including health checks and resource limits, see [Kubernetes Deployment](kubernetes-deployment.md).
+The Worker service runs the Firebase consumer only when both
+`GOOGLE_APPLICATION_CREDENTIALS` and `FIREBASE_DATABASE_URL` are present.
+Set `SERVICE_ENABLE_FIREBASE=true` only when the server's legacy Firebase
+container-state integration is also required.
+
+For Kubernetes deployment configuration, including health checks and resource limits, see the [Deployment Guide](deployment.md).
 
 ## Deployment Labels
 

@@ -1,6 +1,6 @@
 # Environment Variables
 
-Copy [`.env.example`](../.env.example) to `.env` for a secret-free inventory of supported local settings. Replace its placeholders locally and never commit the populated file. Kubernetes deployments should inject the same values through Secrets or the deployment system.
+Supply runtime configuration through the deployment environment. For local Docker runs, export values in the host shell and pass the required variable names with `docker run --env`; never commit populated credentials. Kubernetes deployments should inject sensitive values through Secrets or the deployment system.
 
 ## Kubernetes Configuration
 

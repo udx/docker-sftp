@@ -39,18 +39,17 @@ make build
 Run with Docker for local testing:
 
 ```bash
-# Create local configuration and replace its placeholder values
-cp .env.example .env
-
-# Run container
+# Export the required values in your shell, then pass them through to Docker
 docker run -d \
   --name sftp-gateway \
   -p 2222:22 \
-  --env-file .env \
+  --env ACCESS_TOKEN \
+  --env KUBERNETES_CLUSTER_ENDPOINT \
+  --env KUBERNETES_CLUSTER_USER_TOKEN \
   udx/docker-sftp
 ```
 
-Use [`.env.example`](.env.example) as the canonical local configuration contract. See [Environment Variables](docs/environment.md) for details and the [Deployment Guide](docs/deployment.md) for production deployment.
+See [Environment Variables](docs/environment.md) for the complete configuration reference and the [Deployment Guide](docs/deployment.md) for production deployment.
 
 ### Connect to Pods
 

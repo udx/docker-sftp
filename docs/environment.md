@@ -1,6 +1,16 @@
-# Environment Variables
+# Runtime Configuration
 
-Supply runtime configuration through the deployment environment. For local Docker runs, export values in the host shell and pass the required variable names with `docker run --env`; never commit populated credentials. Kubernetes deployments should inject sensitive values through Secrets or the deployment system.
+Worker configuration is the primary runtime contract. The Worker base image
+provides `/etc/worker/worker.yaml`; a service configuration at
+`$HOME/.config/worker/worker.yaml` takes precedence. In that file, `config.env`
+defines default values and `config.secrets` defines secret-provider references.
+Values supplied by the deployment environment take precedence, so the same image
+configuration can be overridden for each deployment without rebuilding it.
+
+For local Docker runs, export sensitive values in the host shell and pass only
+the required variable names with `docker run --env`. Kubernetes deployments
+should provide overrides and sensitive values through Secrets or the deployment
+system. Never commit populated credentials to Worker configuration or manifests.
 
 ## Kubernetes Configuration
 

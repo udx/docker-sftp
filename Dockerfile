@@ -51,6 +51,7 @@ ENV USE_GKE_GCLOUD_AUTH_PLUGIN=True
 # Create required directories
 RUN mkdir -p \
     /home/${USER}/.kube \
+    /home/${USER}/.config/worker \
     ${APP_HOME} \
     /root/.ssh \
     ${WORKER_CONFIG_DIR}/services.d \
@@ -69,8 +70,8 @@ RUN npm ci --omit=dev --omit=optional
 # Copy remaining application files
 COPY --chown=${USER}:${USER} . ${APP_HOME}/
 COPY --chown=${USER}:${USER} static/etc/ssh/ /etc/ssh/
-COPY --chown=${USER}:${USER} etc/configs/worker/worker.yaml $HOME/.config/worker/worker.yaml
-COPY --chown=${USER}:${USER} etc/configs/worker/services.yaml $HOME/.config/worker/services.yaml
+COPY --chown=${USER}:${USER} etc/configs/worker/worker.yaml /home/${USER}/.config/worker/worker.yaml
+COPY --chown=${USER}:${USER} etc/configs/worker/services.yaml /home/${USER}/.config/worker/services.yaml
 
 # Generate SSH host keys and set up permissions
 RUN ssh-keygen -A \

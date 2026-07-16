@@ -28,7 +28,7 @@ export KUBE_TOKEN=$(kubectl get secret $(kubectl get sa default -n default -o js
   -o jsonpath='{.data.token}' | base64 -d)
 ```
 
-See [Environment Variables](environment.md) for all configuration options.
+See [Runtime Configuration](environment.md) for all configuration options.
 
 ### 2. Choose Deployment Mode
 
@@ -80,7 +80,7 @@ kubectl create rolebinding sftp-gateway-admin -n $NAMESPACE \
 - Set `serviceAccountName` to the service account created above. Kubernetes mounts its token and CA certificate for in-cluster kubectl setup, but the gateway still consumes the explicit `KUBERNETES_CLUSTER_*` values shown in the deployment template. Populate those values for the target cluster; do not treat the service-account mount as a replacement for them.
 - Provide `ACCESS_TOKEN` and Firebase credentials through Kubernetes Secrets or your deployment system.
 - Set the image reference to the `0.14.0` release (or an immutable digest).
-- Review all settings in the [Environment Variables](environment.md) reference.
+- Review all settings in the [Runtime Configuration](environment.md) reference.
 
 3. Apply the rendered deployment and service manifests:
 
@@ -115,6 +115,6 @@ See [Client Guide](client-guide.md) for usage instructions.
 
 ### Next Steps
 
-- [Configure Environment Variables](environment.md)
+- [Review Runtime Configuration](environment.md)
 - [Manage User Access](user-management.md)
 - [Troubleshooting Guide](troubleshooting.md)

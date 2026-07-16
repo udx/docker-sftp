@@ -110,10 +110,11 @@ See [Architecture Details](architecture.md#state-management) for more informatio
 | ----------- | ------------------------------- | -------- |
 | `NODE_PORT` | API server port (default: 8080) | No       |
 
-The Worker service runs the Firebase consumer only when both
-`GOOGLE_APPLICATION_CREDENTIALS` and `FIREBASE_DATABASE_URL` are present.
-Set `SERVICE_ENABLE_FIREBASE=true` only when the server's legacy Firebase
-container-state integration is also required.
+The Worker always starts the Firebase consumer process. It initializes Firebase
+and listens for deployment changes only when both
+`GOOGLE_APPLICATION_CREDENTIALS` and `FIREBASE_DATABASE_URL` are present;
+otherwise the process remains idle. Set `SERVICE_ENABLE_FIREBASE=true` only
+when the server's legacy Firebase container-state integration is also required.
 
 For Kubernetes deployment configuration, including health checks and resource limits, see the [Deployment Guide](deployment.md).
 

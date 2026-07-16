@@ -42,6 +42,33 @@ test("Firebase initialization reports a missing private key clearly", () => {
   }
 });
 
+test("Firebase initialization reports a missing database URL clearly", () => {
+  const utility = require("../lib/utility");
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const databaseUrl = process.env.FIREBASE_DATABASE_URL;
+
+  process.env.FIREBASE_PRIVATE_KEY = "test-private-key";
+  delete process.env.FIREBASE_DATABASE_URL;
+  try {
+    assert.throws(
+      () => utility.getFirebase(),
+      /FIREBASE_DATABASE_URL is required to initialize Firebase/
+    );
+  } finally {
+    if (privateKey === undefined) {
+      delete process.env.FIREBASE_PRIVATE_KEY;
+    } else {
+      process.env.FIREBASE_PRIVATE_KEY = privateKey;
+    }
+
+    if (databaseUrl === undefined) {
+      delete process.env.FIREBASE_DATABASE_URL;
+    } else {
+      process.env.FIREBASE_DATABASE_URL = databaseUrl;
+    }
+  }
+});
+
 test("Firebase consumer listens for added, changed, and removed deployments", () => {
   const { setupListeners } = require("../lib/firebase.consume");
   const events = [];
@@ -120,11 +147,14 @@ test("key updates return an error when the authorized_keys directory is missing"
   const utility = require("../lib/utility");
   const keysPath = path.join(__dirname, "missing-authorized-keys");
   let callbackError;
+  let callbackData;
 
   assert.equal(fs.existsSync(keysPath), false);
-  utility.updateKeys({ keysPath, accessToken: "test-token" }, (error) => {
+  utility.updateKeys({ keysPath, accessToken: "test-token" }, (error, data) => {
     callbackError = error;
+    callbackData = data;
   });
 
   assert.match(callbackError.message, /authorized_keys directory missing/);
+  assert.deepEqual(callbackData, { users: {} });
 });

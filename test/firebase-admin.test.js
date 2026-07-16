@@ -85,6 +85,31 @@ test("Firebase initialization reports a missing database URL clearly", () => {
   }
 });
 
+test("Firebase collection access reports initialization failures safely", () => {
+  const utility = require("../lib/utility");
+  const getFirebase = utility.getFirebase;
+  const unavailable = new Error("Firebase unavailable");
+  let callbackError;
+  let callbackData;
+
+  utility.getFirebase = () => {
+    throw unavailable;
+  };
+  try {
+    const collection = utility.getCollection("container", "", (error, data) => {
+      callbackError = error;
+      callbackData = data;
+    });
+
+    assert.equal(callbackError, unavailable);
+    assert.deepEqual(callbackData, []);
+    assert.equal(collection.orderByChild("_id").once("value").on("child_added"), collection);
+    collection.remove((error) => assert.equal(error, unavailable));
+  } finally {
+    utility.getFirebase = getFirebase;
+  }
+});
+
 test("Firebase consumer listens for added, changed, and removed deployments", () => {
   const { setupListeners } = require("../lib/firebase.consume");
   const events = [];

@@ -45,9 +45,13 @@ test("Firebase initialization reports a missing private key clearly", () => {
 test("Firebase initialization reports a missing database URL clearly", () => {
   const utility = require("../lib/utility");
   const privateKey = process.env.FIREBASE_PRIVATE_KEY;
+  const projectId = process.env.FIREBASE_PROJECT_ID;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
   const databaseUrl = process.env.FIREBASE_DATABASE_URL;
 
   process.env.FIREBASE_PRIVATE_KEY = "test-private-key";
+  process.env.FIREBASE_PROJECT_ID = "test-project";
+  process.env.FIREBASE_CLIENT_EMAIL = "test@example.com";
   delete process.env.FIREBASE_DATABASE_URL;
   try {
     assert.throws(
@@ -59,6 +63,18 @@ test("Firebase initialization reports a missing database URL clearly", () => {
       delete process.env.FIREBASE_PRIVATE_KEY;
     } else {
       process.env.FIREBASE_PRIVATE_KEY = privateKey;
+    }
+
+    if (projectId === undefined) {
+      delete process.env.FIREBASE_PROJECT_ID;
+    } else {
+      process.env.FIREBASE_PROJECT_ID = projectId;
+    }
+
+    if (clientEmail === undefined) {
+      delete process.env.FIREBASE_CLIENT_EMAIL;
+    } else {
+      process.env.FIREBASE_CLIENT_EMAIL = clientEmail;
     }
 
     if (databaseUrl === undefined) {

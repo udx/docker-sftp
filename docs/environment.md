@@ -65,16 +65,18 @@ The Firebase consumer is configured with a service-account JSON file. The
 legacy server-side Firebase paths also read the individual `FIREBASE_*` service
 account values below, so provide those values when `SERVICE_ENABLE_FIREBASE=true`.
 
-| Variable                         | Description                                                          | Required for Firebase consumer |
-| -------------------------------- | -------------------------------------------------------------------- | ------------------------------ |
-| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file downloaded from Firebase console   | Yes                            |
-| `FIREBASE_DATABASE_URL`          | Firebase Realtime Database URL (e.g. https://your-db.firebaseio.com) | Yes                            |
-| `FIREBASE_PROJECT_ID`             | Firebase service-account project ID                                 | Conditional |
-| `FIREBASE_PRIVATE_KEY`            | Firebase service-account private key                                | Conditional |
-| `FIREBASE_PRIVATE_KEY_ID`         | Firebase service-account private-key ID                             | Conditional |
-| `FIREBASE_CLIENT_EMAIL`           | Firebase service-account email                                      | Conditional |
-| `FIREBASE_CLIENT_ID`              | Firebase service-account client ID                                  | Conditional |
-| `FIREBASE_CLIENT_CERT_URL`        | Firebase service-account client certificate URL                     | Conditional |
+| Variable                         | Description                                                          | Firebase consumer | Legacy server state¹ |
+| -------------------------------- | -------------------------------------------------------------------- | ----------------- | -------------------- |
+| `GOOGLE_APPLICATION_CREDENTIALS` | Path to service account JSON file downloaded from Firebase console   | Required          | -                    |
+| `FIREBASE_DATABASE_URL`          | Firebase Realtime Database URL (e.g. https://your-db.firebaseio.com) | Required          | Required             |
+| `FIREBASE_PROJECT_ID`            | Firebase service-account project ID                                 | -                 | Required             |
+| `FIREBASE_PRIVATE_KEY`           | Firebase service-account private key                                | -                 | Required             |
+| `FIREBASE_CLIENT_EMAIL`          | Firebase service-account email                                      | -                 | Required             |
+| `FIREBASE_PRIVATE_KEY_ID`        | Firebase service-account private-key ID                             | -                 | Optional             |
+| `FIREBASE_CLIENT_ID`             | Firebase service-account client ID                                  | -                 | Optional             |
+| `FIREBASE_CLIENT_CERT_URL`       | Firebase service-account client certificate URL                     | -                 | Optional             |
+
+¹ The legacy server state path is enabled with `SERVICE_ENABLE_FIREBASE=true`.
 
 ### Setup Instructions
 

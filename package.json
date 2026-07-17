@@ -1,12 +1,12 @@
 {
   "name": "docker-sftp",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "SSH tunnels to Kubernetes containers",
-  "main": "bin/server.js",
+  "main": "lib/server.js",
   "scripts": {
     "dev-start": "worker service restart rabbit-ssh-server",
     "start": "worker service restart sshd && worker service restart rabbit-ssh-server",
-    "test": "node --check lib/controller.keys.js && node --check lib/firebase.consume.js && node --check lib/server.js && node --check lib/utility.js && bash -n bin/controller.ssh.entrypoint.sh && bash -n bin/setup-kubernetes.sh"
+    "test": "bash test/run.sh"
   },
   "bin": {
     "controller.keys": "lib/controller.keys.js"
@@ -21,15 +21,17 @@
     "url": "https://github.com/udx/docker-sftp/issues"
   },
   "homepage": "https://github.com/udx/docker-sftp#readme",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "dependencies": {
     "async": "^3.2.6",
-    "axios": "^1.13.6",
+    "axios": "^1.18.1",
     "debug": "^4.4.3",
     "dot-object": "^2.1.5",
     "express": "^5.2.1",
-    "firebase-admin": "^13.7.0",
-    "google-gax": "^5.0.6",
-    "lodash": "^4.17.23",
+    "firebase-admin": "^14.1.0",
+    "lodash": "^4.18.1",
     "md5": "^2.3.0",
     "mustache": "^4.2.0"
   }

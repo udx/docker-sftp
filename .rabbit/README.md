@@ -10,7 +10,7 @@ tenant-specific Rabbit lifecycle manifests or environment config.
 
 - Generated repo context: [`context.yaml`](./context.yaml)
 - Image release workflow: [`../.github/workflows/docker-ops.yml`](../.github/workflows/docker-ops.yml)
-- Worker deployment example: [`../deploy.yml`](../deploy.yml)
+- Maintained Kubernetes examples: [`../examples/configs/kubernetes`](../examples/configs/kubernetes)
 - Runtime image contract: [`../Dockerfile`](../Dockerfile)
 - Deployment guide: [`../docs/deployment.md`](../docs/deployment.md)
 - Environment reference: [`../docs/environment.md`](../docs/environment.md)
@@ -27,8 +27,8 @@ tenant-specific Rabbit lifecycle manifests or environment config.
    own lifecycle manifests or deployment config. Publishing this image does not
    update those consumers by itself.
 5. Tenant runtime values and secrets belong in the tenant repo or target
-   platform. Image-level defaults and example references belong in
-   [`../deploy.yml`](../deploy.yml) and the docs.
+   platform. Image-level defaults and deployment examples belong in the
+   maintained Kubernetes manifests and docs.
 
 ## Repo Context
 

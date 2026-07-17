@@ -1,0 +1,11 @@
+---
+kind: workerConfig
+version: udx.io/worker-v1/config
+config:
+  env:
+    KUBERNETES_CLUSTER_NAME: "default"
+    KUBERNETES_CLUSTER_SERVICEACCOUNT: "default"
+    NODE_PORT: "8080"
+    ALLOW_SSH_ACCESS_ROLES: "admin,maintain,write"
+    PRODUCTION_BRANCH: "production"
+    SERVICE_ENABLE_FIREBASE: "false"

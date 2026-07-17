@@ -1,10 +1,12 @@
-FROM usabilitydynamics/udx-worker-nodejs:0.33.0
+FROM usabilitydynamics/udx-worker-nodejs:0.34.0
 
-ENV KUBECTL_VERSION=1.35.3 \
+ENV KUBECTL_VERSION=1.36.2 \
     NODE_ENV=production \
     APP_HOME=/opt/sources/rabbitci/rabbit-ssh
 
 USER root
+
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,9 +24,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Setup kubectl and timezone
-RUN curl -L https://dl.k8s.io/release/v$KUBECTL_VERSION/bin/linux/amd64/kubectl -o /usr/local/bin/kubectl \
+RUN case "$(dpkg --print-architecture)" in \
+        amd64) ARCH="amd64" ;; \
+        arm64) ARCH="arm64" ;; \
+        armhf) ARCH="arm" ;; \
+        i386) ARCH="386" ;; \
+        ppc64el) ARCH="ppc64le" ;; \
+        s390x) ARCH="s390x" ;; \
+        *) echo "Unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
+    esac \
+    && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" \
+    && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl.sha256" \
+    && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum --check \
     && chmod +x /usr/local/bin/kubectl \
     && kubectl version --client \
+    && rm -f /tmp/kubectl.sha256 \
     && rm -rf /etc/ssh/* \
     && mkdir -p /etc/ssh/authorized_keys.d \
     && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
@@ -37,6 +51,7 @@ ENV USE_GKE_GCLOUD_AUTH_PLUGIN=True
 # Create required directories
 RUN mkdir -p \
     /home/${USER}/.kube \
+    /home/${USER}/.config/worker \
     ${APP_HOME} \
     /root/.ssh \
     ${WORKER_CONFIG_DIR}/services.d \
@@ -50,12 +65,13 @@ COPY --chown=${USER}:${USER} package*.json ${APP_HOME}/
 
 # Install dependencies
 WORKDIR ${APP_HOME}
-RUN npm install --production
+RUN npm ci --omit=dev --omit=optional
 
 # Copy remaining application files
 COPY --chown=${USER}:${USER} . ${APP_HOME}/
 COPY --chown=${USER}:${USER} static/etc/ssh/ /etc/ssh/
-COPY --chown=${USER}:${USER} etc/configs/worker/services.yaml $HOME/.config/worker/services.yaml
+COPY --chown=${USER}:${USER} etc/configs/worker/worker.yaml /home/${USER}/.config/worker/worker.yaml
+COPY --chown=${USER}:${USER} etc/configs/worker/services.yaml /home/${USER}/.config/worker/services.yaml
 
 # Generate SSH host keys and set up permissions
 RUN ssh-keygen -A \

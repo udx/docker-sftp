@@ -6,7 +6,7 @@ generator:
   tool: dev.kit
   repo: https://github.com/udx/dev.kit
   version: 0.20.1
-  generated_at: 2026-07-15T11:16:22Z
+  generated_at: 2026-07-18T19:22:42Z
   sources:
     homepage: https://udx.dev/kit
     repository: https://github.com/udx/dev.kit
@@ -47,6 +47,21 @@ commands:
     run: npm start
     source: package.json
 
+# Gaps — Factors that are missing or only partially supported by current repo signals.
+# Note: Base the result on explicit factor rules, not free-form judgment.
+# Note: Include message and evidence so the status can be reviewed.
+# Note: Prefer traceable refs and missing signals over vague advice.
+
+gaps:
+  - factor: config
+    status: partial
+    message: Configuration is documented in docs/deployment.md, but the repo does not declare a canonical checked-in config contract yet.
+    repair_target: docs/deployment.md or .env.example
+    reference: docs/deployment.md
+    evidence:
+      - env vars documented in docs/deployment.md
+      - env vars documented in docs/environment.md
+
 # Dependencies — Meaningful dependency-repo contracts such as reusable workflows, images, or versioned manifests this repo relies on.
 # Note: Capture execution-shaping behavior defined outside the current checkout.
 # Note: Avoid promoting standard package inventory or ordinary GitHub action refs into top-level context.
@@ -57,6 +72,7 @@ dependencies:
     kind: reusable workflow
     resolved: true
     archetype: manifest-repo
+    description: Reusable GitHub Actions workflow templates for CI/CD
     used_by:
       - .github/workflows/docker-ops.yml
   - repo: usabilitydynamics/udx-worker-nodejs:0.34.0
@@ -64,6 +80,7 @@ dependencies:
     resolved: true
     source_repo: udx/worker-nodejs
     archetype: manifest-repo
+    description: UDX Worker for running NodeJS applications.
     used_by:
       - Dockerfile
 

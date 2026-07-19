@@ -55,6 +55,9 @@ Maintained example manifests are available for the
 4. Apply the rendered Deployment and Service:
 
 ```bash
+NAMESPACE=your-namespace
+RESOURCE_NAME=sftp-gateway
+
 kubectl apply -n "$NAMESPACE" -f deployment.yml
 kubectl apply -n "$NAMESPACE" -f service.yml
 kubectl rollout status -n "$NAMESPACE" deployment/"$RESOURCE_NAME"

@@ -44,7 +44,7 @@ precedence, use the [Worker configuration reference](https://github.com/udx/work
 
 Configuration is applied in this order:
 
-1. The Worker reads `/home/udx/.config/worker/worker.yaml`: the image default
+1. The Worker reads `$HOME/.config/worker/worker.yaml`: the image default
    unless a deployment mounts its own file there.
 2. Deployment environment variables override `config.env` values.
 3. Secrets such as `ACCESS_TOKEN` are injected by Docker, Kubernetes Secrets,

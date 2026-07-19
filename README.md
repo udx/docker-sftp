@@ -53,10 +53,10 @@ docker run -d \
 
 ```bash
 # Interactive shell
-ssh namespace.pod-name@YOUR_GATEWAY_ADDRESS
+ssh -p 2222 namespace.pod-name@YOUR_GATEWAY_ADDRESS
 
 # Upload a file
-scp local-file namespace.pod-name@YOUR_GATEWAY_ADDRESS:/remote/path/
+scp -P 2222 local-file namespace.pod-name@YOUR_GATEWAY_ADDRESS:/remote/path/
 ```
 
 The authenticated GitHub user must have a permitted repository role. See the

@@ -22,9 +22,10 @@ tenant-specific Rabbit lifecycle manifests or environment config.
 2. The workflow delegates image build, scan, release, and publish behavior to
    `udx/reusable-workflows`.
 3. The `master` branch is the release branch for published `docker-sftp`
-   images. Release images are published to Docker Hub as
-   [`usabilitydynamics/docker-sftp`](https://hub.docker.com/r/usabilitydynamics/docker-sftp)
-   with the release version and `latest` tags.
+   images. Release images are published to the Docker Hub repository configured
+   by `DOCKER_ORG` and `DOCKER_REPO`, with the release version and `latest`
+   tags. The current public target is
+   [`usabilitydynamics/docker-sftp`](https://hub.docker.com/r/usabilitydynamics/docker-sftp).
 4. Downstream Rabbit or tenant repos reference a published image tag from their
    own lifecycle manifests or deployment config. Publishing this image does not
    update those consumers by itself.
@@ -40,10 +41,10 @@ the UDX organization). For a manual dispatch, select `master`; dispatches from
 other branches build and scan but do not publish a Docker Hub release.
 
 - `DOCKER_LOGIN`: Docker Hub account that owns the access token.
-- `DOCKER_ORG`: `usabilitydynamics`.
-- `DOCKER_REPO`: `docker-sftp`.
-- `DOCKER_TOKEN` secret: a Docker Hub access token with push access to
-  `usabilitydynamics/docker-sftp`.
+- `DOCKER_ORG`: Docker Hub namespace (currently `usabilitydynamics`).
+- `DOCKER_REPO`: Docker Hub repository name (currently `docker-sftp`).
+- `DOCKER_TOKEN` secret: a Docker Hub access token with push access to the
+  configured `${DOCKER_ORG}/${DOCKER_REPO}` repository.
 
 The workflow builds and publishes both `linux/amd64` and `linux/arm64` images,
 then creates the multi-architecture version and `latest` manifests.

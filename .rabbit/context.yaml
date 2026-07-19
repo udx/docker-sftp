@@ -6,7 +6,7 @@ generator:
   tool: dev.kit
   repo: https://github.com/udx/dev.kit
   version: 0.20.1
-  generated_at: 2026-07-18T19:22:42Z
+  generated_at: 2026-07-19T00:32:38Z
   sources:
     homepage: https://udx.dev/kit
     repository: https://github.com/udx/dev.kit
@@ -23,7 +23,7 @@ repo:
 # Note: Exclude broad implementation directories unless they are the contract themselves.
 
 refs:
-  - ./readme.md
+  - ./README.md
   - ./changes.md
   - ./package.json
   - ./Makefile

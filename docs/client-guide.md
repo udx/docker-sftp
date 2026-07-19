@@ -1,99 +1,54 @@
 # Client Guide
 
-## SSH Client Configuration
+Connect with an SSH key registered on the GitHub account that has access to the
+repository evaluated by the gateway.
 
-### Basic Setup
+## Connect
 
-Add this to your `~/.ssh/config`:
+Use `namespace.pod-name` as the SSH user:
+
+```bash
+ssh namespace.pod-name@YOUR_GATEWAY_ADDRESS
+```
+
+Run a command in the target workload:
+
+```bash
+ssh namespace.pod-name@YOUR_GATEWAY_ADDRESS "ls -la"
+```
+
+If the gateway uses a non-default port, add `-p PORT` to each command.
+
+## SSH Configuration
+
+For a named shortcut, add an entry to `~/.ssh/config`:
 
 ```ssh-config
-# Example SSH configuration
-Host pod-example
-    # Your deployed SFTP gateway address (e.g., sftp.company.com)
+Host sftp-workload
     HostName YOUR_GATEWAY_ADDRESS
-    # Pod name from your cluster
-    User example-pod-name
-    # Your GitHub SSH key
+    User namespace.pod-name
     IdentityFile ~/.ssh/github_rsa
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
     RequestTTY force
-    ConnectTimeout 10
-    ServerAliveInterval 15
-    ServerAliveCountMax 3
-
-# Multiple environments example
-Host pod-example-dev
-    HostName YOUR_GATEWAY_ADDRESS
-    User example-pod-name-dev
-    IdentityFile ~/.ssh/github_rsa
-    StrictHostKeyChecking no
-    UserKnownHostsFile /dev/null
-    RequestTTY force
-    ConnectTimeout 10
-    ServerAliveInterval 15
-    ServerAliveCountMax 3
 ```
 
-### Configuration Options Explained
+Connect with `ssh sftp-workload`. Keep normal host-key verification enabled;
+confirm the host fingerprint on the first connection.
 
-- `HostName`: Your deployed SFTP gateway address (the host where you deployed the container)
-- `User`: The Kubernetes pod name you want to connect to
-- `IdentityFile`: Path to your GitHub SSH key (must be added to your GitHub account)
-- `StrictHostKeyChecking no`: Skip host verification (useful for dynamic pod environments)
-- `UserKnownHostsFile /dev/null`: Don't store host keys (recommended for dynamic environments)
-- `RequestTTY force`: Ensure proper terminal allocation
-- `ConnectTimeout 10`: Connection timeout in seconds
-- `ServerAliveInterval 15`: Keep connection alive
-- `ServerAliveCountMax 3`: Maximum keepalive retries
+## File Transfer
 
-## Usage Examples
-
-### Basic SSH Connection
+The target workload must support SFTP for file transfers.
 
 ```bash
-# Using SSH config
-ssh pod-example
+# Interactive session
+sftp namespace.pod-name@YOUR_GATEWAY_ADDRESS
 
-# Direct connection
-ssh pod-name@YOUR_GATEWAY_ADDRESS
-
-# With specific namespace
-ssh namespace.pod-name@YOUR_GATEWAY_ADDRESS
-
-# Run specific command
-ssh pod-name@YOUR_GATEWAY_ADDRESS "ls -la"
+# Upload and download
+scp local-file namespace.pod-name@YOUR_GATEWAY_ADDRESS:/remote/path/
+scp namespace.pod-name@YOUR_GATEWAY_ADDRESS:/remote/file ./local-path
 ```
 
-### File Transfer
+## Access and Support
 
-```bash
-# Interactive SFTP session
-sftp pod-example
-
-# Upload file
-scp local-file pod-name@YOUR_GATEWAY_ADDRESS:/remote/path/
-
-# Download file
-scp pod-name@YOUR_GATEWAY_ADDRESS:/remote/file local-path/
-```
-
-## Administrative Tasks
-
-### User Management
-
-Users are automatically created and managed based on GitHub permissions. See [User Management](user-management.md) for details.
-
-### Key Management
-
-```bash
-# Sync GitHub keys
-node controller.keys.js sync
-
-# List authorized keys
-node controller.keys.js list
-```
-
-## Troubleshooting Guide
-
-For connection issues, logs, security checks, and service health, see [complete troubleshooting documentation](troubleshooting.md).
+The gateway checks the authenticated GitHub user's repository role before
+opening a session. See [User Management](user-management.md) for access rules.
+For failed connections, see [Troubleshooting](troubleshooting.md).

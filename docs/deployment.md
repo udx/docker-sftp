@@ -1,120 +1,78 @@
 # Deployment Guide
 
-This guide covers deployment steps for the SFTP Gateway. For architecture details, see [Architecture Details](architecture.md).
+This guide covers local testing and Kubernetes deployment. For all available
+settings, see [Runtime Configuration](environment.md).
 
-## Prerequisites
+## Before You Start
 
-Before deploying, ensure you have:
+- Kubernetes access with `kubectl` configured
+- A GitHub token that can evaluate the repositories used for access checks
+- A Kubernetes service account with only the workload access the gateway needs
+- An SSH key registered with the GitHub account that will connect
 
-1. Kubernetes cluster access with `kubectl` configured
-2. GitHub token with repo access permissions
-3. Network access to required services
+Keep tokens and certificates in Docker secrets, Kubernetes Secrets, or the
+deployment system. Do not commit them to manifests.
 
-See [Architecture Details](architecture.md#prerequisites) for detailed requirements.
+## Local Test
 
-## Deployment Steps
-
-### 1. Configure Environment
-
-Set up required environment variables:
+Export the required values:
 
 ```bash
-# Required for all deployments
-export GITHUB_TOKEN="your-github-token"
-
-# For local deployment only
-export KUBE_ENDPOINT=$(kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}')
-export KUBE_TOKEN=$(kubectl get secret $(kubectl get sa default -n default -o jsonpath='{.secrets[0].name}') \
-  -o jsonpath='{.data.token}' | base64 -d)
+export ACCESS_TOKEN="your-github-token"
+export KUBERNETES_CLUSTER_ENDPOINT="https://your-cluster"
+export KUBERNETES_CLUSTER_USER_TOKEN="your-service-account-token"
 ```
 
-See [Runtime Configuration](environment.md) for all configuration options.
-
-### 2. Choose Deployment Mode
-
-#### Option A: Local Development
-
-Run as a Docker container:
+Start the published image:
 
 ```bash
 docker run -d \
   --name sftp-gateway \
   -p 2222:22 \
-  -p 8080:8080 \
-  -e KUBERNETES_CLUSTER_NAME=my-cluster \
-  -e KUBERNETES_CLUSTER_ENDPOINT=$KUBE_ENDPOINT \
-  -e KUBERNETES_CLUSTER_USER_TOKEN=$KUBE_TOKEN \
-  -e ACCESS_TOKEN=$GITHUB_TOKEN \
-  udx/docker-sftp
+  --env ACCESS_TOKEN \
+  --env KUBERNETES_CLUSTER_ENDPOINT \
+  --env KUBERNETES_CLUSTER_USER_TOKEN \
+  usabilitydynamics/docker-sftp:0.14.1
 ```
 
-#### Option B: Kubernetes Deployment
+## Kubernetes
 
-The maintained manifests are:
+Maintained example manifests are available for the
+[Deployment](../examples/configs/kubernetes/deployment.yml),
+[LoadBalancer Service](../examples/configs/kubernetes/service.yml), and optional
+[restart CronJob](../examples/configs/kubernetes/deployment-restart-cronjob.yml).
 
-- [Deployment](../examples/configs/kubernetes/deployment.yml)
-- [LoadBalancer service](../examples/configs/kubernetes/service.yml)
-- [Deployment restart CronJob](../examples/configs/kubernetes/deployment-restart-cronjob.yml)
-
-Copy the manifests you need and replace their `${...}` placeholders with values for your cluster, registry, GitHub organization, and release. Keep credentials in Kubernetes Secrets or your deployment system instead of committing them to rendered manifests.
-
-1. Create a service account and grant only the permissions the gateway needs:
+1. Copy the manifests into the deployment repository and replace their
+   `${...}` placeholders. The deployment template expects the cluster endpoint,
+   service-account name, service-account token, certificate, access token, and
+   image coordinates.
+2. Select the image source. The template currently uses Artifact Registry; for
+   Docker Hub, replace its `image` value with
+   `usabilitydynamics/docker-sftp:0.14.1` or an immutable digest.
+3. Create or select a service account and grant only the permissions needed to
+   reach the intended workloads. Set its name in `serviceAccountName` and in
+   the `KUBERNETES_CLUSTER_SERVICEACCOUNT` value.
+4. Apply the rendered Deployment and Service:
 
 ```bash
-# Set your preferred namespace
-NAMESPACE=kube-system
-GITHUB_ORG=your-github-org
-GITHUB_BRANCH=your-release-branch
-RESOURCE_NAME="${GITHUB_ORG}-sftp-${GITHUB_BRANCH}"
-RESOURCE_SELECTOR="git.name=docker-sftp,git.owner=${GITHUB_ORG},git.branch=${GITHUB_BRANCH}"
-
-# Example only: tailor the role binding to your access policy
-kubectl create serviceaccount sftp-gateway -n $NAMESPACE
-kubectl create rolebinding sftp-gateway-admin -n $NAMESPACE \
-  --clusterrole=admin \
-  --serviceaccount=$NAMESPACE:sftp-gateway
+kubectl apply -n "$NAMESPACE" -f deployment.yml
+kubectl apply -n "$NAMESPACE" -f service.yml
+kubectl rollout status -n "$NAMESPACE" deployment/"$RESOURCE_NAME"
 ```
 
-2. Configure the deployment:
+## Verify
 
-- Set `serviceAccountName` to the service account created above. Kubernetes mounts its token and CA certificate for in-cluster kubectl setup, but the gateway still consumes the explicit `KUBERNETES_CLUSTER_*` values shown in the deployment template. Populate those values for the target cluster; do not treat the service-account mount as a replacement for them.
-- Provide `ACCESS_TOKEN` and Firebase credentials through Kubernetes Secrets or your deployment system.
-- Set the image reference to the `0.14.1` release (or an immutable digest).
-- Review all settings in the [Runtime Configuration](environment.md) reference.
-
-3. Apply the rendered deployment and service manifests:
+Find the LoadBalancer address, then connect using the target namespace and pod
+name as the SSH user:
 
 ```bash
-kubectl apply -n $NAMESPACE -f deployment.yml
-kubectl apply -n $NAMESPACE -f service.yml
-
-# Verify
-kubectl get deployment -n $NAMESPACE "$RESOURCE_NAME"
-kubectl get pods -n $NAMESPACE -l "$RESOURCE_SELECTOR"
-kubectl get service -n $NAMESPACE "$RESOURCE_NAME"
-```
-
-### 3. Verify Deployment
-
-Test SSH access:
-
-```bash
-# Get service address
-SSH_HOST=$(kubectl get service -n $NAMESPACE "$RESOURCE_NAME" \
+SSH_HOST=$(kubectl get service -n "$NAMESPACE" "$RESOURCE_NAME" \
   -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
-if [ -z "$SSH_HOST" ]; then
-  SSH_HOST=$(kubectl get service -n $NAMESPACE "$RESOURCE_NAME" \
-    -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-fi
 
-# Test connection
-ssh -p 22 pod-myapp@$SSH_HOST
+ssh namespace.pod-name@"$SSH_HOST"
 ```
 
-See [Client Guide](client-guide.md) for usage instructions.
-
-### Next Steps
-
-- [Review Runtime Configuration](environment.md)
-- [Manage User Access](user-management.md)
-- [Troubleshooting Guide](troubleshooting.md)
+If the load balancer exposes an IP rather than a hostname, retrieve
+`.status.loadBalancer.ingress[0].ip` instead. See the [Client Guide](client-guide.md)
+for SSH configuration and SFTP usage, or [Troubleshooting](troubleshooting.md)
+when the connection fails.

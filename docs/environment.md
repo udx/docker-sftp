@@ -2,21 +2,59 @@
 
 The image includes a [Worker configuration](../etc/configs/worker/worker.yaml)
 with safe defaults such as the service port, Kubernetes context name, and allowed
-GitHub roles. Most deployments should use those defaults and provide only the
-values that are specific to their environment.
+GitHub roles. Use it as the starting point for a portable deployment
+configuration.
+
+## `worker.yaml` and service settings
+
+`worker.yaml` uses the standard [UDX Worker configuration format](https://github.com/udx/worker/blob/master/docs/config.md).
+The Worker handles generic configuration: `config.env` provides defaults,
+deployment environment variables take precedence, and `config.secrets` can
+refer to runtime-resolved secrets. This document covers only docker-sftp
+settings.
+
+For example, this image's built-in configuration supplies service defaults:
+
+```yaml
+config:
+  env:
+    NODE_PORT: "8080"
+    ALLOW_SSH_ACCESS_ROLES: "admin,maintain,write"
+```
+
+Copy the default file, change the settings for the deployment, and mount that
+same file wherever the image runs:
+
+```bash
+cp etc/configs/worker/worker.yaml ./worker.yaml
+# Edit ./worker.yaml, then mount it at the Worker configuration path.
+
+docker run -d \
+  --volume "$PWD/worker.yaml:/home/udx/.config/worker/worker.yaml:ro" \
+  usabilitydynamics/docker-sftp:0.14.1
+```
+
+In Kubernetes, mount the file from a ConfigMap at
+`/home/udx/.config/worker/worker.yaml`. Deployment environment variables still
+override its `config.env` values, so secrets and per-environment values can stay
+in Kubernetes Secrets or the deployment system.
+
+For custom `worker.yaml` files, secret references, mount locations, and
+precedence, use the [Worker configuration reference](https://github.com/udx/worker/blob/master/docs/config.md).
 
 Configuration is applied in this order:
 
-1. The image loads its defaults from
-   `$HOME/.config/worker/worker.yaml`.
-2. The deployment environment overrides any defaults that need to differ.
-3. Secrets such as `ACCESS_TOKEN` are injected by Docker, Kubernetes Secrets, or
-   the deployment system.
+1. The Worker reads `/home/udx/.config/worker/worker.yaml`: the image default
+   unless a deployment mounts its own file there.
+2. Deployment environment variables override `config.env` values.
+3. Secrets such as `ACCESS_TOKEN` are injected by Docker, Kubernetes Secrets,
+   or the deployment system.
 
-You do not need to create another configuration file for a standard deployment.
-To change an image-wide default, update
+Mounting `worker.yaml` is optional: deployments can use the image defaults and
+set only environment overrides. Change
 [`etc/configs/worker/worker.yaml`](../etc/configs/worker/worker.yaml) and rebuild
-the image. Never store credentials in that file or in deployment manifests.
+only when the image's defaults should change for every deployment. Never store
+credentials in that file or in deployment manifests.
 
 For a local Docker run, export the required secrets and cluster values in your
 host shell, then pass their names to `docker run`:
@@ -28,7 +66,7 @@ docker run -d \
   --env ACCESS_TOKEN \
   --env KUBERNETES_CLUSTER_ENDPOINT \
   --env KUBERNETES_CLUSTER_USER_TOKEN \
-  udx/docker-sftp
+  usabilitydynamics/docker-sftp:0.14.1
 ```
 
 ## Kubernetes Configuration
@@ -131,4 +169,4 @@ git.owner: [organization]
 git.branch: [branch-name]
 ```
 
-These are used for service discovery and routing.
+Use these labels to identify the gateway deployment and service.

@@ -1,15 +1,12 @@
 # Docker SFTP/SSH Gateway for Kubernetes
 
-[![Docker Pulls](https://img.shields.io/docker/pulls/usabilitydynamics/docker-sftp?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/usabilitydynamics/docker-sftp)
 [![Docker Image Version](https://img.shields.io/docker/v/usabilitydynamics/docker-sftp?sort=semver&logo=docker&label=release)](https://hub.docker.com/r/usabilitydynamics/docker-sftp/tags)
-[![Docker Image Size](https://img.shields.io/docker/image-size/usabilitydynamics/docker-sftp?sort=semver&logo=docker&label=image)](https://hub.docker.com/r/usabilitydynamics/docker-sftp/tags)
+[![Docker Pulls](https://img.shields.io/docker/pulls/usabilitydynamics/docker-sftp?logo=docker&label=Docker%20pulls)](https://hub.docker.com/r/usabilitydynamics/docker-sftp)
 [![Image workflow](https://img.shields.io/github/actions/workflow/status/udx/docker-sftp/docker-ops.yml?branch=master&label=image%20workflow)](https://github.com/udx/docker-sftp/actions/workflows/docker-ops.yml)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D22.12.0-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![Documentation](https://img.shields.io/badge/docs-GitHub-181717?logo=github)](docs/)
 
-Secure SSH/SFTP gateway for controlled access to Kubernetes workloads using
-GitHub SSH keys and repository permissions. It proxies approved sessions into
-running pods; it is not a standalone file server.
+Secure SSH/SFTP access to Kubernetes workloads, authenticated with GitHub SSH
+keys and repository permissions. It proxies approved sessions into running
+pods; it is not a standalone file server.
 
 [Quick Start](#quick-start) · [Configuration](#configuration) · [Documentation](#documentation) · [Development](#development)
 
@@ -17,11 +14,11 @@ running pods; it is not a standalone file server.
 
 The gateway:
 
-- authenticates users through their GitHub public SSH keys
-- evaluates repository access before granting gateway access
-- proxies SSH sessions into selected Kubernetes workloads through `kubectl exec`
-- supports SFTP when the target container provides an SFTP server
-- records gateway state through the optional Firebase integration
+- authenticates users with their GitHub public SSH keys
+- checks repository access before allowing a connection
+- proxies SSH sessions to selected workloads with `kubectl exec`
+- supports SFTP when the target workload supports it
+- can record gateway state through Firebase
 
 Published images are available at
 [`usabilitydynamics/docker-sftp`](https://hub.docker.com/r/usabilitydynamics/docker-sftp).
@@ -71,27 +68,27 @@ advanced usage.
 The image includes safe Worker defaults. Deployments normally provide only the
 cluster-specific values and secrets:
 
-| Variable | Purpose |
-| --- | --- |
-| `ACCESS_TOKEN` | GitHub token used for repository access checks. |
-| `KUBERNETES_CLUSTER_ENDPOINT` | Kubernetes API endpoint. |
-| `KUBERNETES_CLUSTER_USER_TOKEN` | Service-account token with the required workload access. |
-| `ALLOW_SSH_ACCESS_ROLES` | Optional permitted GitHub roles; defaults to `admin,maintain,write`. |
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `ACCESS_TOKEN` | Yes | GitHub token used for repository access checks. |
+| `KUBERNETES_CLUSTER_ENDPOINT` | Yes | Kubernetes API endpoint. |
+| `KUBERNETES_CLUSTER_USER_TOKEN` | Yes | Service-account token with workload access. |
+| `ALLOW_SSH_ACCESS_ROLES` | No | Permitted GitHub roles; defaults to `admin,maintain,write`. |
 
 Use Docker secrets, Kubernetes Secrets, or the deployment system for sensitive
 values. Do not commit rendered credentials or pass them in image layers. See
-[Runtime Configuration](docs/environment.md) for the full contract and
+[Runtime Configuration](docs/environment.md) for the complete reference and
 [Deployment Guide](docs/deployment.md) for Kubernetes manifests.
 
 ## Documentation
 
-- [Architecture](docs/architecture.md) — gateway components and data flow
-- [Deployment Guide](docs/deployment.md) — Docker and Kubernetes setup
-- [Runtime Configuration](docs/environment.md) — defaults, overrides, and secrets
-- [Client Guide](docs/client-guide.md) — SSH and SFTP usage
-- [User Management](docs/user-management.md) — GitHub access control
+- [Deployment Guide](docs/deployment.md) — deploy and verify the gateway
+- [Runtime Configuration](docs/environment.md) — service settings and secrets
+- [Client Guide](docs/client-guide.md) — SSH and SFTP connections
 - [Troubleshooting](docs/troubleshooting.md) — connection and service diagnosis
-- [API Reference](docs/api-reference.md) — HTTP API endpoints
+- [Architecture](docs/architecture.md) — components and data flow
+- [User Management](docs/user-management.md) — GitHub access control
+- [API Reference](docs/api-reference.md) — internal HTTP endpoints
 
 Rabbit CI release behavior and Docker Hub configuration live in
 [`.rabbit/README.md`](.rabbit/README.md).
@@ -106,9 +103,9 @@ npm test
 make build
 ```
 
-For pull requests, use the same focused loop: update the relevant docs or
-runtime contract, run the smallest applicable checks, and let the image
-workflow build and scan the change.
+For pull requests, update the relevant docs or runtime behavior, run the
+smallest applicable checks, and let the image workflow build and scan the
+change.
 
 ## Contributing and Security
 

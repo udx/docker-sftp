@@ -53,12 +53,12 @@ if [[ "x${SSH_ORIGINAL_COMMAND}" != "x" ]]; then
     echo "[$(date)] Have SSH session using command: [kubectl exec -n $CONNECTION_STRING -ti -- ${SSH_ORIGINAL_COMMAND})] for [${USER}] from [${API_REQUEST_URL}]." >> /var/log/sshd.log
   fi
 
-  ##/usr/local/bin/kubectl exec ${_SERVICE} -ti -- "${SSH_ORIGINAL_COMMAND}"
-  __commad="/usr/local/bin/kubectl exec -n $CONNECTION_STRING -i -- $SSH_ORIGINAL_COMMAND"
-  
-  echo $__commad >> /var/log/sshd.log
+  ## Run the command through a shell inside the container so quoting, cd,
+  ## &&, pipes and redirects behave like standard sshd. CONNECTION_STRING
+  ## stays unquoted on purpose - it expands to "<namespace> pods/<pod>".
+  echo "/usr/local/bin/kubectl exec -n $CONNECTION_STRING -i -- /bin/sh -c <command>" >> /var/log/sshd.log
 
-  $__commad;
+  /usr/local/bin/kubectl exec -n $CONNECTION_STRING -i -- /bin/sh -c "$SSH_ORIGINAL_COMMAND"
 
 fi;
 
@@ -83,11 +83,10 @@ if [[ "x${SSH_ORIGINAL_COMMAND}" == "x" ]]; then
   ## Log screen size.
   echo "[$(date)] Container [${USER}] has [${_COLUMNS}] columns and [${_ROWS}] rows." >> /var/log/sshd.log
 
-  _command="/usr/local/bin/kubectl exec -n $CONNECTION_STRING -ti -- /bin/bash"
+  ## Prefer bash, fall back to sh for containers without bash (e.g. Alpine).
+  echo "/usr/local/bin/kubectl exec -n $CONNECTION_STRING -ti -- sh -c 'exec bash || exec sh'" >> /var/log/sshd.log
 
-  echo $_command >> /var/log/sshd.log
-
-  $_command;
+  /usr/local/bin/kubectl exec -n $CONNECTION_STRING -ti -- /bin/sh -c "command -v bash >/dev/null 2>&1 && exec bash -l || exec sh -l"
 
 fi;
 

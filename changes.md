@@ -1,3 +1,7 @@
+### 0.14.2
+
+* Removed the deprecated GKE gcloud auth plugin from the runtime image
+
 ### 0.14.0
 
 * Updated parent image Worker NodeJS to version 0.34.0

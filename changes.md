@@ -1,6 +1,6 @@
 ### 0.14.2
 
-* Removed the deprecated GKE gcloud auth plugin from the runtime image
+* Removed the deprecated GKE gcloud auth plugin and its environment flag from the runtime image
 
 ### 0.14.0
 

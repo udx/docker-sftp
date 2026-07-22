@@ -22,7 +22,7 @@ The gateway:
 
 Published images are available at
 [`usabilitydynamics/docker-sftp`](https://hub.docker.com/r/usabilitydynamics/docker-sftp).
-Use a semantic version tag such as `0.14.1` for deployments; `latest` follows
+Use a semantic version tag such as `0.14.3` for deployments; `latest` follows
 the most recent release. Release images support `linux/amd64` and `linux/arm64`.
 
 ## Quick Start
@@ -46,7 +46,7 @@ docker run -d \
   --env ACCESS_TOKEN \
   --env KUBERNETES_CLUSTER_ENDPOINT \
   --env KUBERNETES_CLUSTER_USER_TOKEN \
-  usabilitydynamics/docker-sftp:0.14.1
+  usabilitydynamics/docker-sftp:0.14.3
 ```
 
 ### Connect to a Workload

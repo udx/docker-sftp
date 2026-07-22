@@ -44,10 +44,6 @@ RUN case "$(dpkg --print-architecture)" in \
     && cp /usr/share/zoneinfo/America/New_York /etc/localtime \
     && echo "America/New_York" > /etc/timezone
 
-# Install the GKE gcloud auth plugin
-RUN gcloud components install gke-gcloud-auth-plugin
-ENV USE_GKE_GCLOUD_AUTH_PLUGIN=True
-
 # Create required directories
 RUN mkdir -p \
     /home/${USER}/.kube \

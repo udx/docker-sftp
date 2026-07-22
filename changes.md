@@ -1,3 +1,7 @@
+### 0.14.3
+
+* Removed the deprecated GKE gcloud auth plugin and its environment flag from the runtime image
+
 ### 0.14.2
 
 * Run SSH commands through `/bin/sh -c` inside the target container so quoting, `cd`, `&&`, pipes, and redirects behave like standard sshd

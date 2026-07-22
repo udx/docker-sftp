@@ -31,7 +31,7 @@ cp etc/configs/worker/worker.yaml ./worker.yaml
 
 docker run -d \
   --volume "$PWD/worker.yaml:/home/udx/.config/worker/worker.yaml:ro" \
-  usabilitydynamics/docker-sftp:0.14.3
+  usabilitydynamics/docker-sftp:latest
 ```
 
 In Kubernetes, mount the file from a ConfigMap at
@@ -66,7 +66,7 @@ docker run -d \
   --env ACCESS_TOKEN \
   --env KUBERNETES_CLUSTER_ENDPOINT \
   --env KUBERNETES_CLUSTER_USER_TOKEN \
-  usabilitydynamics/docker-sftp:0.14.3
+  usabilitydynamics/docker-sftp:latest
 ```
 
 ## Kubernetes Configuration

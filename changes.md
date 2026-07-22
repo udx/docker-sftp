@@ -1,3 +1,7 @@
+### 0.14.4
+
+* Updated parent image Worker NodeJS to version 0.35.0, including the patched npm `tar` dependency
+
 ### 0.14.3
 
 * Removed the deprecated GKE gcloud auth plugin and its environment flag from the runtime image

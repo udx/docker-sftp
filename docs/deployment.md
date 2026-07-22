@@ -32,7 +32,7 @@ docker run -d \
   --env ACCESS_TOKEN \
   --env KUBERNETES_CLUSTER_ENDPOINT \
   --env KUBERNETES_CLUSTER_USER_TOKEN \
-  usabilitydynamics/docker-sftp:0.14.3
+  usabilitydynamics/docker-sftp:0.14.4
 ```
 
 ## Kubernetes
@@ -48,7 +48,7 @@ Maintained example manifests are available for the
    image coordinates.
 2. Select the image source. The template currently uses Artifact Registry; for
    Docker Hub, replace its `image` value with
-   `usabilitydynamics/docker-sftp:0.14.3` or an immutable digest.
+   `usabilitydynamics/docker-sftp:0.14.4` or an immutable digest.
 3. Create or select a service account and grant only the permissions needed to
    reach the intended workloads. Set its name in `serviceAccountName` and in
    the `KUBERNETES_CLUSTER_SERVICEACCOUNT` value.

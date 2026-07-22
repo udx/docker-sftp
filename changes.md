@@ -1,3 +1,8 @@
+### 0.14.4
+
+* Updated parent image Worker NodeJS to version 0.35.0, including the patched npm `tar` dependency
+* Rebuilt `kubectl` 1.36.2 with `golang.org/x/net` 0.55.0 to address CVE-2026-39821 before an upstream Kubernetes patch release is available
+
 ### 0.14.3
 
 * Removed the deprecated GKE gcloud auth plugin and its environment flag from the runtime image

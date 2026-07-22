@@ -1,6 +1,29 @@
-FROM usabilitydynamics/udx-worker-nodejs:0.34.0
+ARG KUBECTL_VERSION=1.36.2
+ARG KUBECTL_X_NET_VERSION=0.55.0
 
-ENV KUBECTL_VERSION=1.36.2 \
+FROM golang:1.26.0-bookworm AS kubectl-builder
+
+ARG KUBECTL_VERSION
+ARG KUBECTL_X_NET_VERSION
+
+RUN git clone --depth 1 --branch "v${KUBECTL_VERSION}" \
+        https://github.com/kubernetes/kubernetes.git /src/kubernetes \
+    && cd /src/kubernetes \
+    && go mod edit -require="golang.org/x/net@v${KUBECTL_X_NET_VERSION}" \
+    && KUBECTL_GIT_COMMIT="$(git rev-parse HEAD)" \
+    && KUBECTL_MAJOR="${KUBECTL_VERSION%%.*}" \
+    && KUBECTL_MINOR="${KUBECTL_VERSION#*.}" \
+    && KUBECTL_MINOR="${KUBECTL_MINOR%%.*}" \
+    && KUBECTL_LDFLAGS="-X k8s.io/client-go/pkg/version.gitVersion=v${KUBECTL_VERSION} -X k8s.io/client-go/pkg/version.gitCommit=${KUBECTL_GIT_COMMIT} -X k8s.io/client-go/pkg/version.gitTreeState=clean -X k8s.io/client-go/pkg/version.gitMajor=${KUBECTL_MAJOR} -X k8s.io/client-go/pkg/version.gitMinor=${KUBECTL_MINOR} -X k8s.io/component-base/version.gitVersion=v${KUBECTL_VERSION} -X k8s.io/component-base/version.gitCommit=${KUBECTL_GIT_COMMIT} -X k8s.io/component-base/version.gitTreeState=clean -X k8s.io/component-base/version.gitMajor=${KUBECTL_MAJOR} -X k8s.io/component-base/version.gitMinor=${KUBECTL_MINOR}" \
+    && GOWORK=off GOFLAGS=-mod=mod go build -trimpath -ldflags="${KUBECTL_LDFLAGS}" -o /out/kubectl ./cmd/kubectl
+
+FROM usabilitydynamics/udx-worker-nodejs:0.35.0
+
+ARG KUBECTL_VERSION
+ARG KUBECTL_X_NET_VERSION
+
+ENV KUBECTL_VERSION=${KUBECTL_VERSION} \
+    KUBECTL_X_NET_VERSION=${KUBECTL_X_NET_VERSION} \
     NODE_ENV=production \
     APP_HOME=/opt/sources/rabbitci/rabbit-ssh
 
@@ -23,22 +46,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+# Install the Kubernetes 1.36.2 client with the fixed golang.org/x/net dependency.
+COPY --from=kubectl-builder /out/kubectl /usr/local/bin/kubectl
+
 # Setup kubectl and timezone
-RUN case "$(dpkg --print-architecture)" in \
-        amd64) ARCH="amd64" ;; \
-        arm64) ARCH="arm64" ;; \
-        armhf) ARCH="arm" ;; \
-        i386) ARCH="386" ;; \
-        ppc64el) ARCH="ppc64le" ;; \
-        s390x) ARCH="s390x" ;; \
-        *) echo "Unsupported architecture: $(dpkg --print-architecture)" >&2; exit 1 ;; \
-    esac \
-    && curl -fsSLo /usr/local/bin/kubectl "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl" \
-    && curl -fsSLo /tmp/kubectl.sha256 "https://dl.k8s.io/release/v${KUBECTL_VERSION}/bin/linux/${ARCH}/kubectl.sha256" \
-    && echo "$(cat /tmp/kubectl.sha256)  /usr/local/bin/kubectl" | sha256sum --check \
-    && chmod +x /usr/local/bin/kubectl \
+RUN chmod +x /usr/local/bin/kubectl \
     && kubectl version --client \
-    && rm -f /tmp/kubectl.sha256 \
     && rm -rf /etc/ssh/* \
     && mkdir -p /etc/ssh/authorized_keys.d \
     && cp /usr/share/zoneinfo/America/New_York /etc/localtime \

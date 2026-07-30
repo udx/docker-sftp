@@ -1,6 +1,8 @@
 FROM usabilitydynamics/udx-worker-nodejs:0.35.0
 
-ENV KUBECTL_VERSION=1.36.2 \
+ARG KUBECTL_VERSION=1.36.2
+
+ENV KUBECTL_VERSION=${KUBECTL_VERSION} \
     NODE_ENV=production \
     APP_HOME=/opt/sources/rabbitci/rabbit-ssh
 

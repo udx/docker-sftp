@@ -365,7 +365,7 @@ jobs:
 
           copilot_args=(
             --prompt "$(cat "${prompt_path}")"
-            --available-tools "edit,view,grep,glob,web_fetch"
+            --available-tools "apply_patch,edit,view,grep,glob,web_fetch"
             --allow-tool "write(${DOCKERFILE})"
             --secret-env-vars "COPILOT_GITHUB_TOKEN"
             --no-ask-user
@@ -460,6 +460,7 @@ jobs:
           UPLOAD_COPILOT_SESSION: ${{ needs.config.outputs.upload_copilot_session }}
 
       - name: Upload update diff
+        if: steps.changes.outputs.changed == 'true'
         uses: actions/upload-artifact@v7
         timeout-minutes: 3
         with:

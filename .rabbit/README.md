@@ -33,6 +33,20 @@ tenant-specific Rabbit lifecycle manifests or environment config.
    platform. Image-level defaults and deployment examples belong in the
    maintained Kubernetes manifests and docs.
 
+## Dependency Maintenance Automation
+
+- `udx-automation / updater` checks Dockerfile dependency pins on its scheduled
+  run. Copilot is limited to Dockerfile edits. When a pin changes, the workflow
+  opens a pull request with the Dockerfile change and the next npm patch version
+  in `package.json` and `package-lock.json`. This prepares a release; it does
+  not publish an image.
+- Merging that pull request to `master` enters the normal Docker Operations
+  release path, which builds and publishes the image. Runs from other branches
+  build and scan without publishing a release.
+- `udx-automation / reviewer` reviews eligible Dependabot Docker, npm, and
+  GitHub Actions dependency pull requests according to its configured safety
+  checks.
+
 ## Docker Hub Release Configuration
 
 The Docker operations workflow publishes only from `master` when these GitHub

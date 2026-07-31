@@ -1,5 +1,5 @@
 ---
-name: udx-automation / docker-sftp dependency upgrade
+name: udx-automation / updater
 
 "on":
   schedule:
@@ -25,7 +25,7 @@ env:
     dependencies
   PR_AUTO_MERGE: "false"
   PR_MERGE_METHOD: squash
-  COMMIT_MESSAGE: "chore(deps): update Docker dependency pins"
+  COMMIT_MESSAGE: "chore(deps): update Docker dependencies and version"
   UPLOAD_COPILOT_SESSION: "false"
   COPILOT_PROMPT_PARTS: >-
     ci/prompts/docker-dependency-guardrails.md
@@ -390,7 +390,34 @@ jobs:
           REPORT_PATH: ${{ needs.config.outputs.report_path }}
           UPLOAD_COPILOT_SESSION: ${{ needs.config.outputs.upload_copilot_session }}
 
-      - name: Guard Dockerfile-only changes
+      - name: Detect Dockerfile changes
+        id: dockerfile-changes
+        timeout-minutes: 1
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- "${DOCKERFILE}" \
+            && git diff --cached --quiet -- "${DOCKERFILE}"; then
+            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "Upgrade changes: no ${DOCKERFILE} changes"
+          else
+            echo "changed=true" >> "${GITHUB_OUTPUT}"
+            echo "Upgrade changes: ${DOCKERFILE} changed"
+          fi
+        env:
+          DOCKERFILE: ${{ needs.config.outputs.dockerfile }}
+
+      - name: Bump package patch version
+        if: steps.dockerfile-changes.outputs.changed == 'true'
+        timeout-minutes: 1
+        run: |
+          set -euo pipefail
+
+          npm version patch --no-git-tag-version --ignore-scripts --force
+          version="$(node -p "require('./package.json').version")"
+          echo "Upgrade version: bumped package version to ${version}"
+
+      - name: Guard dependency update changes
         timeout-minutes: 1
         run: |
           set -euo pipefail
@@ -402,14 +429,15 @@ jobs:
             } | sort -u
           )"
           unexpected_changes="$(printf '%s\n' "${changed_files}" \
-            | awk -v dockerfile="${DOCKERFILE}" 'NF && $0 != dockerfile')"
+            | awk -v dockerfile="${DOCKERFILE}" \
+                'NF && $0 != dockerfile && $0 != "package.json" && $0 != "package-lock.json"')"
           if [ -n "${unexpected_changes}" ]; then
-            echo "Upgrade guard: modified files outside ${DOCKERFILE}:" >&2
+            echo "Upgrade guard: modified files outside the dependency update allowlist:" >&2
             printf '%s\n' "${unexpected_changes}" >&2
             exit 1
           fi
 
-          echo "Upgrade guard: tracked changes are limited to ${DOCKERFILE}"
+          echo "Upgrade guard: tracked changes are limited to ${DOCKERFILE}, package.json, and package-lock.json"
         env:
           DOCKERFILE: ${{ needs.config.outputs.dockerfile }}
 
@@ -417,18 +445,18 @@ jobs:
         id: changes
         run: |
           set -euo pipefail
-          if git diff --quiet -- "${DOCKERFILE}" \
-            && git diff --cached --quiet -- "${DOCKERFILE}"; then
+          if git diff --quiet -- "${DOCKERFILE}" package.json package-lock.json \
+            && git diff --cached --quiet -- "${DOCKERFILE}" package.json package-lock.json; then
             echo "changed=false" >> "${GITHUB_OUTPUT}"
-            echo "Upgrade changes: no ${DOCKERFILE} changes"
+            echo "Upgrade changes: no dependency update changes"
           else
             echo "changed=true" >> "${GITHUB_OUTPUT}"
             {
-              git diff -- "${DOCKERFILE}"
-              git diff --cached -- "${DOCKERFILE}"
+              git diff -- "${DOCKERFILE}" package.json package-lock.json
+              git diff --cached -- "${DOCKERFILE}" package.json package-lock.json
             } > docker-dependency-update.diff
             changed_lines="$(wc -l < docker-dependency-update.diff | tr -d ' ')"
-            echo "Upgrade changes: ${DOCKERFILE} changed; ${changed_lines} lines"
+            echo "Upgrade changes: dependency pins and package version changed; ${changed_lines} lines"
           fi
         env:
           DOCKERFILE: ${{ needs.config.outputs.dockerfile }}
@@ -439,7 +467,7 @@ jobs:
           {
             echo "## Summary"
             echo
-            echo "Updates docker-sftp Dockerfile dependency pins."
+            echo "Updates docker-sftp Dockerfile dependency pins and patches the package version."
             echo
             echo "## Evidence"
             echo
@@ -495,7 +523,10 @@ jobs:
           title: ${{ needs.config.outputs.pr_title }}
           body-path: docker-dependency-pr-body.md
           branch: ${{ needs.config.outputs.update_branch }}
-          add-paths: ${{ needs.config.outputs.dockerfile }}
+          add-paths: |
+            ${{ needs.config.outputs.dockerfile }}
+            package.json
+            package-lock.json
           labels: ${{ env.PR_LABELS }}
           team-reviewers: ${{ env.PR_TEAM_REVIEWER }}
           draft: false
@@ -561,7 +592,7 @@ jobs:
           fi
 
           {
-            echo "## udx-automation / docker-sftp dependency upgrade"
+            echo "## udx-automation / updater"
             echo
             echo "- config: ${{ needs.config.result }}"
             echo "- upgrade: ${{ needs.upgrade.result }}"

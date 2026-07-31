@@ -1,5 +1,5 @@
 ---
-name: _udx-automation / docker ops dependency review
+name: udx-automation / reviewer
 
 "on":
   schedule:
@@ -353,7 +353,7 @@ jobs:
           REPORT_PATH: ${{ env.REPORT_PATH }}
         run: |
           {
-            echo "## _udx-automation / docker ops dependency review"
+            echo "## udx-automation / reviewer"
             echo
             echo "- Dependabot Docker Ops PRs: \`${PR_COUNT:-0}\`"
             echo "- Dry run: \`${DRY_RUN}\`"

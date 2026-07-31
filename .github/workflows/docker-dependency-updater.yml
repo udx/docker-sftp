@@ -413,7 +413,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          npm version patch --no-git-tag-version --ignore-scripts
+          npm version patch --no-git-tag-version --ignore-scripts --force
           version="$(node -p "require('./package.json').version")"
           echo "Upgrade version: bumped package version to ${version}"
 

@@ -1,5 +1,5 @@
 ---
-name: udx-automation / docker-sftp dependency upgrade
+name: udx-automation / updater
 
 "on":
   schedule:
@@ -592,7 +592,7 @@ jobs:
           fi
 
           {
-            echo "## udx-automation / docker-sftp dependency upgrade"
+            echo "## udx-automation / updater"
             echo
             echo "- config: ${{ needs.config.result }}"
             echo "- upgrade: ${{ needs.upgrade.result }}"

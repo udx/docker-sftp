@@ -93,7 +93,7 @@ jobs:
         if: steps.inventory.outputs.pr_count != '0'
         env:
           AUTOMATION_GITHUB_TOKEN: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'true' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
           GH_TOKEN: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
           HUMAN_REVIEWER: ${{ env.HUMAN_REVIEWER }}
           MERGE_METHOD: ${{ env.MERGE_METHOD }}
@@ -349,7 +349,7 @@ jobs:
         env:
           AUTOMATION_IDENTITY: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN && 'DEPENDABOT_REVIEWER_TOKEN' || 'GITHUB_TOKEN fallback' }}
           PR_COUNT: ${{ steps.inventory.outputs.pr_count }}
-          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'true' }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
           REPORT_PATH: ${{ env.REPORT_PATH }}
         run: |
           {

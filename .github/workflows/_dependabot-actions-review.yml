@@ -1,5 +1,5 @@
 ---
-name: udx-automation / reviewer
+name: rabbit / reviewer
 
 "on":
   schedule:
@@ -218,6 +218,18 @@ jobs:
             sed 's/\\/\\\\/g; s/|/\\|/g'
           }
 
+          changes_image_input() {
+            local details_path="$1"
+
+            jq -e '
+              any(.files[]?;
+                .path == "Dockerfile" or
+                .path == "package.json" or
+                .path == "package-lock.json"
+              )
+            ' "${details_path}" >/dev/null
+          }
+
           classify_status() {
             local details_path="$1"
 
@@ -262,6 +274,11 @@ jobs:
             url="$(jq -r '.url' "${details_path}")"
             changed_files="$(jq -r '[.files[].path] | join(", ")' "${details_path}")"
             result="$(classify_status "${details_path}")"
+
+            if changes_image_input "${details_path}"; then
+              result="needs release|Image-input dependency changes require a single release PR with the next npm minor version before merge"
+            fi
+
             decision="${result%%|*}"
             reason="${result#*|}"
             report_reason="$(printf '%s' "${reason}" | markdown_escape)"
@@ -353,7 +370,7 @@ jobs:
           REPORT_PATH: ${{ env.REPORT_PATH }}
         run: |
           {
-            echo "## udx-automation / reviewer"
+            echo "## rabbit / reviewer"
             echo
             echo "- Dependabot Docker Ops PRs: \`${PR_COUNT:-0}\`"
             echo "- Dry run: \`${DRY_RUN}\`"

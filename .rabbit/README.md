@@ -35,18 +35,20 @@ tenant-specific Rabbit lifecycle manifests or environment config.
 
 ## Dependency Maintenance Automation
 
-- `udx-automation / updater` checks Dockerfile dependency pins on its scheduled
+- `rabbit / updater` checks Dockerfile dependency pins on its scheduled
   run. Copilot is limited to Dockerfile edits. When a pin changes, the workflow
-  opens a pull request with the Dockerfile change and the next npm patch version
+  opens a pull request with the Dockerfile change and the next npm minor version
   in `package.json` and `package-lock.json`. This prepares a release; it does
   not publish an image.
 - Merging that pull request to `master` enters the normal Docker Operations
   release path, which builds and publishes the image. Runs from other branches
   build and scan without publishing a release.
-- `udx-automation / reviewer` reviews eligible Dependabot Docker, npm, and
+- `rabbit / reviewer` reviews eligible Dependabot Docker, npm, and
   GitHub Actions dependency pull requests according to its configured safety
   checks. Scheduled runs can approve and merge safe PRs; manually dispatched
-  runs default to dry-run mode unless explicitly changed.
+  runs default to dry-run mode unless explicitly changed. It does not merge a
+  change to `Dockerfile`, `package.json`, or `package-lock.json`: consolidate
+  image-input updates into one release PR with the next npm minor version.
 
 ## Docker Hub Release Configuration
 

@@ -45,7 +45,8 @@ tenant-specific Rabbit lifecycle manifests or environment config.
   build and scan without publishing a release.
 - `udx-automation / reviewer` reviews eligible Dependabot Docker, npm, and
   GitHub Actions dependency pull requests according to its configured safety
-  checks.
+  checks. Scheduled runs can approve and merge safe PRs; manually dispatched
+  runs default to dry-run mode unless explicitly changed.
 
 ## Docker Hub Release Configuration
 

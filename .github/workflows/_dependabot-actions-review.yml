@@ -105,6 +105,7 @@ jobs:
           mkdir -p "${work_dir}"
           : > "${work_dir}/decisions.md"
           : > "${work_dir}/notes.md"
+          echo '[]' > "${work_dir}/image-prs.json"
 
           repo="${GITHUB_REPOSITORY}"
           marker="<!-- udx-dependabot-docker-ops-review -->"
@@ -267,7 +268,7 @@ jobs:
           for number in $(jq -r '.[].number' prs.json); do
             details_path="${work_dir}/pr-${number}.json"
             run_gh pr view "${number}" --repo "${repo}" \
-              --json number,title,url,files,comments,statusCheckRollup \
+              --json number,title,url,headRefName,files,comments,statusCheckRollup \
               > "${details_path}"
 
             title="$(jq -r '.title' "${details_path}")"
@@ -277,6 +278,10 @@ jobs:
 
             if changes_image_input "${details_path}"; then
               result="needs release|Image-input dependency changes require a single release PR with the next npm minor version before merge"
+              jq --argjson candidate "$(jq -c '{number,title,url,headRefName}' "${details_path}")" \
+                '. + [$candidate]' "${work_dir}/image-prs.json" \
+                > "${work_dir}/image-prs.next.json"
+              mv "${work_dir}/image-prs.next.json" "${work_dir}/image-prs.json"
             fi
 
             decision="${result%%|*}"
@@ -352,6 +357,90 @@ jobs:
           fi
 
           echo "Review guard: workspace has only expected review artifacts"
+
+      - name: Prepare consolidated image dependency release
+        id: image-release
+        if: steps.inventory.outputs.pr_count != '0'
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
+          IMAGE_PRS_PATH: .tmp/dependabot-docker-ops-review/image-prs.json
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        run: |
+          set -euo pipefail
+
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+
+          if [ "${DRY_RUN}" = "true" ] || [ -n "${PR_NUMBER:-}" ]; then
+            echo "Release preparation skipped for dry-run or single-PR review."
+            exit 0
+          fi
+
+          if [ "$(jq 'length' "${IMAGE_PRS_PATH}")" -eq 0 ]; then
+            echo "No image-input Dependabot updates require a release PR."
+            exit 0
+          fi
+
+          mapfile -t head_refs < <(
+            jq -r '.[].headRefName' "${IMAGE_PRS_PATH}" | sort -u
+          )
+          git fetch --no-tags origin "${head_refs[@]}"
+
+          merge_refs=()
+          for head_ref in "${head_refs[@]}"; do
+            merge_refs+=("origin/${head_ref}")
+          done
+          git merge --squash --no-commit "${merge_refs[@]}"
+
+          unexpected_files="$(
+            git diff --name-only | awk '
+              $0 != "Dockerfile" &&
+              $0 != "package.json" &&
+              $0 != "package-lock.json" { print }
+            '
+          )"
+          if [ -n "${unexpected_files}" ]; then
+            echo "Consolidated release includes unexpected files:" >&2
+            printf '%s\n' "${unexpected_files}" >&2
+            exit 1
+          fi
+
+          npm version minor --no-git-tag-version --ignore-scripts --force
+          version="$(node -p "require('./package.json').version")"
+          release_body="image-dependency-release-pr-body.md"
+
+          {
+            echo "## Summary"
+            echo
+            echo "Consolidates image-input Dependabot updates and bumps the image package version to \`${version}\`."
+            echo
+            echo "## Included Dependabot pull requests"
+            jq -r '.[] | "- [#\(.number)](\(.url)) \(.title)"' "${IMAGE_PRS_PATH}"
+          } > "${release_body}"
+
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Prepared consolidated image dependency release ${version}."
+
+      - name: Create or update consolidated image dependency release PR
+        id: create-image-release-pr
+        if: steps.image-release.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
+          author: udx-github <73100442+udx-github@users.noreply.github.com>
+          committer: udx-github <73100442+udx-github@users.noreply.github.com>
+          base: master
+          branch: rabbit/image-dependency-release
+          commit-message: "chore(deps): consolidate image dependency updates"
+          title: "chore(deps): consolidate image dependency updates"
+          body-path: image-dependency-release-pr-body.md
+          add-paths: |
+            Dockerfile
+            package.json
+            package-lock.json
+          reviewers: ${{ env.HUMAN_REVIEWER }}
+          draft: false
+          delete-branch: true
 
       - name: Upload review report
         if: steps.inventory.outputs.pr_count != '0'

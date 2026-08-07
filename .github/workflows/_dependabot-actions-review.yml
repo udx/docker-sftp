@@ -105,7 +105,7 @@ jobs:
           mkdir -p "${work_dir}"
           : > "${work_dir}/decisions.md"
           : > "${work_dir}/notes.md"
-          echo '[]' > "${work_dir}/image-prs.json"
+          echo '[]' > "${work_dir}/dependabot-prs.json"
 
           repo="${GITHUB_REPOSITORY}"
           marker="<!-- udx-dependabot-docker-ops-review -->"
@@ -219,16 +219,6 @@ jobs:
             sed 's/\\/\\\\/g; s/|/\\|/g'
           }
 
-          changes_image_input() {
-            local details_path="$1"
-
-            jq -e '
-              any(.files[]?;
-                .path == "Dockerfile"
-              )
-            ' "${details_path}" >/dev/null
-          }
-
           classify_status() {
             local details_path="$1"
 
@@ -274,13 +264,11 @@ jobs:
             changed_files="$(jq -r '[.files[].path] | join(", ")' "${details_path}")"
             result="$(classify_status "${details_path}")"
 
-            if changes_image_input "${details_path}"; then
-              result="needs release|Image-input dependency changes require a single release PR with the next npm minor version before merge"
-              jq --argjson candidate "$(jq -c '{number,title,url,headRefName}' "${details_path}")" \
-                '. + [$candidate]' "${work_dir}/image-prs.json" \
-                > "${work_dir}/image-prs.next.json"
-              mv "${work_dir}/image-prs.next.json" "${work_dir}/image-prs.json"
-            fi
+            result="needs release|Dependabot dependency changes require a single release PR with the next npm minor version before merge"
+            jq --argjson candidate "$(jq -c '{number,title,url,headRefName}' "${details_path}")" \
+              '. + [$candidate]' "${work_dir}/dependabot-prs.json" \
+              > "${work_dir}/dependabot-prs.next.json"
+            mv "${work_dir}/dependabot-prs.next.json" "${work_dir}/dependabot-prs.json"
 
             decision="${result%%|*}"
             reason="${result#*|}"
@@ -356,12 +344,12 @@ jobs:
 
           echo "Review guard: workspace has only expected review artifacts"
 
-      - name: Prepare consolidated image dependency release
-        id: image-release
+      - name: Prepare consolidated Dependabot release
+        id: dependabot-release
         if: steps.inventory.outputs.pr_count != '0'
         env:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
-          IMAGE_PRS_PATH: .tmp/dependabot-docker-ops-review/image-prs.json
+          DEPENDABOT_PRS_PATH: .tmp/dependabot-docker-ops-review/dependabot-prs.json
           PR_NUMBER: ${{ github.event.inputs.pr_number }}
         run: |
           set -euo pipefail
@@ -373,13 +361,13 @@ jobs:
             exit 0
           fi
 
-          if [ "$(jq 'length' "${IMAGE_PRS_PATH}")" -eq 0 ]; then
-            echo "No image-input Dependabot updates require a release PR."
+          if [ "$(jq 'length' "${DEPENDABOT_PRS_PATH}")" -eq 0 ]; then
+            echo "No Dependabot updates require a release PR."
             exit 0
           fi
 
           mapfile -t head_refs < <(
-            jq -r '.[].headRefName' "${IMAGE_PRS_PATH}" | sort -u
+            jq -r '.[].headRefName' "${DEPENDABOT_PRS_PATH}" | sort -u
           )
           git fetch --no-tags origin "${head_refs[@]}"
 
@@ -393,49 +381,46 @@ jobs:
             git diff --name-only | awk '
               $0 != "Dockerfile" &&
               $0 != "package.json" &&
-              $0 != "package-lock.json" { print }
+              $0 != "package-lock.json" &&
+              $0 !~ /^\.github\/workflows\// { print }
             '
           )"
           if [ -n "${unexpected_files}" ]; then
-            echo "Consolidated release includes unexpected files:" >&2
+            echo "Consolidated Dependabot release includes unexpected files:" >&2
             printf '%s\n' "${unexpected_files}" >&2
             exit 1
           fi
 
           npm version minor --no-git-tag-version --ignore-scripts --force
           version="$(node -p "require('./package.json').version")"
-          release_body="image-dependency-release-pr-body.md"
+          release_body="dependabot-release-pr-body.md"
 
           {
             echo "## Summary"
             echo
-            echo "Consolidates image-input Dependabot updates and bumps the image package version to \`${version}\`."
+            echo "Consolidates eligible Dependabot updates and bumps the package version to \`${version}\`."
             echo
             echo "## Included Dependabot pull requests"
-            jq -r '.[] | "- [#\(.number)](\(.url)) \(.title)"' "${IMAGE_PRS_PATH}"
+            jq -r '.[] | "- [#\(.number)](\(.url)) \(.title)"' "${DEPENDABOT_PRS_PATH}"
           } > "${release_body}"
 
           echo "changed=true" >> "${GITHUB_OUTPUT}"
           echo "version=${version}" >> "${GITHUB_OUTPUT}"
-          echo "Prepared consolidated image dependency release ${version}."
+          echo "Prepared consolidated Dependabot release ${version}."
 
-      - name: Create or update consolidated image dependency release PR
-        id: create-image-release-pr
-        if: steps.image-release.outputs.changed == 'true'
+      - name: Create or update consolidated Dependabot release PR
+        id: create-dependabot-release-pr
+        if: steps.dependabot-release.outputs.changed == 'true'
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
           author: udx-github <73100442+udx-github@users.noreply.github.com>
           committer: udx-github <73100442+udx-github@users.noreply.github.com>
           base: master
-          branch: rabbit/image-dependency-release
-          commit-message: "chore(deps): consolidate image dependency updates"
-          title: "chore(deps): consolidate image dependency updates"
-          body-path: image-dependency-release-pr-body.md
-          add-paths: |
-            Dockerfile
-            package.json
-            package-lock.json
+          branch: rabbit/dependabot-release
+          commit-message: "chore(deps): consolidate Dependabot updates"
+          title: "chore(deps): consolidate Dependabot updates"
+          body-path: dependabot-release-pr-body.md
           reviewers: ${{ env.HUMAN_REVIEWER }}
           draft: false
           delete-branch: true

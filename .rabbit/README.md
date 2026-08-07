@@ -49,7 +49,8 @@ tenant-specific Rabbit lifecycle manifests or environment config.
   runs default to dry-run mode unless explicitly changed. It does not merge a
   change to `Dockerfile`, `package.json`, or `package-lock.json` directly.
   Instead, a live full review creates or updates one release PR that
-  consolidates image-input updates and applies the next npm minor version.
+  consolidates all eligible Dependabot updates and applies the next npm minor
+  version.
 
 ## Docker Hub Release Configuration
 

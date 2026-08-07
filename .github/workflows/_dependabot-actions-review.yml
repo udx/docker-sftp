@@ -263,27 +263,37 @@ jobs:
             url="$(jq -r '.url' "${details_path}")"
             changed_files="$(jq -r '[.files[].path] | join(", ")' "${details_path}")"
             result="$(classify_status "${details_path}")"
+            validation_decision="${result%%|*}"
 
-            result="needs release|Dependabot dependency changes require a single release PR with the next npm minor version before merge"
-            jq --argjson candidate "$(jq -c '{number,title,url,headRefName}' "${details_path}")" \
-              '. + [$candidate]' "${work_dir}/dependabot-prs.json" \
-              > "${work_dir}/dependabot-prs.next.json"
-            mv "${work_dir}/dependabot-prs.next.json" "${work_dir}/dependabot-prs.json"
+            if [ "${validation_decision}" = "safe" ]; then
+              result="needs release|Dependabot dependency changes require a single release PR with the next npm minor version before merge"
+              jq --argjson candidate "$(jq -c '{number,title,url,headRefName}' "${details_path}")" \
+                '. + [$candidate]' "${work_dir}/dependabot-prs.json" \
+                > "${work_dir}/dependabot-prs.next.json"
+              mv "${work_dir}/dependabot-prs.next.json" "${work_dir}/dependabot-prs.json"
+            fi
 
             decision="${result%%|*}"
             reason="${result#*|}"
             report_reason="$(printf '%s' "${reason}" | markdown_escape)"
             report_files="$(printf '%s' "${changed_files}" | markdown_escape)"
 
-            if [ "${decision}" = "safe" ]; then
-              body="Safe to merge: ${reason}. Changed files: ${changed_files}."
-              write_comment "${number}" "${decision}" "${body}" "${details_path}"
-              approve_and_merge "${number}"
-            else
-              body="Needs validation before merge: ${reason}. Changed files: ${changed_files}. @${HUMAN_REVIEWER}"
-              write_comment "${number}" "${decision}" "${body}" "${details_path}"
-              request_human_review "${number}"
-            fi
+            case "${decision}" in
+              safe)
+                body="Safe to merge: ${reason}. Changed files: ${changed_files}."
+                write_comment "${number}" "${decision}" "${body}" "${details_path}"
+                approve_and_merge "${number}"
+                ;;
+              "needs release")
+                body="Included in the consolidated Dependabot release: ${reason}. Changed files: ${changed_files}."
+                write_comment "${number}" "${decision}" "${body}" "${details_path}"
+                ;;
+              *)
+                body="Needs validation before merge: ${reason}. Changed files: ${changed_files}. @${HUMAN_REVIEWER}"
+                write_comment "${number}" "${decision}" "${body}" "${details_path}"
+                request_human_review "${number}"
+                ;;
+            esac
 
             printf '| [#%s](%s) | %s | %s | %s |\n' \
               "${number}" \
@@ -378,7 +388,7 @@ jobs:
           git merge --squash --no-commit "${merge_refs[@]}"
 
           unexpected_files="$(
-            git diff --name-only | awk '
+            git diff --cached --name-only | awk '
               $0 != "Dockerfile" &&
               $0 != "package.json" &&
               $0 != "package-lock.json" &&
@@ -421,6 +431,11 @@ jobs:
           commit-message: "chore(deps): consolidate Dependabot updates"
           title: "chore(deps): consolidate Dependabot updates"
           body-path: dependabot-release-pr-body.md
+          add-paths: |
+            Dockerfile
+            package.json
+            package-lock.json
+            .github/workflows
           reviewers: ${{ env.HUMAN_REVIEWER }}
           draft: false
           delete-branch: true

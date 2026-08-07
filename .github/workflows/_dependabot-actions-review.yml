@@ -105,6 +105,7 @@ jobs:
           mkdir -p "${work_dir}"
           : > "${work_dir}/decisions.md"
           : > "${work_dir}/notes.md"
+          echo '[]' > "${work_dir}/dependabot-prs.json"
 
           repo="${GITHUB_REPOSITORY}"
           marker="<!-- udx-dependabot-docker-ops-review -->"
@@ -218,18 +219,6 @@ jobs:
             sed 's/\\/\\\\/g; s/|/\\|/g'
           }
 
-          changes_image_input() {
-            local details_path="$1"
-
-            jq -e '
-              any(.files[]?;
-                .path == "Dockerfile" or
-                .path == "package.json" or
-                .path == "package-lock.json"
-              )
-            ' "${details_path}" >/dev/null
-          }
-
           classify_status() {
             local details_path="$1"
 
@@ -267,16 +256,21 @@ jobs:
           for number in $(jq -r '.[].number' prs.json); do
             details_path="${work_dir}/pr-${number}.json"
             run_gh pr view "${number}" --repo "${repo}" \
-              --json number,title,url,files,comments,statusCheckRollup \
+              --json number,title,url,headRefName,files,comments,statusCheckRollup \
               > "${details_path}"
 
             title="$(jq -r '.title' "${details_path}")"
             url="$(jq -r '.url' "${details_path}")"
             changed_files="$(jq -r '[.files[].path] | join(", ")' "${details_path}")"
             result="$(classify_status "${details_path}")"
+            validation_decision="${result%%|*}"
 
-            if changes_image_input "${details_path}"; then
-              result="needs release|Image-input dependency changes require a single release PR with the next npm minor version before merge"
+            if [ "${validation_decision}" = "safe" ]; then
+              result="needs release|Dependabot dependency changes require a single release PR with the next npm minor version before merge"
+              jq --argjson candidate "$(jq -c '{number,title,url,headRefName}' "${details_path}")" \
+                '. + [$candidate]' "${work_dir}/dependabot-prs.json" \
+                > "${work_dir}/dependabot-prs.next.json"
+              mv "${work_dir}/dependabot-prs.next.json" "${work_dir}/dependabot-prs.json"
             fi
 
             decision="${result%%|*}"
@@ -284,15 +278,22 @@ jobs:
             report_reason="$(printf '%s' "${reason}" | markdown_escape)"
             report_files="$(printf '%s' "${changed_files}" | markdown_escape)"
 
-            if [ "${decision}" = "safe" ]; then
-              body="Safe to merge: ${reason}. Changed files: ${changed_files}."
-              write_comment "${number}" "${decision}" "${body}" "${details_path}"
-              approve_and_merge "${number}"
-            else
-              body="Needs validation before merge: ${reason}. Changed files: ${changed_files}. @${HUMAN_REVIEWER}"
-              write_comment "${number}" "${decision}" "${body}" "${details_path}"
-              request_human_review "${number}"
-            fi
+            case "${decision}" in
+              safe)
+                body="Safe to merge: ${reason}. Changed files: ${changed_files}."
+                write_comment "${number}" "${decision}" "${body}" "${details_path}"
+                approve_and_merge "${number}"
+                ;;
+              "needs release")
+                body="Included in the consolidated Dependabot release: ${reason}. Changed files: ${changed_files}."
+                write_comment "${number}" "${decision}" "${body}" "${details_path}"
+                ;;
+              *)
+                body="Needs validation before merge: ${reason}. Changed files: ${changed_files}. @${HUMAN_REVIEWER}"
+                write_comment "${number}" "${decision}" "${body}" "${details_path}"
+                request_human_review "${number}"
+                ;;
+            esac
 
             printf '| [#%s](%s) | %s | %s | %s |\n' \
               "${number}" \
@@ -352,6 +353,92 @@ jobs:
           fi
 
           echo "Review guard: workspace has only expected review artifacts"
+
+      - name: Prepare consolidated Dependabot release
+        id: dependabot-release
+        if: steps.inventory.outputs.pr_count != '0'
+        env:
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.dry_run || 'false' }}
+          DEPENDABOT_PRS_PATH: .tmp/dependabot-docker-ops-review/dependabot-prs.json
+          PR_NUMBER: ${{ github.event.inputs.pr_number }}
+        run: |
+          set -euo pipefail
+
+          echo "changed=false" >> "${GITHUB_OUTPUT}"
+
+          if [ "${DRY_RUN}" = "true" ] || [ -n "${PR_NUMBER:-}" ]; then
+            echo "Release preparation skipped for dry-run or single-PR review."
+            exit 0
+          fi
+
+          if [ "$(jq 'length' "${DEPENDABOT_PRS_PATH}")" -eq 0 ]; then
+            echo "No Dependabot updates require a release PR."
+            exit 0
+          fi
+
+          mapfile -t head_refs < <(
+            jq -r '.[].headRefName' "${DEPENDABOT_PRS_PATH}" | sort -u
+          )
+          git fetch --no-tags origin "${head_refs[@]}"
+
+          merge_refs=()
+          for head_ref in "${head_refs[@]}"; do
+            merge_refs+=("origin/${head_ref}")
+          done
+          git merge --squash --no-commit "${merge_refs[@]}"
+
+          unexpected_files="$(
+            git diff --cached --name-only | awk '
+              $0 != "Dockerfile" &&
+              $0 != "package.json" &&
+              $0 != "package-lock.json" &&
+              $0 !~ /^\.github\/workflows\// { print }
+            '
+          )"
+          if [ -n "${unexpected_files}" ]; then
+            echo "Consolidated Dependabot release includes unexpected files:" >&2
+            printf '%s\n' "${unexpected_files}" >&2
+            exit 1
+          fi
+
+          npm version minor --no-git-tag-version --ignore-scripts --force
+          version="$(node -p "require('./package.json').version")"
+          release_body="dependabot-release-pr-body.md"
+
+          {
+            echo "## Summary"
+            echo
+            echo "Consolidates eligible Dependabot updates and bumps the package version to \`${version}\`."
+            echo
+            echo "## Included Dependabot pull requests"
+            jq -r '.[] | "- [#\(.number)](\(.url)) \(.title)"' "${DEPENDABOT_PRS_PATH}"
+          } > "${release_body}"
+
+          echo "changed=true" >> "${GITHUB_OUTPUT}"
+          echo "version=${version}" >> "${GITHUB_OUTPUT}"
+          echo "Prepared consolidated Dependabot release ${version}."
+
+      - name: Create or update consolidated Dependabot release PR
+        id: create-dependabot-release-pr
+        if: steps.dependabot-release.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.DEPENDABOT_REVIEWER_TOKEN || github.token }}
+          author: udx-github <73100442+udx-github@users.noreply.github.com>
+          committer: udx-github <73100442+udx-github@users.noreply.github.com>
+          base: master
+          branch: rabbit/dependabot-release
+          commit-message: "chore(deps): consolidate Dependabot updates"
+          title: "chore(deps): consolidate Dependabot updates"
+          body-path: dependabot-release-pr-body.md
+          add-paths: |
+            Dockerfile
+            package.json
+            package-lock.json
+            .github/workflows
+          reviewers: ${{ env.HUMAN_REVIEWER }}
+          draft: false
+          delete-branch: true
 
       - name: Upload review report
         if: steps.inventory.outputs.pr_count != '0'

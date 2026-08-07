@@ -224,9 +224,7 @@ jobs:
 
             jq -e '
               any(.files[]?;
-                .path == "Dockerfile" or
-                .path == "package.json" or
-                .path == "package-lock.json"
+                .path == "Dockerfile"
               )
             ' "${details_path}" >/dev/null
           }

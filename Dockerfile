@@ -1,6 +1,6 @@
 FROM usabilitydynamics/udx-worker-nodejs:0.36.0
 
-ARG KUBECTL_VERSION=1.36.3
+ARG KUBECTL_VERSION=1.36.4
 
 ENV KUBECTL_VERSION=${KUBECTL_VERSION} \
     NODE_ENV=production \

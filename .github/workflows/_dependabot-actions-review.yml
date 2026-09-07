@@ -224,15 +224,21 @@ jobs:
 
             jq -e '
               any(.statusCheckRollup[]?;
-                (.status != "COMPLETED") or
-                (
-                  (.conclusion // "") as $conclusion
-                  | (
-                    $conclusion == "SUCCESS" or
-                    $conclusion == "SKIPPED" or
-                    $conclusion == "NEUTRAL"
-                  ) | not
-                )
+                if .__typename == "CheckRun" then
+                  (.status != "COMPLETED") or
+                  (
+                    (.conclusion // "") as $conclusion
+                    | (
+                      $conclusion == "SUCCESS" or
+                      $conclusion == "SKIPPED" or
+                      $conclusion == "NEUTRAL"
+                    ) | not
+                  )
+                elif .__typename == "StatusContext" then
+                  (.state != "SUCCESS")
+                else
+                  true
+                end
               )
             ' "${details_path}" >/dev/null && {
               echo "needs validation|One or more checks are pending, failing, or inconclusive"

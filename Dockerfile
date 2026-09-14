@@ -1,4 +1,4 @@
-FROM usabilitydynamics/udx-worker-nodejs:0.36.0
+FROM usabilitydynamics/udx-worker-nodejs:0.39.0
 
 ARG KUBECTL_VERSION=1.37.0
 

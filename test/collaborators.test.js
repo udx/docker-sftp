@@ -452,7 +452,13 @@ function cluster(pods, repositories, keysOf = (login) => login + "-key") {
     }
     const user = /^\/(.+)\.keys$/.exec(url.pathname);
     if (url.hostname === "github.com" && user) {
-      return { status: 200, headers: {}, data: "ssh-ed25519 AAAA " + keysOf(user[1]) + "\n" };
+      // A promise lets the test hold the response back; nothing means the
+      // user has no public key.
+      return Promise.resolve(keysOf(user[1])).then((key) => ({
+        status: 200,
+        headers: {},
+        data: key ? "ssh-ed25519 AAAA " + key + "\n" : "",
+      }));
     }
     throw new Error("unexpected request: " + options.url);
   };
@@ -731,6 +737,82 @@ test("a remembered list keeps its keys when another repository's new list names 
   const other = await keyFile(directory, "b.example.com.production", /new-holder-key/);
   assert.match(other, /new-holder-key/);
   assert.doesNotMatch(other, /alice-key/);
+});
+
+test("a user without a public key is asked about again at the next refresh", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  let added = false;
+  respond = cluster(
+    () => pods,
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "alice", role_name: "admin" }, { login: "bob", role_name: "write" }],
+    }),
+    (login) => (login === "alice" && !added ? null : login + "-key")
+  );
+
+  await refresh(directory);
+  const before = await keyFile(directory, "www.example.com.develop", /bob-key/);
+  assert.match(before, /bob-key/);
+  assert.doesNotMatch(before, /alice/);
+
+  // She adds her key on GitHub and tries again inside the ten minutes.
+  added = true;
+  pods = [pod("site-develop-2", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  const after = await keyFile(directory, "www.example.com.develop", /alice-key/);
+  assert.match(after, /alice-key/);
+  assert.match(after, /bob-key/);
+  assert.equal(asked(), 1);
+  assert.equal(asked("github.com"), 3);
+});
+
+test("a refresh writes the keys it fetched, whatever another refresh does meanwhile", async (t) => {
+  const directory = gateway(t);
+  process.env.COLLABORATORS_CACHE_TTL_MS = "0";
+  const held = [];
+  let bobRequests = 0;
+  respond = cluster(
+    () => [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")],
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "alice", role_name: "admin" }, { login: "bob", role_name: "admin" }],
+    }),
+    (login) => {
+      // The first refresh gets alice's keys at once and waits for bob's. Every
+      // request after that, the second refresh's, is held for good.
+      if (login === "alice" && asked() === 1) {
+        return "alice-key";
+      }
+      if (login === "bob") {
+        bobRequests += 1;
+      }
+      return new Promise((resolve) => held.push({ login, resolve }));
+    }
+  );
+  const until = async (condition) => {
+    for (let attempt = 0; attempt < 200 && !condition(); attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 5));
+    }
+    assert.ok(condition(), "the refreshes did not get that far");
+  };
+
+  const first = refresh(directory);
+  await until(() => bobRequests === 1);
+
+  // A second refresh asks the list again, which replaces what is remembered,
+  // and is still waiting for keys when the first one finishes.
+  refresh(directory).catch(() => {});
+  await until(() => asked() === 2 && bobRequests === 2);
+
+  held.find((request) => request.login === "bob").resolve("bob-key");
+  await first;
+  const written = await keyFile(directory, "www.example.com.develop", /bob-key/);
+  assert.match(written, /alice-key/);
+  assert.match(written, /bob-key/);
 });
 
 test("a list entry that cannot be read costs its application its list, not the others their refresh", async (t) => {

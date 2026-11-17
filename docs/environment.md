@@ -98,16 +98,27 @@ hourly GitHub rate limit with everything else that uses the same account.
 
 - GitHub is asked once per repository, not once per application: the branch
   environments of a repository share one lookup.
-- The answer is remembered for `COLLABORATORS_CACHE_TTL_MS` (ten minutes by
-  default; `0` asks at every refresh). A refresh inside that time asks nothing,
-  so a change to a repository's collaborators reaches the key files at the
-  first refresh after it has passed.
+- The answer is remembered for `COLLABORATORS_CACHE_TTL_MS`: ten minutes by
+  default, an hour at most, and `0` asks at every refresh. The value is a
+  number of milliseconds in digits; anything else means the default. A refresh
+  inside that time asks nothing, so a change to a repository's collaborators
+  reaches the key files at the first refresh after it has passed.
+- A user's public keys are remembered with the list that named the user. A
+  refresh that goes by a remembered list writes the keys fetched when GitHub
+  gave that list, and fetches nothing. New keys of a user arrive with the next
+  list GitHub gives.
 - When GitHub reports the rate limit as spent, the gateway stops asking until
-  the limit resets. Until then it uses the last list it has for each
-  repository, for up to a day, so the key files still follow pods that are
-  replaced in the meantime.
-- A repository GitHub answers "not found" or "forbidden" for has no
-  collaborators as far as the gateway is concerned; an earlier list is dropped.
+  the limit resets. Until then, and also when GitHub cannot be reached or
+  answers with an error, it goes by the last list it has for each repository,
+  for up to two hours, so the key files still follow pods that are replaced in
+  the meantime.
+- When GitHub answers "not found" or "forbidden" for a repository, the gateway
+  has no collaborators for it and stops going by an earlier list. As before,
+  key files that already exist are left as they are: a refresh rewrites a key
+  file only when it has keys to write.
+- What is remembered lives in the process that asked. The API server and the
+  Firebase consumer are separate processes; where both refresh keys, each
+  remembers on its own.
 
 ## Firebase Configuration
 

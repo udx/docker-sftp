@@ -82,17 +82,24 @@ test("a repository is asked once and its collaborators are remembered for ten mi
   assert.equal(hub.asked.length, 2);
 });
 
-test("each repository has its own answer", async () => {
+test("each repository has its own answer, also under the same name with another owner", async () => {
+  const lists = { "udx/site": "alice", "udx/api": "bob", "other/site": "carol" };
   const hub = github((options) =>
-    options.url.includes("udx/site/") ? listOf("alice") : listOf("bob")
+    listOf(lists[new URL(options.url).pathname.split("/").slice(2, 4).join("/")])
   );
+  const logins = async (repository) =>
+    (await collaborators.list(repository, "secret", hub.options)).collaborators.map(
+      (user) => user.login
+    );
 
-  const site = await collaborators.list("udx/site", "secret", hub.options);
-  const api = await collaborators.list("udx/api", "secret", hub.options);
+  assert.deepEqual(await logins("udx/site"), ["alice"]);
+  assert.deepEqual(await logins("udx/api"), ["bob"]);
+  assert.deepEqual(await logins("other/site"), ["carol"]);
+  assert.equal(hub.asked.length, 3);
 
-  assert.deepEqual(site.collaborators.map((user) => user.login), ["alice"]);
-  assert.deepEqual(api.collaborators.map((user) => user.login), ["bob"]);
-  assert.equal(hub.asked.length, 2);
+  assert.deepEqual(await logins("udx/site"), ["alice"]);
+  assert.deepEqual(await logins("other/site"), ["carol"]);
+  assert.equal(hub.asked.length, 3);
 });
 
 test("COLLABORATORS_CACHE_TTL_MS sets how long an answer is remembered, and 0 asks every time", async () => {
@@ -112,12 +119,31 @@ test("COLLABORATORS_CACHE_TTL_MS sets how long an answer is remembered, and 0 as
   await collaborators.list("udx/site", "secret", hub.options);
   assert.equal(hub.asked.length, 4);
 
-  process.env.COLLABORATORS_CACHE_TTL_MS = "soon";
+  // Anything but digits is not a number of milliseconds: the default applies.
+  for (const odd of ["soon", "10m", "1e6", "600,000", "-5"]) {
+    process.env.COLLABORATORS_CACHE_TTL_MS = odd;
+    collaborators.reset();
+    const before = hub.asked.length;
+    await collaborators.list("udx/site", "secret", hub.options);
+    hub.clock += TTL - 1;
+    await collaborators.list("udx/site", "secret", hub.options);
+    assert.equal(hub.asked.length, before + 1, odd);
+    hub.clock += 1;
+    await collaborators.list("udx/site", "secret", hub.options);
+    assert.equal(hub.asked.length, before + 2, odd);
+  }
+
+  // An answer is remembered for an hour at most.
+  process.env.COLLABORATORS_CACHE_TTL_MS = String(5 * HOUR);
   collaborators.reset();
+  const before = hub.asked.length;
   await collaborators.list("udx/site", "secret", hub.options);
-  hub.clock += TTL - 1;
+  hub.clock += HOUR - 1;
   await collaborators.list("udx/site", "secret", hub.options);
-  assert.equal(hub.asked.length, 5);
+  assert.equal(hub.asked.length, before + 1);
+  hub.clock += 1;
+  await collaborators.list("udx/site", "secret", hub.options);
+  assert.equal(hub.asked.length, before + 2);
 });
 
 test("a spent rate limit stops the lookups until it resets, and the last list is used meanwhile", async () => {
@@ -235,8 +261,9 @@ test("a repository GitHub does not show is remembered as such and its earlier li
   assert.equal(hub.asked.length, 3);
 });
 
-test("when GitHub cannot be reached the last list is used, for a day at most", async () => {
+test("when GitHub cannot be reached the last list is used, for two hours at most", async () => {
   const hub = github(() => listOf("alice"));
+  const listedAt = hub.clock;
   await collaborators.list("udx/site", "secret", hub.options);
 
   hub.answer = () => new Error("connect ETIMEDOUT");
@@ -250,7 +277,11 @@ test("when GitHub cannot be reached the last list is used, for a day at most", a
   await collaborators.list("udx/site", "secret", hub.options);
   assert.equal(hub.asked.length, 3);
 
-  hub.clock += 24 * HOUR;
+  hub.clock = listedAt + 2 * HOUR - 1;
+  const late = await collaborators.list("udx/site", "secret", hub.options);
+  assert.equal(late.source, "last");
+
+  hub.clock = listedAt + 2 * HOUR;
   const stale = await collaborators.list("udx/site", "secret", hub.options);
   assert.equal(stale.source, "none");
   assert.equal(stale.collaborators, null);
@@ -258,6 +289,102 @@ test("when GitHub cannot be reached the last list is used, for a day at most", a
   const never = await collaborators.list("udx/api", "secret", hub.options);
   assert.equal(never.source, "none");
   assert.equal(never.reason, "connect ETIMEDOUT");
+});
+
+test("forbidden and bad credentials are answers too: the earlier list is dropped", async () => {
+  for (const [status, message] of [[403, "Must have admin rights to Repository."], [401, "Bad credentials"]]) {
+    collaborators.reset();
+    const hub = github(() => listOf("alice"));
+    await collaborators.list("udx/site", "secret", hub.options);
+
+    hub.clock += TTL;
+    hub.answer = () => refusal(status, { "x-ratelimit-remaining": "4000" }, message);
+    const refused = await collaborators.list("udx/site", "secret", hub.options);
+    assert.equal(refused.source, "none", String(status));
+    assert.equal(refused.reason, "forbidden", String(status));
+    assert.equal(refused.collaborators, null, String(status));
+
+    // Remembered, and no pause: another repository is asked.
+    const again = await collaborators.list("udx/site", "secret", hub.options);
+    assert.equal(again.source, "cache", String(status));
+    assert.equal(again.collaborators, null, String(status));
+    await collaborators.list("udx/api", "secret", hub.options);
+    assert.equal(hub.asked.length, 3, String(status));
+  }
+});
+
+test("a refusal about the repository that also uses up the limit is not taken for the rate limit", async () => {
+  for (const [status, message, reason] of [
+    [403, "Must have push access to view repository collaborators.", "forbidden"],
+    [404, "Not Found", "not found"],
+  ]) {
+    collaborators.reset();
+    const hub = github(() => listOf("alice"));
+    await collaborators.list("udx/site", "secret", hub.options);
+
+    hub.clock += TTL;
+    const reset = hub.clock + 30 * 60 * 1000;
+    hub.answer = () =>
+      refusal(
+        status,
+        { "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset / 1000) },
+        message
+      );
+    const refused = await collaborators.list("udx/site", "secret", hub.options);
+    assert.equal(refused.source, "none", message);
+    assert.equal(refused.reason, reason, message);
+    assert.equal(refused.collaborators, null, message);
+
+    // Nothing is left of the limit all the same: the next repository waits.
+    const next = await collaborators.list("udx/api", "secret", hub.options);
+    assert.equal(next.reason, "rate limit", message);
+    assert.equal(next.pausedUntil, reset, message);
+    assert.equal(hub.asked.length, 2, message);
+  }
+
+  // A refusal that gives no reason, with nothing left, is taken for the limit.
+  collaborators.reset();
+  const hub = github(() => listOf("alice"));
+  await collaborators.list("udx/site", "secret", hub.options);
+  hub.clock += TTL;
+  hub.answer = () => refusal(403, { "x-ratelimit-remaining": "0" });
+  const unexplained = await collaborators.list("udx/site", "secret", hub.options);
+  assert.equal(unexplained.source, "last");
+  assert.equal(unexplained.reason, "rate limit");
+});
+
+test("lookups under way at the same time: the longer pause stands and the newer list is used", async () => {
+  const clock = 1800000000000;
+  const waiting = [];
+  const options = {
+    now: () => clock,
+    request: () => new Promise((resolve, reject) => waiting.push({ resolve, reject })),
+  };
+  const limit = (headers) => refusal(403, headers, "API rate limit exceeded");
+
+  // Two repositories asked at once: one is told to wait half an hour, the
+  // other a minute. The half hour stands.
+  const first = collaborators.list("udx/site", "secret", options);
+  const second = collaborators.list("udx/api", "secret", options);
+  const reset = clock + 30 * 60 * 1000;
+  waiting[0].reject(limit({ "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset / 1000) }));
+  await first;
+  waiting[1].reject(limit({ "retry-after": "60" }));
+  assert.equal((await second).pausedUntil, reset);
+  assert.equal((await collaborators.list("udx/www", "secret", options)).pausedUntil, reset);
+
+  // One repository asked twice at once: the first is answered with a new list,
+  // the second is refused. The refused one goes by the new list.
+  collaborators.reset();
+  waiting.length = 0;
+  const answered = collaborators.list("udx/site", "secret", options);
+  const refused = collaborators.list("udx/site", "secret", options);
+  waiting[0].resolve(listOf("bob"));
+  await answered;
+  waiting[1].reject(limit({ "x-ratelimit-remaining": "0" }));
+  const fallback = await refused;
+  assert.equal(fallback.source, "last");
+  assert.deepEqual(fallback.collaborators.map((user) => user.login), ["bob"]);
 });
 
 test("a response that is not a list is not taken for one", async () => {
@@ -301,7 +428,7 @@ function pod(name, sshUser, repository) {
   };
 }
 
-function cluster(pods, repositories) {
+function cluster(pods, repositories, keysOf = (login) => login + "-key") {
   return (options) => {
     if (options.url.endsWith("/v1/pods")) {
       return { status: 200, headers: {}, data: { items: pods() } };
@@ -317,7 +444,7 @@ function cluster(pods, repositories) {
     }
     const user = /^\/(.+)\.keys$/.exec(url.pathname);
     if (url.hostname === "github.com" && user) {
-      return { status: 200, headers: {}, data: "ssh-ed25519 AAAA " + user[1] + "-key\n" };
+      return { status: 200, headers: {}, data: "ssh-ed25519 AAAA " + keysOf(user[1]) + "\n" };
     }
     throw new Error("unexpected request: " + options.url);
   };
@@ -325,6 +452,8 @@ function cluster(pods, repositories) {
 
 function refresh(directory) {
   return new Promise((resolve, reject) => {
+    // A refresh that never calls back fails its test instead of hanging it.
+    setTimeout(() => reject(new Error("the refresh did not finish")), 5000).unref();
     updateKeys(
       {
         accessToken: "secret",
@@ -350,25 +479,30 @@ async function keyFile(directory, name, expected) {
   return fs.existsSync(file) ? fs.readFileSync(file, "utf8") : "";
 }
 
-function asked() {
-  return requested.filter((url) => new URL(url).hostname === "api.github.com")
-    .length;
+function asked(hostname = "api.github.com") {
+  return requested.filter((url) => new URL(url).hostname === hostname).length;
 }
 
-test("a key refresh asks GitHub once per repository, whatever the number of applications", async (t) => {
+// A scratch directory for key files, and the environment a refresh reads.
+function gateway(t) {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "docker-sftp-test-"));
   fs.mkdirSync(path.join(directory, "keys"));
-  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-
   const controllerKeysPath = process.env.CONTROLLER_KEYS_PATH;
   delete process.env.CONTROLLER_KEYS_PATH;
   process.env.NODE_PORT = "0";
+  requested.length = 0;
   t.after(() => {
+    fs.rmSync(directory, { recursive: true, force: true });
     if (controllerKeysPath !== undefined) {
       process.env.CONTROLLER_KEYS_PATH = controllerKeysPath;
     }
     delete process.env.NODE_PORT;
   });
+  return directory;
+}
+
+test("a key refresh asks GitHub once per repository, whatever the number of applications", async (t) => {
+  const directory = gateway(t);
 
   let pods = [
     pod("site-production-1", "www.example.com.production", "udx/www.example.com"),
@@ -386,7 +520,6 @@ test("a key refresh asks GitHub once per repository, whatever the number of appl
     ],
     "udx/api.example.com": [{ login: "carol", role_name: "maintain" }],
   };
-  requested.length = 0;
   respond = cluster(
     () => pods,
     (repository) =>
@@ -436,7 +569,7 @@ test("a key refresh asks GitHub once per repository, whatever the number of appl
   limited = true;
   replace("site-develop-2", "site-develop-3");
   const third = await refresh(directory);
-  assert.equal(asked(), 4, "one refused request per repository");
+  assert.equal(asked(), 4, "the two requests under way are refused");
   assert.deepEqual(Object.keys(third.users).sort(), ["alice", "bob", "carol"]);
   const limitedFile = await keyFile(directory, "www.example.com.develop", /site-develop-3/);
   assert.match(limitedFile, /tenant\s+site-develop-3\s+-c\s+site;alice/);
@@ -450,4 +583,86 @@ test("a key refresh asks GitHub once per repository, whatever the number of appl
   assert.deepEqual(Object.keys(fourth.users).sort(), ["alice", "bob", "carol"]);
   const paused = await keyFile(directory, "www.example.com.develop", /site-develop-4/);
   assert.match(paused, /tenant\s+site-develop-4\s+-c\s+site;bob/);
+});
+
+test("a remembered list goes with the keys remembered with it", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  let holder = "alice-key";
+  respond = cluster(
+    () => pods,
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "alice", role_name: "admin" }],
+    }),
+    () => holder
+  );
+
+  await refresh(directory);
+  assert.match(await keyFile(directory, "www.example.com.develop", /alice-key/), /alice-key/);
+  assert.equal(asked("github.com"), 1);
+
+  // The login changes hands and a pod is replaced, inside the ten minutes. The
+  // list is the remembered one, and so are the keys: github.com is not asked
+  // who holds the login today.
+  holder = "somebody-else-key";
+  pods = [pod("site-develop-2", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  const remembered = await keyFile(directory, "www.example.com.develop", /site-develop-2/);
+  assert.match(remembered, /site-develop-2/);
+  assert.match(remembered, /alice-key/);
+  assert.doesNotMatch(remembered, /somebody-else-key/);
+  assert.equal(asked("github.com"), 1);
+
+  // A list GitHub gives now takes the keys as they are now.
+  process.env.COLLABORATORS_CACHE_TTL_MS = "0";
+  pods = [pod("site-develop-3", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  const current = await keyFile(directory, "www.example.com.develop", /site-develop-3/);
+  assert.match(current, /somebody-else-key/);
+  assert.doesNotMatch(current, /alice-key/);
+  assert.equal(asked("github.com"), 2);
+});
+
+test("a list entry that cannot be read costs its application its list, not the others their refresh", async (t) => {
+  const directory = gateway(t);
+  respond = cluster(
+    () => [
+      pod("broken-1", "broken.example.com.develop", "udx/broken.example.com"),
+      pod("site-1", "www.example.com.develop", "udx/www.example.com"),
+    ],
+    (repository) => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data:
+        repository === "udx/broken.example.com"
+          ? [null, { login: "alice", role_name: "admin" }]
+          : // A login that is also the name of something every object has.
+            [{ login: "constructor", role_name: "admin" }, { login: "carol", role_name: "write" }],
+    })
+  );
+
+  const data = await refresh(directory);
+  assert.deepEqual(Object.keys(data.users).sort(), ["carol", "constructor"]);
+  const site = await keyFile(directory, "www.example.com.develop", /carol-key/);
+  assert.match(site, /constructor-key/);
+  assert.match(site, /carol-key/);
+  assert.equal(await keyFile(directory, "broken.example.com.develop", /alice-key/), "");
+});
+
+test("a refresh finishes when a lookup fails in a way it never should", async (t) => {
+  const directory = gateway(t);
+  respond = cluster(
+    () => [pod("site-1", "www.example.com.develop", "udx/www.example.com")],
+    () => listOf("alice")
+  );
+  const list = collaborators.list;
+  collaborators.list = () => Promise.reject(new Error("unforeseen"));
+  t.after(() => {
+    collaborators.list = list;
+  });
+
+  const data = await refresh(directory);
+  assert.deepEqual(Object.keys(data.users), []);
 });

@@ -103,12 +103,14 @@ hourly GitHub rate limit with everything else that uses the same account.
   number of milliseconds in digits; anything else means the default. A refresh
   inside that time asks nothing, so a change to a repository's collaborators
   reaches the key files at the first refresh after it has passed.
-- A user's public keys are kept with the repository list that names the user.
+- A user's public keys are kept with the repository list that names the user,
+  and are fetched only together with a list GitHub gives in the same refresh.
   A refresh that goes by a remembered list writes the keys fetched for that
   list and fetches none, so a key a user adds or removes on GitHub arrives
-  with the next list GitHub gives. Keys are fetched for a list that has none
-  for the user: a new list, a user who had no access through it until now, a
-  fetch that failed, or a user who had no public key the last time.
+  with the next list GitHub gives. Where a remembered list has no keys for a
+  user it gives access to (the fetch failed, or the user had no access
+  through it until now), the refresh asks GitHub for that repository again
+  and fetches the keys with the answer.
 - When GitHub reports the rate limit as spent, the gateway stops asking until
   the limit resets. Until then, and also when GitHub cannot be reached or
   answers with an error, it goes by the last list it has for each repository,

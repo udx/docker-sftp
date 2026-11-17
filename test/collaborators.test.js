@@ -639,7 +639,7 @@ test("a remembered list goes with the keys remembered with it", async (t) => {
   assert.equal(asked("github.com"), 2);
 });
 
-test("keys that could not be fetched are fetched at the next refresh", async (t) => {
+test("keys that could not be fetched are fetched at the next refresh, with the list asked again", async (t) => {
   const directory = gateway(t);
   let pods = [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
   let reachable = false;
@@ -664,16 +664,24 @@ test("keys that could not be fetched are fetched at the next refresh", async (t)
   assert.doesNotMatch(without, /alice-key/);
   assert.equal(asked("github.com"), 2);
 
-  // Inside the ten minutes: the list is remembered, bob's keys are with it,
-  // alice's are not, so hers are fetched.
+  // Inside the ten minutes. The remembered list has no keys for alice, and
+  // keys are only fetched for a list GitHub gives in the same refresh: the
+  // repository is asked again, and the keys of its users with it.
   reachable = true;
   pods = [pod("site-develop-2", "www.example.com.develop", "udx/www.example.com")];
   await refresh(directory);
   const withAlice = await keyFile(directory, "www.example.com.develop", /alice-key/);
   assert.match(withAlice, /tenant\s+site-develop-2\s+-c\s+site;alice/);
   assert.match(withAlice, /bob-key/);
-  assert.equal(asked(), 1);
-  assert.equal(asked("github.com"), 3);
+  assert.equal(asked(), 2);
+  assert.equal(asked("github.com"), 4);
+
+  // Nothing is missing any more: the next refresh asks nothing.
+  pods = [pod("site-develop-3", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  assert.match(await keyFile(directory, "www.example.com.develop", /site-develop-3/), /alice-key/);
+  assert.equal(asked(), 2);
+  assert.equal(asked("github.com"), 4);
 });
 
 test("a user gets keys when a new application of a remembered repository allows the role", async (t) => {
@@ -695,14 +703,76 @@ test("a user gets keys when a new application of a remembered repository allows 
   assert.doesNotMatch(production, /alice-key/);
   assert.equal(asked("github.com"), 1);
 
-  // A develop environment of the same repository is deployed inside the ten minutes.
+  // A develop environment of the same repository is deployed inside the ten
+  // minutes. Alice has access now and the remembered list has no keys for
+  // her: the repository is asked again, and the keys with it.
   pods = [...pods, pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
   await refresh(directory);
   const develop = await keyFile(directory, "www.example.com.develop", /alice-key/);
   assert.match(develop, /carol-key/);
   assert.match(develop, /alice-key/);
-  assert.equal(asked(), 1);
-  assert.equal(asked("github.com"), 2);
+  assert.equal(asked(), 2);
+  assert.equal(asked("github.com"), 3);
+});
+
+test("when a repository is asked again, its new list decides", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-production-1", "www.example.com.production", "udx/www.example.com")];
+  let list = [{ login: "carol", role_name: "admin" }, { login: "alice", role_name: "write" }];
+  respond = cluster(
+    () => pods,
+    () => ({ status: 200, headers: { "x-ratelimit-remaining": "4000" }, data: list })
+  );
+
+  await refresh(directory);
+
+  // Alice is removed from the repository, and a develop environment is
+  // deployed inside the ten minutes. The remembered list would give her
+  // access and has no keys for her, so the repository is asked again: she is
+  // not on the list any more and gets nothing.
+  list = [{ login: "carol", role_name: "admin" }];
+  pods = [...pods, pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  const data = await refresh(directory);
+  assert.deepEqual(Object.keys(data.users), ["carol"]);
+  assert.deepEqual(Object.keys(data.applications["www.example.com.develop"].users), ["carol"]);
+  const develop = await keyFile(directory, "www.example.com.develop", /carol-key/);
+  assert.match(develop, /carol-key/);
+  assert.doesNotMatch(develop, /alice/);
+  assert.equal(asked(), 2);
+});
+
+test("with the rate limit spent, a user whose keys are not with the remembered list gets none", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-production-1", "www.example.com.production", "udx/www.example.com")];
+  let limited = false;
+  respond = cluster(
+    () => pods,
+    () =>
+      limited
+        ? refusal(403, { "x-ratelimit-remaining": "0" }, "API rate limit exceeded")
+        : {
+            status: 200,
+            headers: { "x-ratelimit-remaining": "4000" },
+            data: [{ login: "carol", role_name: "admin" }, { login: "alice", role_name: "write" }],
+          }
+  );
+
+  await refresh(directory);
+  assert.equal(asked("github.com"), 1);
+
+  // The develop environment arrives while GitHub refuses requests. The list
+  // cannot be asked again, so nobody's keys are fetched: carol's are with the
+  // remembered list, alice's are not, and github.com is not asked who holds
+  // her login today.
+  limited = true;
+  pods = [...pods, pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  const data = await refresh(directory);
+  assert.deepEqual(Object.keys(data.users).sort(), ["alice", "carol"]);
+  const develop = await keyFile(directory, "www.example.com.develop", /carol-key/);
+  assert.match(develop, /carol-key/);
+  assert.doesNotMatch(develop, /alice/);
+  assert.equal(asked(), 2, "one refused request");
+  assert.equal(asked("github.com"), 1);
 });
 
 test("a remembered list keeps its keys when another repository's new list names the same login", async (t) => {
@@ -739,7 +809,7 @@ test("a remembered list keeps its keys when another repository's new list names 
   assert.doesNotMatch(other, /alice-key/);
 });
 
-test("a user without a public key is asked about again at the next refresh", async (t) => {
+test("a key a user adds arrives with the next list, also for a user who had none", async (t) => {
   const directory = gateway(t);
   let pods = [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
   let added = false;
@@ -758,15 +828,25 @@ test("a user without a public key is asked about again at the next refresh", asy
   assert.match(before, /bob-key/);
   assert.doesNotMatch(before, /alice/);
 
-  // She adds her key on GitHub and tries again inside the ten minutes.
+  // She adds her key on GitHub. Inside the ten minutes the remembered list
+  // goes with what was fetched for it, which for her was no key: github.com
+  // is not asked again, about her or anyone.
   added = true;
   pods = [pod("site-develop-2", "www.example.com.develop", "udx/www.example.com")];
   await refresh(directory);
-  const after = await keyFile(directory, "www.example.com.develop", /alice-key/);
-  assert.match(after, /alice-key/);
-  assert.match(after, /bob-key/);
+  const remembered = await keyFile(directory, "www.example.com.develop", /site-develop-2/);
+  assert.match(remembered, /bob-key/);
+  assert.doesNotMatch(remembered, /alice/);
   assert.equal(asked(), 1);
-  assert.equal(asked("github.com"), 3);
+  assert.equal(asked("github.com"), 2);
+
+  // The next list brings her key.
+  process.env.COLLABORATORS_CACHE_TTL_MS = "0";
+  pods = [pod("site-develop-3", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  const listed = await keyFile(directory, "www.example.com.develop", /alice-key/);
+  assert.match(listed, /alice-key/);
+  assert.match(listed, /bob-key/);
 });
 
 test("a refresh writes the keys it fetched, whatever another refresh does meanwhile", async (t) => {

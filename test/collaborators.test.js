@@ -222,6 +222,14 @@ test("a secondary rate limit pauses for the time GitHub names, or a minute when 
   const untold = await collaborators.list("udx/site", "secret", hub.options);
   assert.equal(untold.reason, "rate limit");
   assert.equal(untold.pausedUntil, hub.clock + 60000);
+
+  // The wording GitHub used before, with requests left.
+  collaborators.reset();
+  hub.answer = () =>
+    refusal(403, { "x-ratelimit-remaining": "4000" }, "You have triggered an abuse detection mechanism.");
+  const abuse = await collaborators.list("udx/site", "secret", hub.options);
+  assert.equal(abuse.reason, "rate limit");
+  assert.equal(abuse.pausedUntil, hub.clock + 60000);
 });
 
 test("a pause is never longer than an hour", async () => {
@@ -623,6 +631,106 @@ test("a remembered list goes with the keys remembered with it", async (t) => {
   assert.match(current, /somebody-else-key/);
   assert.doesNotMatch(current, /alice-key/);
   assert.equal(asked("github.com"), 2);
+});
+
+test("keys that could not be fetched are fetched at the next refresh", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  let reachable = false;
+  respond = cluster(
+    () => pods,
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "alice", role_name: "admin" }, { login: "bob", role_name: "write" }],
+    }),
+    (login) => {
+      if (login === "alice" && !reachable) {
+        throw new Error("connect ETIMEDOUT");
+      }
+      return login + "-key";
+    }
+  );
+
+  await refresh(directory);
+  const without = await keyFile(directory, "www.example.com.develop", /bob-key/);
+  assert.match(without, /bob-key/);
+  assert.doesNotMatch(without, /alice-key/);
+  assert.equal(asked("github.com"), 2);
+
+  // Inside the ten minutes: the list is remembered, bob's keys are with it,
+  // alice's are not, so hers are fetched.
+  reachable = true;
+  pods = [pod("site-develop-2", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  const withAlice = await keyFile(directory, "www.example.com.develop", /alice-key/);
+  assert.match(withAlice, /tenant\s+site-develop-2\s+-c\s+site;alice/);
+  assert.match(withAlice, /bob-key/);
+  assert.equal(asked(), 1);
+  assert.equal(asked("github.com"), 3);
+});
+
+test("a user gets keys when a new application of a remembered repository allows the role", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-production-1", "www.example.com.production", "udx/www.example.com")];
+  respond = cluster(
+    () => pods,
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "carol", role_name: "admin" }, { login: "alice", role_name: "write" }],
+    })
+  );
+
+  // Production takes admins only: alice has no access yet, and no keys of hers are fetched.
+  await refresh(directory);
+  const production = await keyFile(directory, "www.example.com.production", /carol-key/);
+  assert.match(production, /carol-key/);
+  assert.doesNotMatch(production, /alice-key/);
+  assert.equal(asked("github.com"), 1);
+
+  // A develop environment of the same repository is deployed inside the ten minutes.
+  pods = [...pods, pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  await refresh(directory);
+  const develop = await keyFile(directory, "www.example.com.develop", /alice-key/);
+  assert.match(develop, /carol-key/);
+  assert.match(develop, /alice-key/);
+  assert.equal(asked(), 1);
+  assert.equal(asked("github.com"), 2);
+});
+
+test("a remembered list keeps its keys when another repository's new list names the same login", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("a-production-1", "a.example.com.production", "udx/tenant-a")];
+  let holder = "alice-key";
+  respond = cluster(
+    () => pods,
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "alice", role_name: "admin" }],
+    }),
+    () => holder
+  );
+
+  await refresh(directory);
+  assert.match(await keyFile(directory, "a.example.com.production", /alice-key/), /alice-key/);
+
+  // The login changes hands. Its new holder is a collaborator of another
+  // repository, which is deployed now; a pod of the first is replaced too.
+  holder = "new-holder-key";
+  pods = [
+    pod("a-production-2", "a.example.com.production", "udx/tenant-a"),
+    pod("b-production-1", "b.example.com.production", "udx/tenant-b"),
+  ];
+  await refresh(directory);
+  const first = await keyFile(directory, "a.example.com.production", /a-production-2/);
+  assert.match(first, /a-production-2/);
+  assert.match(first, /alice-key/);
+  assert.doesNotMatch(first, /new-holder-key/);
+  const other = await keyFile(directory, "b.example.com.production", /new-holder-key/);
+  assert.match(other, /new-holder-key/);
+  assert.doesNotMatch(other, /alice-key/);
 });
 
 test("a list entry that cannot be read costs its application its list, not the others their refresh", async (t) => {

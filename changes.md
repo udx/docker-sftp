@@ -1,3 +1,8 @@
+### 0.18.1
+
+* Key refresh asks GitHub for the collaborators of each repository once instead of once per application, and remembers the answer, with the users' public keys, for ten minutes (`COLLABORATORS_CACHE_TTL_MS`)
+* When GitHub reports the rate limit as spent, the gateway stops asking until it resets and goes by the last collaborator list it has, for up to two hours, so key files keep following replaced pods
+
 ### 0.14.4
 
 * Updated parent image Worker NodeJS to version 0.35.0, including the patched npm `tar` dependency

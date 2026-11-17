@@ -50,6 +50,7 @@ Handles SSH key synchronization and access control.
 #### Key Files:
 
 - `/lib/controller.keys.js`: Key management logic
+- `/lib/collaborators.js`: Collaborator lookups, remembered per repository
 - `/static/templates/*.mustache`: Password file templates
 
 ### 4. State Management

@@ -84,10 +84,45 @@ See [Deployment Guide](deployment.md) for instructions on setting up service acc
 
 ## GitHub Configuration
 
-| Variable                 | Description          | Required | Default                |
-| ------------------------ | -------------------- | -------- | ---------------------- |
-| `ACCESS_TOKEN`           | GitHub access token  | Yes      | -                      |
-| `ALLOW_SSH_ACCESS_ROLES` | Allowed GitHub roles | No       | `admin,maintain,write` |
+| Variable                     | Description                                              | Required | Default                |
+| ---------------------------- | -------------------------------------------------------- | -------- | ---------------------- |
+| `ACCESS_TOKEN`               | GitHub access token                                      | Yes      | -                      |
+| `ALLOW_SSH_ACCESS_ROLES`     | Allowed GitHub roles                                     | No       | `admin,maintain,write` |
+| `COLLABORATORS_CACHE_TTL_MS` | Milliseconds a repository's collaborators are remembered | No       | `600000`               |
+
+### Collaborator lookups and the GitHub rate limit
+
+A key refresh runs when the set of pods in the cluster changes. It needs the
+collaborators of every application's repository, and `ACCESS_TOKEN` shares its
+hourly GitHub rate limit with everything else that uses the same account.
+
+- GitHub is asked once per repository, not once per application: the branch
+  environments of a repository share one lookup.
+- The answer is remembered for `COLLABORATORS_CACHE_TTL_MS`: ten minutes by
+  default, an hour at most, and `0` asks at every refresh. The value is a
+  number of milliseconds in digits; anything else means the default. A refresh
+  inside that time asks nothing, so a change to a repository's collaborators
+  reaches the key files at the first refresh after it has passed.
+- A user's public keys are kept with the repository list that names the user,
+  and are fetched only together with a list GitHub gives in the same refresh.
+  A refresh that goes by a remembered list writes the keys fetched for that
+  list and fetches none, so a key a user adds or removes on GitHub arrives
+  with the next list GitHub gives. Where a remembered list has no keys for a
+  user it gives access to (the fetch failed, or the user had no access
+  through it until now), the refresh asks GitHub for that repository again,
+  once, and fetches the keys with the answer.
+- When GitHub reports the rate limit as spent, the gateway stops asking until
+  the limit resets. Until then, and also when GitHub cannot be reached or
+  answers with an error, it goes by the last list it has for each repository,
+  for up to two hours, so the key files still follow pods that are replaced in
+  the meantime.
+- When GitHub answers "not found" or "forbidden" for a repository, the gateway
+  has no collaborators for it and stops going by an earlier list. As before,
+  key files that already exist are left as they are: a refresh rewrites a key
+  file only when it has keys to write.
+- What is remembered lives in the process that asked. The API server and the
+  Firebase consumer are separate processes; where both refresh keys, each
+  remembers on its own.
 
 ## Firebase Configuration
 

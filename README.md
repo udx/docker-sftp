@@ -74,6 +74,7 @@ cluster-specific values and secrets:
 | `KUBERNETES_CLUSTER_ENDPOINT` | Yes | Kubernetes API endpoint. |
 | `KUBERNETES_CLUSTER_USER_TOKEN` | Yes | Service-account token with workload access. |
 | `ALLOW_SSH_ACCESS_ROLES` | No | Permitted GitHub roles; defaults to `admin,maintain,write`. |
+| `COLLABORATORS_CACHE_TTL_MS` | No | Milliseconds a repository's collaborators are remembered; defaults to `600000` (ten minutes), an hour at most. |
 
 Use Docker secrets, Kubernetes Secrets, or the deployment system for sensitive
 values. Do not commit rendered credentials or pass them in image layers. See

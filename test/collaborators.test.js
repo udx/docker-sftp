@@ -306,16 +306,17 @@ function cluster(pods, repositories) {
     if (options.url.endsWith("/v1/pods")) {
       return { status: 200, headers: {}, data: { items: pods() } };
     }
-    const repository = /api\.github\.com\/repos\/(.+)\/collaborators$/.exec(options.url);
-    if (repository) {
+    const url = new URL(options.url);
+    const repository = /^\/repos\/(.+)\/collaborators$/.exec(url.pathname);
+    if (url.hostname === "api.github.com" && repository) {
       const answer = repositories(repository[1]);
       if (answer instanceof Error) {
         throw answer;
       }
       return answer;
     }
-    const user = /github\.com\/(.+)\.keys$/.exec(options.url);
-    if (user) {
+    const user = /^\/(.+)\.keys$/.exec(url.pathname);
+    if (url.hostname === "github.com" && user) {
       return { status: 200, headers: {}, data: "ssh-ed25519 AAAA " + user[1] + "-key\n" };
     }
     throw new Error("unexpected request: " + options.url);
@@ -350,7 +351,8 @@ async function keyFile(directory, name, expected) {
 }
 
 function asked() {
-  return requested.filter((url) => url.includes("api.github.com")).length;
+  return requested.filter((url) => new URL(url).hostname === "api.github.com")
+    .length;
 }
 
 test("a key refresh asks GitHub once per repository, whatever the number of applications", async (t) => {
@@ -410,18 +412,42 @@ test("a key refresh asks GitHub once per repository, whatever the number of appl
   assert.match(api, /carol-key/);
   assert.doesNotMatch(api, /alice-key/);
 
-  // A pod is replaced while GitHub refuses every request: the key file follows
-  // the new pod from the remembered list, and GitHub is not asked.
-  pods = pods.map((item) =>
-    item.metadata.name === "site-develop-1"
-      ? pod("site-develop-2", "www.example.com.develop", "udx/www.example.com")
-      : item
-  );
-  limited = true;
+  // A pod is replaced inside the ten minutes: the key file follows the new pod
+  // from the remembered list, and GitHub is not asked.
+  const replace = (from, to) => {
+    pods = pods.map((item) =>
+      item.metadata.name === from
+        ? pod(to, "www.example.com.develop", "udx/www.example.com")
+        : item
+    );
+  };
+  replace("site-develop-1", "site-develop-2");
   const second = await refresh(directory);
   assert.equal(asked(), 2, "a refresh within ten minutes asks nothing");
   assert.deepEqual(Object.keys(second.users).sort(), ["alice", "bob", "carol"]);
-  const replaced = await keyFile(directory, "www.example.com.develop", /site-develop-2/);
-  assert.match(replaced, /tenant\s+site-develop-2\s+-c\s+site;bob/);
-  assert.match(replaced, /bob-key/);
+  const followed = await keyFile(directory, "www.example.com.develop", /site-develop-2/);
+  assert.match(followed, /tenant\s+site-develop-2\s+-c\s+site;bob/);
+  assert.match(followed, /bob-key/);
+
+  // The answers have expired and GitHub refuses every request: the rate limit
+  // is spent. The refresh asks, is refused, and goes by the last lists, so the
+  // key file still follows the next pod with the same users.
+  process.env.COLLABORATORS_CACHE_TTL_MS = "0";
+  limited = true;
+  replace("site-develop-2", "site-develop-3");
+  const third = await refresh(directory);
+  assert.equal(asked(), 4, "one refused request per repository");
+  assert.deepEqual(Object.keys(third.users).sort(), ["alice", "bob", "carol"]);
+  const limitedFile = await keyFile(directory, "www.example.com.develop", /site-develop-3/);
+  assert.match(limitedFile, /tenant\s+site-develop-3\s+-c\s+site;alice/);
+  assert.match(limitedFile, /tenant\s+site-develop-3\s+-c\s+site;bob/);
+  assert.doesNotMatch(limitedFile, /eve-key/);
+
+  // Until the limit resets GitHub is left alone.
+  replace("site-develop-3", "site-develop-4");
+  const fourth = await refresh(directory);
+  assert.equal(asked(), 4, "no request while the rate limit is spent");
+  assert.deepEqual(Object.keys(fourth.users).sort(), ["alice", "bob", "carol"]);
+  const paused = await keyFile(directory, "www.example.com.develop", /site-develop-4/);
+  assert.match(paused, /tenant\s+site-develop-4\s+-c\s+site;bob/);
 });

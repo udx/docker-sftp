@@ -84,10 +84,30 @@ See [Deployment Guide](deployment.md) for instructions on setting up service acc
 
 ## GitHub Configuration
 
-| Variable                 | Description          | Required | Default                |
-| ------------------------ | -------------------- | -------- | ---------------------- |
-| `ACCESS_TOKEN`           | GitHub access token  | Yes      | -                      |
-| `ALLOW_SSH_ACCESS_ROLES` | Allowed GitHub roles | No       | `admin,maintain,write` |
+| Variable                     | Description                                              | Required | Default                |
+| ---------------------------- | -------------------------------------------------------- | -------- | ---------------------- |
+| `ACCESS_TOKEN`               | GitHub access token                                      | Yes      | -                      |
+| `ALLOW_SSH_ACCESS_ROLES`     | Allowed GitHub roles                                     | No       | `admin,maintain,write` |
+| `COLLABORATORS_CACHE_TTL_MS` | Milliseconds a repository's collaborators are remembered | No       | `600000`               |
+
+### Collaborator lookups and the GitHub rate limit
+
+A key refresh runs when the set of pods in the cluster changes. It needs the
+collaborators of every application's repository, and `ACCESS_TOKEN` shares its
+hourly GitHub rate limit with everything else that uses the same account.
+
+- GitHub is asked once per repository, not once per application: the branch
+  environments of a repository share one lookup.
+- The answer is remembered for `COLLABORATORS_CACHE_TTL_MS` (ten minutes by
+  default; `0` asks at every refresh). A refresh inside that time asks nothing,
+  so a change to a repository's collaborators reaches the key files at the
+  first refresh after it has passed.
+- When GitHub reports the rate limit as spent, the gateway stops asking until
+  the limit resets. Until then it uses the last list it has for each
+  repository, for up to a day, so the key files still follow pods that are
+  replaced in the meantime.
+- A repository GitHub answers "not found" or "forbidden" for has no
+  collaborators as far as the gateway is concerned; an earlier list is dropped.
 
 ## Firebase Configuration
 

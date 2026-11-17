@@ -36,6 +36,11 @@ The system automatically:
 - Handles key rotation
 - Manages access permissions
 
+A repository's collaborators are looked up once per repository and remembered
+for ten minutes (`COLLABORATORS_CACHE_TTL_MS`), so a collaborator who was added
+or removed shows up at the first key refresh after that. See
+[Collaborator lookups](environment.md#collaborator-lookups-and-the-github-rate-limit).
+
 ### Manual Key Operations
 
 ```bash

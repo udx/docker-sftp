@@ -109,8 +109,8 @@ hourly GitHub rate limit with everything else that uses the same account.
   list and fetches none, so a key a user adds or removes on GitHub arrives
   with the next list GitHub gives. Where a remembered list has no keys for a
   user it gives access to (the fetch failed, or the user had no access
-  through it until now), the refresh asks GitHub for that repository again
-  and fetches the keys with the answer.
+  through it until now), the refresh asks GitHub for that repository again,
+  once, and fetches the keys with the answer.
 - When GitHub reports the rate limit as spent, the gateway stops asking until
   the limit resets. Until then, and also when GitHub cannot be reached or
   answers with an error, it goes by the last list it has for each repository,

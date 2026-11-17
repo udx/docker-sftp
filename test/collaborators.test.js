@@ -715,6 +715,44 @@ test("a user gets keys when a new application of a remembered repository allows 
   assert.equal(asked("github.com"), 3);
 });
 
+test("keys that can never be fetched cost one more lookup, not one at every refresh", async (t) => {
+  const directory = gateway(t);
+  let pods = [pod("site-develop-1", "www.example.com.develop", "udx/www.example.com")];
+  respond = cluster(
+    () => pods,
+    () => ({
+      status: 200,
+      headers: { "x-ratelimit-remaining": "4000" },
+      data: [{ login: "alice", role_name: "admin" }, { login: "bob", role_name: "write" }],
+    }),
+    (login) => {
+      if (login === "alice") {
+        throw new Error("Request failed with status code 404");
+      }
+      return login + "-key";
+    }
+  );
+  const next = async (name) => {
+    pods = [pod(name, "www.example.com.develop", "udx/www.example.com")];
+    await refresh(directory);
+    const file = await keyFile(directory, "www.example.com.develop", new RegExp(name));
+    assert.match(file, /bob-key/);
+    assert.doesNotMatch(file, /alice/);
+  };
+
+  await refresh(directory);
+  assert.equal(asked(), 1);
+
+  // The repository is asked again once, and alice's keys fail again.
+  await next("site-develop-2");
+  assert.equal(asked(), 2);
+
+  // After that the list is left alone until it expires.
+  await next("site-develop-3");
+  await next("site-develop-4");
+  assert.equal(asked(), 2);
+});
+
 test("when a repository is asked again, its new list decides", async (t) => {
   const directory = gateway(t);
   let pods = [pod("site-production-1", "www.example.com.production", "udx/www.example.com")];
